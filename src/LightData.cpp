@@ -168,3 +168,17 @@ std::uint32_t LightData::ReattachExistingLights(RE::TESObjectREFR* a_ref, RE::Ni
 	});
 	return lightCount;
 }
+
+void LoadFormsFromAttachLightVec(AttachLightDataVec& a_attachLightDataVec)
+{
+	for (auto& attachLightData : a_attachLightDataVec) {
+		std::visit(overload{
+					   [&](PointData& pointData) {
+						   pointData.LoadFormsFromConfig();
+					   },
+					   [&](NodeData& nodeData) {
+						   nodeData.LoadFormsFromConfig();
+					   } },
+			attachLightData);
+	}
+}

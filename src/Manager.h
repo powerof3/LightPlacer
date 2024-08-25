@@ -17,13 +17,16 @@ public:
 	void ClearProcessedLights(RE::TESObjectREFR* a_ref);
 
 private:
-	struct Config
+	struct MultiModelSet
 	{
-		bool empty() const { return model.empty() && reference.empty(); }
+		StringSet          models;
+		AttachLightDataVec lightData;
+	};
 
-		StringMap<AttachLightDataVec> model{};
-		// only used for reading
-		StringMap<AttachLightDataVec> reference{};
+	struct MultiReferenceSet
+	{
+		StringSet          references;
+		AttachLightDataVec lightData;
 	};
 
 	struct FlickerData
@@ -55,8 +58,9 @@ private:
 	void SpawnAndProcessLight(const LightData& a_lightData, const ObjectRefData& a_refData, RE::NiNode* a_node, const RE::NiPoint3& a_point = RE::NiPoint3::Zero(), std::uint32_t a_index = 0);
 
 	// members
-	Config                              config{};
-	Map<RE::FormID, AttachLightDataVec> gameReferences{};
+	std::vector<std::variant<MultiModelSet, MultiReferenceSet>> config{};
+	Map<RE::FormID, AttachLightDataVec>                         gameReferences{};
+	StringMap<AttachLightDataVec>                               gameModels{};
 
 	Map<RE::FormID, Map<RE::RefHandle, std::vector<FlickerData>>>                      flickeringRefs{};
 	Map<RE::FormID, Map<RE::RefHandle, Map<RE::TESForm*, std::vector<EmittanceData>>>> emittanceRefs{};

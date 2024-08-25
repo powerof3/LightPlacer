@@ -27,22 +27,22 @@ bool LightManager::ReadConfigs()
 
 void LightManager::LoadFormsFromConfig()
 {
-	for (auto& [model, dataVec] : config.model) {
-		for (auto& data : dataVec) {
-			std::visit(overload{
-						   [&](PointData& pointData) {
-							   pointData.data.LoadFormsFromConfig();
-						   },
-						   [&](NodeData& nodeData) {
-							   nodeData.data.LoadFormsFromConfig();
-						   } },
-				data);
-		}
+	for (auto& multiData : config) {
+		std::visit(overload{
+					   [&](MultiModelSet& models) {
+						   LoadFormsFromAttachLightVec(models.lightData);
+						   for (auto& model : models.models) {
+							   gameModels[model].append_range(models.lightData);
+						   }
+					   },
+					   [&](MultiReferenceSet& references) {
+						   LoadFormsFromAttachLightVec(references.lightData);
+						   for (auto& rawID : references.references) {
+							   gameReferences[RE::GetFormID(rawID)].append_range(references.lightData);
+						   }
+					   } },
+			multiData);
 	}
-	for (auto& [rawFormID, dataVec] : config.reference) {
-		gameReferences.emplace(RE::GetFormID(rawFormID), std::move(dataVec));
-	}
-	config.reference.clear();
 }
 
 void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base)
@@ -89,7 +89,7 @@ void LightManager::AttachConfigLights(const ObjectRefData& a_refData, RE::TESBou
 		return;
 	}
 
-	if (auto mIt = config.model.find(RE::SanitizeModel(model->GetModel())); mIt != config.model.end()) {
+	if (auto mIt = gameModels.find(RE::SanitizeModel(model->GetModel())); mIt != gameModels.end()) {
 		for (const auto& [index, data] : std::views::enumerate(mIt->second)) {
 			AttachConfigLights(a_refData, data, index);
 		}
