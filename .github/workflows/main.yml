@@ -1,0 +1,29 @@
+name: Main
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+.rc[0-9]+'
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run:
+    if: github.repository_owner == 'powerof3'
+    uses: adya/pack-skse-mod/.github/workflows/pack.yml@main
+    with:
+      CMAKE_VR_CONFIG_PRESET: ''
+      CMAKE_VR_BUILD_PRESET: ''
+      FOMOD_INCLUDE_PDB: true
+      FOMOD_MOD_NAME: "Light Placer"
+      FOMOD_MOD_AUTHOR: "powerofthree"
+      FOMOD_MOD_NEXUS_ID: "127557"
+      FOMOD_SE_MIN_GAME_VERSION: '1.5'
+      FOMOD_AE_NAME: 'SSE v1.6+ ("Anniversary Edition")'
+      FOMOD_AE_DESCR: 'Select this if you are using Skyrim Anniversary Edition v1.6 or higher.'
+      FOMOD_AE_MIN_GAME_VERSION: '1.6'
+      PUBLISH_ARCHIVE_TYPE: '7z'
+      VCPKG_COMMIT_ID: '3508985146f1b1d248c67ead13f8f54be5b4f5da'
