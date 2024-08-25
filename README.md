@@ -1,6 +1,6 @@
-# Use Or Take
+# Light Placer
 
-SKSE plugin that lets you use OR take items
+SKSE plugin that adds lights using configurable JSON files
 
 ## Requirements
 * [CMake](https://cmake.org/)
@@ -25,8 +25,8 @@ SKSE plugin that lets you use OR take items
 
 ## Building
 ```
-git clone https://github.com/powerof3/UseOrTake.git
-cd UseOrTake
+git clone https://github.com/powerof3/LightPlacer.git
+cd LightPlacer
 ```
 
 ### SSE
