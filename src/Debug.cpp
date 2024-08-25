@@ -21,7 +21,11 @@ namespace Debug
 		{
 			if (a_obj) {
 				if (auto root = a_obj->Get3D()) {
-					return true;
+					auto* shadowSceneNode = RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0];
+					RE::BSVisit::TraverseScenegraphLights(root, [&](RE::NiPointLight* ptLight) {
+						ptLight->SetAppCulled(!ptLight->GetAppCulled());
+						return RE::BSVisit::BSVisitControl::kContinue;
+					});
 				}
 			}
 

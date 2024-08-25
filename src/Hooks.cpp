@@ -113,7 +113,7 @@ namespace Hooks
 	{
 		logger::info("{:*^30}", "HOOKS");
 
-		Clone3D<RE::BGSMovableStatic, 2>::Install();
+		//Clone3D<RE::BGSMovableStatic, 2>::Install();
 		Clone3D<RE::TESFurniture>::Install();
 		Clone3D<RE::TESObjectDOOR>::Install();
 		Clone3D<RE::TESObjectMISC>::Install();
