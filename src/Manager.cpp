@@ -179,7 +179,7 @@ void LightManager::SpawnAndProcessLight(const LightData& a_lightData, const Obje
 
 	if (auto [light, flickers, emittance] = a_lightData.SpawnLight(ref, a_node, a_point, a_index); light) {
 		if (flickers) {
-			flickeringRefs[cellFormID][handle].emplace_back(a_lightData.light, light);
+			flickeringRefs[cellFormID][handle].emplace_back(a_lightData.light, light, a_lightData.GetFade());
 		}
 		if (emittance) {
 			emittanceRefs[cellFormID][handle][emittance].emplace_back(a_lightData.GetDiffuse(), light);
@@ -228,9 +228,12 @@ void LightManager::UpdateFlickering(RE::TESObjectCELL* a_cell)
 			RE::TESObjectREFRPtr ref{};
 			if (RE::LookupReferenceByHandle(handle, ref); ref) {
 				if (ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistance) {
-					for (auto& [light, ptLight] : lightVec) {
+					for (auto& [light, ptLight, fade] : lightVec) {
 						if (light && ptLight) {
+							auto originalFade = light->fade;
+							light->fade = fade;
 							RE::UpdateLight(light, ptLight, ref.get(), -1.0f);
+							light->fade = originalFade;
 						}
 					}
 				}

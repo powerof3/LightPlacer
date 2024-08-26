@@ -42,13 +42,15 @@ private:
 
 	struct FlickerData
 	{
-		FlickerData(RE::TESObjectLIGH* a_light, RE::NiPointLight* a_ptLight) :
+		FlickerData(RE::TESObjectLIGH* a_light, RE::NiPointLight* a_ptLight, float a_fade) :
 			light(a_light),
-			ptLight(a_ptLight)
+			ptLight(a_ptLight),
+			fade(a_fade)
 		{}
 
 		RE::TESObjectLIGH*              light{};
 		RE::NiPointer<RE::NiPointLight> ptLight{};
+		float                           fade{};
 	};
 
 	struct EmittanceData
