@@ -21,7 +21,9 @@ namespace Debug
 		{
 			if (a_obj) {
 				if (auto root = a_obj->Get3D()) {
+					logger::info("{:X}", a_obj->GetFormID());
 					RE::BSVisit::TraverseScenegraphLights(root, [&](RE::NiPointLight* ptLight) {
+						logger::info("\t{}", ptLight->name.c_str());
 						ptLight->SetAppCulled(!ptLight->GetAppCulled());
 						return RE::BSVisit::BSVisitControl::kContinue;
 					});

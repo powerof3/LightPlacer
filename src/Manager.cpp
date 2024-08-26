@@ -29,16 +29,22 @@ void LightManager::LoadFormsFromConfig()
 {
 	for (auto& multiData : config) {
 		std::visit(overload{
-					   [&](MultiModelSet& models) {
+					   [&](Config::MultiModelSet& models) {
 						   LoadFormsFromAttachLightVec(models.lightData);
 						   for (auto& model : models.models) {
 							   gameModels[model].append_range(models.lightData);
 						   }
 					   },
-					   [&](MultiReferenceSet& references) {
+					   [&](Config::MultiReferenceSet& references) {
 						   LoadFormsFromAttachLightVec(references.lightData);
 						   for (auto& rawID : references.references) {
 							   gameReferences[RE::GetFormID(rawID)].append_range(references.lightData);
+						   }
+					   },
+					   [&](Config::MultiAddonSet& addonNodes) {
+						   LoadFormsFromAttachLightVec(addonNodes.lightData);
+						   for (auto& index: addonNodes.addonNodes) {
+							   gameAddonNodes[index].append_range(addonNodes.lightData);
 						   }
 					   } },
 			multiData);
@@ -53,8 +59,15 @@ void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject*
 		return;
 	}
 
-	AttachConfigLights(refData, a_base);
-	AttachMeshLights(refData);
+	auto model = a_base->As<RE::TESModel>();
+	if (!model) {
+		return;
+	}
+
+	std::string modelPath = RE::SanitizeModel(model->GetModel());
+
+	AttachConfigLights(refData, modelPath, a_base->GetFormID());
+	AttachMeshLights(refData, modelPath);
 }
 
 void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root)
@@ -65,18 +78,24 @@ void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject*
 		return;
 	}
 
-	AttachConfigLights(refData, a_base);
-	AttachMeshLights(refData);
+	auto model = a_base->As<RE::TESModel>();
+	if (!model) {
+		return;
+	}
+
+	std::string modelPath = RE::SanitizeModel(model->GetModel());
+
+	AttachConfigLights(refData, modelPath, a_base->GetFormID());
+	AttachMeshLights(refData, modelPath);
 }
 
-void LightManager::AttachConfigLights(const ObjectRefData& a_refData, RE::TESBoundObject* a_base)
+void LightManager::AttachConfigLights(const ObjectRefData& a_refData, const std::string& a_model, RE::FormID a_baseFormID)
 {
 	auto refID = a_refData.ref->GetFormID();
-	auto baseID = a_base->GetFormID();
-	
+
 	auto fIt = gameReferences.find(refID);
 	if (fIt == gameReferences.end()) {
-		fIt = gameReferences.find(baseID);
+		fIt = gameReferences.find(a_baseFormID);
 	}
 	if (fIt != gameReferences.end()) {
 		for (const auto& [index, data] : std::views::enumerate(fIt->second)) {
@@ -84,12 +103,7 @@ void LightManager::AttachConfigLights(const ObjectRefData& a_refData, RE::TESBou
 		}
 	}
 
-	auto model = a_base->As<RE::TESModel>();
-	if (!model) {
-		return;
-	}
-
-	if (auto mIt = gameModels.find(RE::SanitizeModel(model->GetModel())); mIt != gameModels.end()) {
+	if (auto mIt = gameModels.find(a_model); mIt != gameModels.end()) {
 		for (const auto& [index, data] : std::views::enumerate(mIt->second)) {
 			AttachConfigLights(a_refData, data, index);
 		}
@@ -126,13 +140,27 @@ void LightManager::AttachConfigLights(const ObjectRefData& a_refData, const Atta
 							   }
 						   }
 					   }
+				   },
+				   [&](const FilteredData&) {
+					   return; // not handled here.
 				   } },
 		a_attachData);
 }
 
-void LightManager::AttachMeshLights(const ObjectRefData& a_refData)
+void LightManager::AttachMeshLights(const ObjectRefData& a_refData, const std::string& a_model)
 {
 	RE::BSVisit::TraverseScenegraphObjects(a_refData.root, [&](RE::NiAVObject* a_obj) {
+		if (auto addonNode = netimmerse_cast<RE::BSValueNode*>(a_obj)) {
+			if (auto it = gameAddonNodes.find(addonNode->value); it != gameAddonNodes.end()) {
+				for (const auto& [index, data] : std::views::enumerate(it->second)) {
+					if (auto& filteredData = std::get<FilteredData>(data); !filteredData.IsInvalid(a_model)) {
+						if (filteredData.data.ReattachExistingLights(a_refData.ref, addonNode) == 0) {
+							SpawnAndProcessLight(filteredData.data, a_refData, addonNode);
+						}
+					}
+				}
+			}
+		}		
 		if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
 			auto lightData = LightData(xData);
 			if (auto node = lightData.GetOrCreateNode(a_refData.root->AsNode(), a_obj, 0)) {

@@ -17,16 +17,27 @@ public:
 	void ClearProcessedLights(RE::TESObjectREFR* a_ref);
 
 private:
-	struct MultiModelSet
+	struct Config
 	{
-		StringSet          models;
-		AttachLightDataVec lightData;
-	};
+		struct MultiModelSet
+		{
+			StringSet          models;
+			AttachLightDataVec lightData;
+		};
 
-	struct MultiReferenceSet
-	{
-		StringSet          references;
-		AttachLightDataVec lightData;
+		struct MultiReferenceSet
+		{
+			StringSet          references;
+			AttachLightDataVec lightData;
+		};
+
+		struct MultiAddonSet
+		{
+			Set<std::uint32_t> addonNodes;
+			AttachLightDataVec lightData;
+		};
+
+		using Format = std::variant<MultiModelSet, MultiReferenceSet, MultiAddonSet>;
 	};
 
 	struct FlickerData
@@ -51,16 +62,17 @@ private:
 		RE::NiPointer<RE::NiPointLight> ptLight{};
 	};
 
-	void AttachConfigLights(const ObjectRefData& a_refData, RE::TESBoundObject* a_base);
+	void AttachConfigLights(const ObjectRefData& a_refData, const std::string& a_model, RE::FormID a_baseFormID);
 	void AttachConfigLights(const ObjectRefData& a_refData, const AttachLightData& a_attachData, std::uint32_t a_index);
 
-	void AttachMeshLights(const ObjectRefData& a_refData);
+	void AttachMeshLights(const ObjectRefData& a_refData, const std::string& a_model);
 	void SpawnAndProcessLight(const LightData& a_lightData, const ObjectRefData& a_refData, RE::NiNode* a_node, const RE::NiPoint3& a_point = RE::NiPoint3::Zero(), std::uint32_t a_index = 0);
 
 	// members
-	std::vector<std::variant<MultiModelSet, MultiReferenceSet>> config{};
-	Map<RE::FormID, AttachLightDataVec>                         gameReferences{};
-	StringMap<AttachLightDataVec>                               gameModels{};
+	std::vector<Config::Format>            config{};
+	StringMap<AttachLightDataVec>          gameModels{};
+	Map<RE::FormID, AttachLightDataVec>    gameReferences{};
+	Map<std::uint32_t, AttachLightDataVec> gameAddonNodes{};
 
 	Map<RE::FormID, Map<RE::RefHandle, std::vector<FlickerData>>>                      flickeringRefs{};
 	Map<RE::FormID, Map<RE::RefHandle, Map<RE::TESForm*, std::vector<EmittanceData>>>> emittanceRefs{};

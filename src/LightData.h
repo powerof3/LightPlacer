@@ -71,21 +71,26 @@ struct glz::meta<LightData>
 
 struct PointData
 {
-	void LoadFormsFromConfig() { data.LoadFormsFromConfig(); }
-	
 	std::vector<RE::NiPoint3> points{};
 	LightData                 data{};
 };
 
 struct NodeData
 {
-	void LoadFormsFromConfig() { data.LoadFormsFromConfig(); }
-	
 	std::vector<std::string> nodes{};
 	LightData                data{};
 };
 
-using AttachLightData = std::variant<PointData, NodeData>;
+struct FilteredData
+{
+	bool IsInvalid(const std::string& a_model);
+	
+	StringSet whiteList;
+	StringSet blackList;
+	LightData data{};
+};
+
+using AttachLightData = std::variant<PointData, NodeData, FilteredData>;
 using AttachLightDataVec = std::vector<AttachLightData>;
 
 void LoadFormsFromAttachLightVec(AttachLightDataVec& a_attachLightDataVec);

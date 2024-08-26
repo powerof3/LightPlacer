@@ -174,11 +174,19 @@ void LoadFormsFromAttachLightVec(AttachLightDataVec& a_attachLightDataVec)
 	for (auto& attachLightData : a_attachLightDataVec) {
 		std::visit(overload{
 					   [&](PointData& pointData) {
-						   pointData.LoadFormsFromConfig();
+						   pointData.data.LoadFormsFromConfig();
 					   },
 					   [&](NodeData& nodeData) {
-						   nodeData.LoadFormsFromConfig();
+						   nodeData.data.LoadFormsFromConfig();
+					   },
+					   [&](FilteredData& filteredData) {
+						   filteredData.data.LoadFormsFromConfig();
 					   } },
 			attachLightData);
 	}
+}
+
+bool FilteredData::IsInvalid(const std::string& a_model)
+{
+	return (!blackList.empty() && blackList.contains(a_model)) || (!whiteList.empty() && !whiteList.contains(a_model));
 }
