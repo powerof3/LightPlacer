@@ -11,7 +11,7 @@ namespace Hooks
 		static RE::NiAVObject* thunk(T* a_this, RE::TESObjectREFR* a_ref)
 		{
 			auto node = func(a_this, a_ref);
-			LightManager::GetSingleton()->TryAttachLights(a_ref, a_this->As<RE::TESBoundObject>(), node);
+			LightManager::GetSingleton()->TryAttachLights(a_ref, skyrim_cast<RE::TESBoundObject*>(a_this), node);
 			return node;
 		}
 		static inline REL::Relocation<decltype(thunk)> func;

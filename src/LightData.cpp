@@ -7,11 +7,11 @@ ObjectRefData::ObjectRefData(RE::TESObjectREFR* a_ref) :
 ObjectRefData::ObjectRefData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root) :
 	ref(a_ref),
 	root(a_root ? a_root->AsNode() : nullptr),
-	cellFormID(a_ref->GetParentCell() ? a_ref->GetParentCell()->GetFormID() : 0),
+	cellFormID(a_ref->GetSaveParentCell() ? a_ref->GetSaveParentCell()->GetFormID() : 0),
 	handle(a_ref->CreateRefHandle().native_handle())
 {}
 
-bool ObjectRefData::IsValid()
+bool ObjectRefData::IsValid() const
 {
 	if (ref->IsDisabled() || ref->IsDeleted() || !root || cellFormID == 0) {
 		return false;

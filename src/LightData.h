@@ -6,7 +6,7 @@ struct ObjectRefData
 	ObjectRefData(RE::TESObjectREFR* a_ref);
 	ObjectRefData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root);
 
-	bool IsValid();
+	bool IsValid() const;
 
 	// members
 	RE::TESObjectREFR* ref{};
@@ -84,7 +84,7 @@ struct NodeData
 struct FilteredData
 {
 	bool IsInvalid(const std::string& a_model);
-	
+
 	StringSet whiteList;
 	StringSet blackList;
 	LightData data{};

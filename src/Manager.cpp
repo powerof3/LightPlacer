@@ -43,7 +43,7 @@ void LightManager::LoadFormsFromConfig()
 					   },
 					   [&](Config::MultiAddonSet& addonNodes) {
 						   LoadFormsFromAttachLightVec(addonNodes.lightData);
-						   for (auto& index: addonNodes.addonNodes) {
+						   for (auto& index : addonNodes.addonNodes) {
 							   gameAddonNodes[index].append_range(addonNodes.lightData);
 						   }
 					   } },
@@ -53,40 +53,39 @@ void LightManager::LoadFormsFromConfig()
 
 void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base)
 {
+	if (!a_base || a_base->Is(RE::FormType::Light)) {
+		return;
+	}
+
 	ObjectRefData refData(a_ref);
-
-	if (!refData.IsValid() || !a_base || a_base->Is(RE::FormType::Light)) {
-		return;
-	}
-
-	auto model = a_base->As<RE::TESModel>();
-	if (!model) {
-		return;
-	}
-
-	std::string modelPath = RE::SanitizeModel(model->GetModel());
-
-	AttachConfigLights(refData, modelPath, a_base->GetFormID());
-	AttachMeshLights(refData, modelPath);
+	TryAttachLightsImpl(refData, a_base);
 }
 
 void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root)
 {
-	ObjectRefData refData(a_ref, a_root);
-
-	if (!refData.IsValid() || !a_base) {
+	if (!a_base) {
 		return;
 	}
 
-	auto model = a_base->As<RE::TESModel>();
+	ObjectRefData refData(a_ref, a_root);
+	TryAttachLightsImpl(refData, a_base);
+}
+
+void LightManager::TryAttachLightsImpl(const ObjectRefData& a_refData, RE::TESBoundObject* a_object)
+{
+	if (!a_refData.IsValid()) {
+		return;
+	}
+
+	auto model = skyrim_cast<RE::TESModel*>(a_object);
 	if (!model) {
 		return;
 	}
 
 	std::string modelPath = RE::SanitizeModel(model->GetModel());
 
-	AttachConfigLights(refData, modelPath, a_base->GetFormID());
-	AttachMeshLights(refData, modelPath);
+	AttachConfigLights(a_refData, modelPath, a_object->GetFormID());
+	AttachMeshLights(a_refData, modelPath);
 }
 
 void LightManager::AttachConfigLights(const ObjectRefData& a_refData, const std::string& a_model, RE::FormID a_baseFormID)
@@ -142,7 +141,7 @@ void LightManager::AttachConfigLights(const ObjectRefData& a_refData, const Atta
 					   }
 				   },
 				   [&](const FilteredData&) {
-					   return; // not handled here.
+					   return;  // not handled here.
 				   } },
 		a_attachData);
 }
@@ -160,7 +159,7 @@ void LightManager::AttachMeshLights(const ObjectRefData& a_refData, const std::s
 					}
 				}
 			}
-		}		
+		}
 		if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
 			auto lightData = LightData(xData);
 			if (auto node = lightData.GetOrCreateNode(a_refData.root->AsNode(), a_obj, 0)) {

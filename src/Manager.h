@@ -10,6 +10,7 @@ public:
 
 	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
 	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root);
+	
 	void DetachLights(RE::TESObjectREFR* a_ref);
 
 	void UpdateFlickering(RE::TESObjectCELL* a_cell);
@@ -64,6 +65,8 @@ private:
 		RE::NiPointer<RE::NiPointLight> ptLight{};
 	};
 
+	void TryAttachLightsImpl(const ObjectRefData& a_refData, RE::TESBoundObject* a_object);
+	
 	void AttachConfigLights(const ObjectRefData& a_refData, const std::string& a_model, RE::FormID a_baseFormID);
 	void AttachConfigLights(const ObjectRefData& a_refData, const AttachLightData& a_attachData, std::uint32_t a_index);
 
