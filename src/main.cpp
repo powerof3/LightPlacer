@@ -83,7 +83,7 @@ void InitializeLog()
 	log->flush_on(spdlog::level::info);
 
 	spdlog::set_default_logger(std::move(log));
-	spdlog::set_pattern("%v"s);
+	spdlog::set_pattern("[%H:%M:%S.%e] %v"s);
 
 	logger::info(FMT_STRING("{} v{}"), Version::PROJECT, Version::NAME);
 }
@@ -94,7 +94,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 
 	logger::info("Game version : {}", a_skse->RuntimeVersion().string());
 
-	SKSE::Init(a_skse);
+	SKSE::Init(a_skse, false);
 
 	SKSE::AllocTrampoline(128);
 
