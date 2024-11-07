@@ -20,7 +20,19 @@ struct LightData
 	LightData() = default;
 	LightData(const RE::NiStringsExtraData* a_data);
 
-	void LoadFormsFromConfig();
+	// CS light flags
+	enum class LightFlags : std::uint32_t
+	{
+		None = 0,
+		PortalStrict = (1 << 0),
+		Shadow = (1 << 1),
+		Simple = (1 << 2),
+		Particle = (1 << 3),
+		Billboard = (1 << 4)
+	};
+
+	void ReadFlags();
+	bool PostProcess();
 
 	bool                                     IsValid() const;
 	std::string                              GetName(std::uint32_t a_index) const;
@@ -38,14 +50,16 @@ struct LightData
 	std::uint32_t ReattachExistingLights(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_node) const;
 
 	// members
-	RE::TESObjectLIGH* light{ nullptr };
-	std::string        lightEDID{};
-	float              radius{ 0.0f };
-	float              fade{ 0.0f };
-	RE::NiPoint3       offset{};
-	RE::TESForm*       emittanceForm{ nullptr };
-	std::string        emittanceFormEDID{};
-	float              chance{ 100.0 };
+	RE::TESObjectLIGH*                      light{ nullptr };
+	std::string                             lightEDID{};
+	float                                   radius{ 0.0f };
+	float                                   fade{ 0.0f };
+	RE::NiPoint3                            offset{};
+	RE::TESForm*                            emittanceForm{ nullptr };
+	std::string                             emittanceFormEDID{};
+	REX::EnumSet<LightFlags, std::uint32_t> flags{ LightFlags::None };
+	std::string                             rawFlags{};
+	float                                   chance{ 100.0 };
 
 	constexpr static auto LP_ID = "LightPlacer|"sv;
 	constexpr static auto LP_NODE = "LightPlacerNode #"sv;
@@ -61,6 +75,7 @@ struct glz::meta<LightData>
 		"fade", &T::fade,
 		"offset", &T::offset,
 		"externalEmittance", &T::emittanceFormEDID,
+		"flags", &T::rawFlags,
 		"chance", &T::chance);
 };
 
@@ -88,4 +103,4 @@ struct FilteredData
 using AttachLightData = std::variant<PointData, NodeData, FilteredData>;
 using AttachLightDataVec = std::vector<AttachLightData>;
 
-void LoadFormsFromAttachLightVec(AttachLightDataVec& a_attachLightDataVec);
+void AttachLightVecPostProcess(AttachLightDataVec& a_attachLightDataVec);

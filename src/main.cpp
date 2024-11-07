@@ -25,7 +25,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 		}
 		break;
 	case SKSE::MessagingInterface::kDataLoaded:
-		LightManager::GetSingleton()->LoadFormsFromConfig();
+		LightManager::GetSingleton()->OnDataLoad();
 		Debug::Install();
 		break;
 	default:

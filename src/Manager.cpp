@@ -25,24 +25,24 @@ bool LightManager::ReadConfigs()
 	return !config.empty();
 }
 
-void LightManager::LoadFormsFromConfig()
+void LightManager::OnDataLoad()
 {
 	for (auto& multiData : config) {
 		std::visit(overload{
 					   [&](Config::MultiModelSet& models) {
-						   LoadFormsFromAttachLightVec(models.lightData);
+						   AttachLightVecPostProcess(models.lightData);
 						   for (auto& model : models.models) {
 							   gameModels[model].append_range(models.lightData);
 						   }
 					   },
 					   [&](Config::MultiReferenceSet& references) {
-						   LoadFormsFromAttachLightVec(references.lightData);
+						   AttachLightVecPostProcess(references.lightData);
 						   for (auto& rawID : references.references) {
 							   gameReferences[RE::GetFormID(rawID)].append_range(references.lightData);
 						   }
 					   },
 					   [&](Config::MultiAddonSet& addonNodes) {
-						   LoadFormsFromAttachLightVec(addonNodes.lightData);
+						   AttachLightVecPostProcess(addonNodes.lightData);
 						   for (auto& index : addonNodes.addonNodes) {
 							   gameAddonNodes[index].append_range(addonNodes.lightData);
 						   }
@@ -82,7 +82,10 @@ void LightManager::TryAttachLightsImpl(const ObjectRefData& a_refData, RE::TESBo
 		return;
 	}
 
-	std::string modelPath = RE::SanitizeModel(model->GetModel());
+	auto modelPath = RE::SanitizeModel(model->GetModel());
+	if (modelPath.empty()) {
+		return;
+	}
 
 	AttachConfigLights(a_refData, modelPath, a_object->GetFormID());
 	AttachMeshLights(a_refData, modelPath);

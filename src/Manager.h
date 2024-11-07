@@ -6,7 +6,7 @@ class LightManager : public ISingleton<LightManager>
 {
 public:
 	bool ReadConfigs();
-	void LoadFormsFromConfig();
+	void OnDataLoad();
 
 	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
 	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root);

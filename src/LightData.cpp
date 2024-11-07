@@ -59,6 +59,9 @@ LightData::LightData(const RE::NiStringsExtraData* a_data)
 					emittanceForm = RE::TESForm::LookupByEditorID(value);
 				}
 				break;
+			case "flags"_h:
+				rawFlags = value;
+				break;
 			case "chance"_h:
 				chance = string::to_num<float>(value);
 				break;
@@ -67,12 +70,47 @@ LightData::LightData(const RE::NiStringsExtraData* a_data)
 			}
 		}
 	}
+
+	ReadFlags();
 }
 
-void LightData::LoadFormsFromConfig()
+void LightData::ReadFlags()
+{
+	// glaze doesn't reflect flag enums
+	if (!rawFlags.empty()) {
+		auto flagStrs = string::split(rawFlags, "|");
+		for (const auto& flagStr : flagStrs) {
+			switch (string::const_hash(flagStr)) {
+			case "PortalStrict"_h:
+				flags.set(LightFlags::PortalStrict);
+				break;
+			case "Shadow"_h:
+				flags.set(LightFlags::Shadow);
+				break;
+			case "Simple"_h:
+				flags.set(LightFlags::Simple);
+				break;
+			case "Particle"_h:
+				flags.set(LightFlags::Particle);
+				break;
+			case "Billboard"_h:
+				flags.set(LightFlags::Billboard);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+}
+
+bool LightData::PostProcess()
 {
 	light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);
 	emittanceForm = RE::TESForm::LookupByEditorID(emittanceFormEDID);
+
+	ReadFlags();
+
+	return IsValid();
 }
 
 bool LightData::IsValid() const
@@ -113,7 +151,7 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR*
 	params.fov = 1.0f;
 	params.falloff = light->data.fallofExponent;
 	params.nearDistance = light->data.nearDistance;
-	params.depthBias = 0;
+	params.depthBias = 1.0;
 	params.sceneGraphIndex = 0;
 	params.restrictedNode = nullptr;
 	params.lensFlareData = light->lensFlare;
@@ -175,8 +213,8 @@ std::tuple<RE::NiPointLight*, bool, RE::TESForm*> LightData::SpawnLight(RE::TESO
 
 	auto lightRadius = GetRadius();
 	niLight->radius.x = lightRadius;
-	niLight->radius.y = lightRadius;
-	niLight->radius.z = lightRadius;
+	niLight->radius.y = static_cast<float>(flags.underlying());
+	niLight->radius.z = 1.0;
 
 	RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->AddLight(niLight, GetParams(a_ref));
 
@@ -210,21 +248,23 @@ std::uint32_t LightData::ReattachExistingLights(RE::TESObjectREFR* a_ref, RE::Ni
 	return lightCount;
 }
 
-void LoadFormsFromAttachLightVec(AttachLightDataVec& a_attachLightDataVec)
+void AttachLightVecPostProcess(AttachLightDataVec& a_attachLightDataVec)
 {
-	for (auto& attachLightData : a_attachLightDataVec) {
+	std::erase_if(a_attachLightDataVec, [](auto& attachLightData) {
+		bool failedPostProcess = false;
 		std::visit(overload{
 					   [&](PointData& pointData) {
-						   pointData.data.LoadFormsFromConfig();
+						   failedPostProcess = !pointData.data.PostProcess();
 					   },
 					   [&](NodeData& nodeData) {
-						   nodeData.data.LoadFormsFromConfig();
+						   failedPostProcess = !nodeData.data.PostProcess();
 					   },
 					   [&](FilteredData& filteredData) {
-						   filteredData.data.LoadFormsFromConfig();
+						   failedPostProcess = !filteredData.data.PostProcess();
 					   } },
 			attachLightData);
-	}
+		return failedPostProcess;
+	});
 }
 
 bool FilteredData::IsInvalid(const std::string& a_model) const
