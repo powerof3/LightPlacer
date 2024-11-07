@@ -23,13 +23,49 @@ LightData::LightData(const RE::NiStringsExtraData* a_data)
 {
 	std::vector<std::string> data(a_data->value, a_data->value + a_data->size);
 
-	lightEDID = data[0];
-	light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);
-	if (data.size() > 1) {
-		radius = string::to_num<float>(data[1]);
-	}
-	if (data.size() > 2) {
-		fade = string::to_num<float>(data[2]);
+	for (const auto& str : data) {
+		std::istringstream strstream(str);
+		std::string        key, value;
+
+		if (std::getline(strstream, key, ':')) {
+			std::getline(strstream, value);
+			string::trim(value);
+
+			switch (string::const_hash(key)) {
+			case "light"_h:
+				{
+					lightEDID = value;
+					light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(value);
+				}
+				break;
+			case "radius"_h:
+				radius = string::to_num<float>(value);
+				break;
+			case "fade"_h:
+				fade = string::to_num<float>(value);
+				break;
+			case "offset"_h:
+				{
+					if (auto pt3 = string::split(value, ","sv); pt3.size() == 3) {
+						offset.x = string::to_num<float>(pt3[0]);
+						offset.y = string::to_num<float>(pt3[1]);
+						offset.z = string::to_num<float>(pt3[2]);
+					}
+				}
+				break;
+			case "emittanceForm"_h:
+				{
+					emittanceFormEDID = value;
+					emittanceForm = RE::TESForm::LookupByEditorID(value);
+				}
+				break;
+			case "chance"_h:
+				chance = string::to_num<float>(value);
+				break;
+			default:
+				break;
+			}
+		}
 	}
 }
 
@@ -39,9 +75,14 @@ void LightData::LoadFormsFromConfig()
 	emittanceForm = RE::TESForm::LookupByEditorID(emittanceFormEDID);
 }
 
+bool LightData::IsValid() const
+{
+	return light != nullptr;
+}
+
 std::string LightData::GetName(std::uint32_t a_index) const
 {
-	return std::format("LP|{}|{}|{} PtLight #{}", lightEDID, radius, fade, a_index);
+	return std::format("{}{} PtLight #{}", LP_ID, lightEDID, a_index);
 }
 
 RE::NiColor LightData::GetDiffuse() const
@@ -92,7 +133,7 @@ RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj
 	}
 
 	if (auto geometry = a_obj->AsGeometry()) {
-		auto name = std::format("{} LightPlacerNode #{}", a_obj->name.c_str(), a_index);
+		auto name = std::format("{} {}{}", a_obj->name.c_str(), LP_NODE, a_index);
 		if (auto node = a_root->GetObjectByName(name); node && node->AsNode()) {
 			return node->AsNode();
 		}
@@ -158,7 +199,7 @@ std::uint32_t LightData::ReattachExistingLights(RE::TESObjectREFR* a_ref, RE::Ni
 
 	std::uint32_t lightCount = 0;
 	RE::BSVisit::TraverseScenegraphLights(a_node, [shadowSceneNode, lightParams, &lightCount](RE::NiPointLight* ptLight) {
-		if (ptLight->name.contains("LP|")) {
+		if (ptLight->name.contains(LP_ID)) {
 			lightCount++;
 			if (auto bsLight = shadowSceneNode->GetPointLight(ptLight); !bsLight) {
 				shadowSceneNode->AddLight(ptLight, lightParams);
@@ -186,7 +227,7 @@ void LoadFormsFromAttachLightVec(AttachLightDataVec& a_attachLightDataVec)
 	}
 }
 
-bool FilteredData::IsInvalid(const std::string& a_model)
+bool FilteredData::IsInvalid(const std::string& a_model) const
 {
 	return (!blackList.empty() && blackList.contains(a_model)) || (!whiteList.empty() && !whiteList.contains(a_model));
 }

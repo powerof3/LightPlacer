@@ -53,7 +53,7 @@ void LightManager::LoadFormsFromConfig()
 
 void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base)
 {
-	if (!a_base || a_base->Is(RE::FormType::Light)) {
+	if (!a_ref || !a_base || a_base->Is(RE::FormType::Light)) {
 		return;
 	}
 
@@ -63,7 +63,7 @@ void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject*
 
 void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root)
 {
-	if (!a_base) {
+	if (!a_ref || !a_base) {
 		return;
 	}
 
@@ -117,7 +117,7 @@ void LightManager::AttachConfigLights(const ObjectRefData& a_refData, const Atta
 	std::visit(overload{
 				   [&](const PointData& pointData) {
 					   auto& [points, lightData] = pointData;
-					   auto name = std::format("LightPlacerNode {}", a_index);
+					   auto name = std::format("{}{}", LightData::LP_NODE, a_index);
 					   if (lightPlacerNode = rootNode->GetObjectByName(name); !lightPlacerNode) {
 						   if (lightPlacerNode = RE::NiNode::Create(0); lightPlacerNode) {
 							   lightPlacerNode->name = name;
@@ -160,11 +160,13 @@ void LightManager::AttachMeshLights(const ObjectRefData& a_refData, const std::s
 				}
 			}
 		}
-		if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
+		if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {	
 			auto lightData = LightData(xData);
-			if (auto node = lightData.GetOrCreateNode(a_refData.root->AsNode(), a_obj, 0)) {
-				if (lightData.ReattachExistingLights(a_refData.ref, node) == 0) {
-					SpawnAndProcessLight(lightData, a_refData, node);
+			if (lightData.IsValid()) {
+				if (auto node = lightData.GetOrCreateNode(a_refData.root->AsNode(), a_obj, 0)) {
+					if (lightData.ReattachExistingLights(a_refData.ref, node) == 0) {
+						SpawnAndProcessLight(lightData, a_refData, node);
+					}
 				}
 			}
 		}
@@ -191,7 +193,7 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref)
 	if (auto root = a_ref->Get3D()) {
 		auto* shadowSceneNode = RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0];
 		RE::BSVisit::TraverseScenegraphLights(root, [&](RE::NiPointLight* ptLight) {
-			if (ptLight->name.contains("LP|")) {
+			if (ptLight->name.contains(LightData::LP_ID)) {
 				shadowSceneNode->RemoveLight(ptLight);
 			}
 			return RE::BSVisit::BSVisitControl::kContinue;

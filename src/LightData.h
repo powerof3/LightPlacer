@@ -20,17 +20,9 @@ struct LightData
 	LightData() = default;
 	LightData(const RE::NiStringsExtraData* a_data);
 
-	bool operator==(const LightData& a_rhs) const
-	{
-		return std::tie(light, radius, fade) == std::tie(a_rhs.light, a_rhs.radius, a_rhs.fade);
-	}
-	bool operator<(const LightData& a_rhs) const
-	{
-		return std::tie(light, radius, fade) < std::tie(a_rhs.light, a_rhs.radius, a_rhs.fade);
-	}
-
 	void LoadFormsFromConfig();
 
+	bool                                     IsValid() const;
 	std::string                              GetName(std::uint32_t a_index) const;
 	RE::NiColor                              GetDiffuse() const;
 	float                                    GetRadius() const;
@@ -54,6 +46,9 @@ struct LightData
 	RE::TESForm*       emittanceForm{ nullptr };
 	std::string        emittanceFormEDID{};
 	float              chance{ 100.0 };
+
+	constexpr static auto LP_ID = "LightPlacer|"sv;
+	constexpr static auto LP_NODE = "LightPlacerNode #"sv;
 };
 
 template <>
@@ -83,7 +78,7 @@ struct NodeData
 
 struct FilteredData
 {
-	bool IsInvalid(const std::string& a_model);
+	bool IsInvalid(const std::string& a_model) const;
 
 	StringSet whiteList;
 	StringSet blackList;
