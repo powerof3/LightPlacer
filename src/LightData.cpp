@@ -106,7 +106,7 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR*
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS params{};
 	params.dynamic = light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic);
 	params.shadowLight = false;
-	params.portalStrict = false;
+	params.portalStrict = light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
 	params.affectLand = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightLandscape) == 0 : true;
 	params.affectWater = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightWater) == 0 : true;
 	params.neverFades = a_ref ? !a_ref->IsHeadingMarker() : true;
