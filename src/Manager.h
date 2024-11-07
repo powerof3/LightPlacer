@@ -10,11 +10,13 @@ public:
 
 	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
 	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root);
-	
+
 	void DetachLights(RE::TESObjectREFR* a_ref);
 
 	void UpdateFlickering(RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(RE::TESObjectCELL* a_cell);
+	void UpdateConditions(RE::TESObjectCELL* a_cell);
+
 	void ClearProcessedLights(RE::TESObjectREFR* a_ref);
 
 private:
@@ -65,8 +67,27 @@ private:
 		RE::NiPointer<RE::NiPointLight> ptLight{};
 	};
 
+	struct ConditionalData
+	{
+		ConditionalData(RE::NiPointLight* a_ptLight, std::shared_ptr<RE::TESCondition> a_condition, float a_fade) :
+			ptLight(a_ptLight),
+			condition(a_condition),
+			fade(a_fade)
+		{}
+
+		RE::NiPointer<RE::NiPointLight>   ptLight{};
+		std::shared_ptr<RE::TESCondition> condition{};
+		float                             fade{};
+	};
+
+	struct RefConditionalDataMap
+	{
+		float                                            lastUpdateTime{ 0.0f };
+		Map<RE::RefHandle, std::vector<ConditionalData>> handlesMap{};
+	};
+
 	void TryAttachLightsImpl(const ObjectRefData& a_refData, RE::TESBoundObject* a_object);
-	
+
 	void AttachConfigLights(const ObjectRefData& a_refData, const std::string& a_model, RE::FormID a_baseFormID);
 	void AttachConfigLights(const ObjectRefData& a_refData, const AttachLightData& a_attachData, std::uint32_t a_index);
 
@@ -81,4 +102,5 @@ private:
 
 	Map<RE::FormID, Map<RE::RefHandle, std::vector<FlickerData>>>                      flickeringRefs{};
 	Map<RE::FormID, Map<RE::RefHandle, Map<RE::TESForm*, std::vector<EmittanceData>>>> emittanceRefs{};
+	Map<RE::FormID, RefConditionalDataMap>                                             conditionalRefs{};
 };

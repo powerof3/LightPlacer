@@ -15,6 +15,9 @@ struct ObjectRefData
 	RE::RefHandle      handle{};
 };
 
+// [light, flickers, emittance, conditions]
+using SPAWN_LIGHT_PARAMS = std::tuple<RE::NiPointLight*, bool, RE::TESForm*, bool>;
+
 struct LightData
 {
 	LightData() = default;
@@ -32,6 +35,7 @@ struct LightData
 	};
 
 	void ReadFlags();
+	void ReadConditions();
 	bool PostProcess();
 
 	bool                                     IsValid() const;
@@ -44,8 +48,7 @@ struct LightData
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
 
-	// [light, flickers, emittance]
-	std::tuple<RE::NiPointLight*, bool, RE::TESForm*> SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
+	SPAWN_LIGHT_PARAMS SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
 	// count
 	std::uint32_t ReattachExistingLights(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_node) const;
 
@@ -59,6 +62,8 @@ struct LightData
 	std::string                             emittanceFormEDID{};
 	REX::EnumSet<LightFlags, std::uint32_t> flags{ LightFlags::None };
 	std::string                             rawFlags{};
+	std::shared_ptr<RE::TESCondition>       conditions{};
+	std::vector<std::string>                rawConditions{};
 	float                                   chance{ 100.0 };
 
 	constexpr static auto LP_ID = "LightPlacer|"sv;
@@ -76,6 +81,7 @@ struct glz::meta<LightData>
 		"offset", &T::offset,
 		"externalEmittance", &T::emittanceFormEDID,
 		"flags", &T::rawFlags,
+		"conditions", &T::rawConditions,
 		"chance", &T::chance);
 };
 

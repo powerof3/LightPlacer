@@ -6,6 +6,7 @@
 #include "SKSE/SKSE.h"
 
 #include <ClibUtil/RNG.hpp>
+#include <ClibUtil/distribution.hpp>
 #include <ClibUtil/simpleINI.hpp>
 #include <ClibUtil/singleton.hpp>
 #include <MergeMapperPluginAPI.h>
@@ -23,6 +24,7 @@ namespace logger = SKSE::log;
 namespace string = clib_util::string;
 namespace ini = clib_util::ini;
 namespace edid = clib_util::editorID;
+namespace dist = clib_util::distribution;
 
 using namespace std::literals;
 using namespace string::literals;

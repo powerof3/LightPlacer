@@ -163,7 +163,7 @@ void LightManager::AttachMeshLights(const ObjectRefData& a_refData, const std::s
 				}
 			}
 		}
-		if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {	
+		if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
 			auto lightData = LightData(xData);
 			if (lightData.IsValid()) {
 				if (auto node = lightData.GetOrCreateNode(a_refData.root->AsNode(), a_obj, 0)) {
@@ -181,12 +181,22 @@ void LightManager::SpawnAndProcessLight(const LightData& a_lightData, const Obje
 {
 	auto& [ref, root, cellFormID, handle] = a_refData;
 
-	if (auto [light, flickers, emittance] = a_lightData.SpawnLight(ref, a_node, a_point, a_index); light) {
+	if (auto [light, flickers, emittance, conditions] = a_lightData.SpawnLight(ref, a_node, a_point, a_index); light) {
 		if (flickers) {
 			flickeringRefs[cellFormID][handle].emplace_back(a_lightData.light, light, a_lightData.GetFade());
 		}
 		if (emittance) {
 			emittanceRefs[cellFormID][handle][emittance].emplace_back(a_lightData.GetDiffuse(), light);
+		}
+		if (conditions) {
+			if (auto it = conditionalRefs.find(cellFormID); it != conditionalRefs.end()) {
+				it->second.handlesMap[handle].emplace_back(light, a_lightData.conditions, a_lightData.GetFade());
+			} else {
+				RefConditionalDataMap condMap{};
+				condMap.handlesMap[handle].emplace_back(light, a_lightData.conditions, a_lightData.GetFade());
+
+				conditionalRefs.emplace(cellFormID, condMap);
+			}
 		}
 	}
 }
@@ -215,6 +225,12 @@ void LightManager::ClearProcessedLights(RE::TESObjectREFR* a_ref)
 		}
 		if (auto it = emittanceRefs.find(parentCell->GetFormID()); it != emittanceRefs.end()) {
 			if (auto hIt = it->second.find(handle); hIt != it->second.end()) {
+				hIt->second.clear();
+			}
+		}
+		if (auto it = conditionalRefs.find(parentCell->GetFormID()); it != conditionalRefs.end()) {
+			auto& [updateTime, conditionalMap] = it->second;
+			if (auto hIt = conditionalMap.find(handle); hIt != conditionalMap.end()) {
 				hIt->second.clear();
 			}
 		}
@@ -275,5 +291,29 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 			}
 			return true;
 		});
+	}
+}
+
+void LightManager::UpdateConditions(RE::TESObjectCELL* a_cell)
+{
+	if (auto it = conditionalRefs.find(a_cell->GetFormID()); it != conditionalRefs.end()) {
+		auto& [updateTime, conditionalMap] = it->second;
+		updateTime += RE::GetSecondsSinceLastFrame();
+		if (updateTime >= 0.1f) {
+			updateTime = 0.0f;
+			std::erase_if(conditionalMap, [&](auto& map) {
+				auto& [handle, lightVec] = map;
+				RE::TESObjectREFRPtr ref{};
+				if (RE::LookupReferenceByHandle(handle, ref); ref) {
+					for (auto& [ptLight, condition, fade] : lightVec) {
+						if (condition) {
+							ptLight->SetAppCulled(!condition->IsTrue(ref.get(), ref.get()));
+						}
+					}
+					return false;
+				}
+				return true;
+			});
+		}
 	}
 }

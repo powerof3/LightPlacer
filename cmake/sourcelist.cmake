@@ -1,4 +1,5 @@
 set(sources ${sources}
+	src/ConditionParser.cpp
 	src/Debug.cpp
 	src/Hooks.cpp
 	src/LightData.cpp

@@ -1,4 +1,5 @@
 #include "LightData.h"
+#include "ConditionParser.h"
 
 ObjectRefData::ObjectRefData(RE::TESObjectREFR* a_ref) :
 	ObjectRefData(a_ref, a_ref->Get3D())
@@ -62,6 +63,9 @@ LightData::LightData(const RE::NiStringsExtraData* a_data)
 			case "flags"_h:
 				rawFlags = value;
 				break;
+			case "condition"_h:
+				rawConditions.push_back(value);
+				break;
 			case "chance"_h:
 				chance = string::to_num<float>(value);
 				break;
@@ -71,7 +75,10 @@ LightData::LightData(const RE::NiStringsExtraData* a_data)
 		}
 	}
 
-	ReadFlags();
+	if (IsValid()) {
+		ReadFlags();
+		ReadConditions();
+	}
 }
 
 void LightData::ReadFlags()
@@ -103,14 +110,27 @@ void LightData::ReadFlags()
 	}
 }
 
+void LightData::ReadConditions()
+{
+	if (!rawConditions.empty()) {
+		ConditionParser::GetSingleton()->BuildCondition(conditions, rawConditions);
+	}
+}
+
 bool LightData::PostProcess()
 {
 	light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);
+
+	if (!IsValid()) {
+		return false;
+	}
+
 	emittanceForm = RE::TESForm::LookupByEditorID(emittanceFormEDID);
 
 	ReadFlags();
+	ReadConditions();
 
-	return IsValid();
+	return true;
 }
 
 bool LightData::IsValid() const
@@ -186,17 +206,19 @@ RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj
 	return nullptr;
 }
 
-std::tuple<RE::NiPointLight*, bool, RE::TESForm*> LightData::SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
+SPAWN_LIGHT_PARAMS LightData::SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
 {
+	SPAWN_LIGHT_PARAMS result{};
+
 	if (chance < 100.0f) {
 		if (const auto rngValue = clib_util::RNG().generate<float>(0.0f, 100.0f); rngValue > chance) {
-			return { nullptr, false, nullptr };
+			return result;
 		}
 	}
 
 	auto niLight = RE::NiPointLight::Create();
 	if (!niLight) {
-		return { nullptr, false, nullptr };
+		return result;
 	}
 
 	RE::NiPoint3 point = a_point;
@@ -227,7 +249,7 @@ std::tuple<RE::NiPointLight*, bool, RE::TESForm*> LightData::SpawnLight(RE::TESO
 		emittanceSrc = xData ? xData->source : nullptr;
 	}
 
-	return { niLight, !light->GetNoFlicker(), emittanceSrc };
+	return { niLight, !light->GetNoFlicker(), emittanceSrc, conditions != nullptr };
 }
 
 std::uint32_t LightData::ReattachExistingLights(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_node) const
