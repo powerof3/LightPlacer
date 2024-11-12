@@ -231,12 +231,14 @@ SPAWN_LIGHT_PARAMS LightData::SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a
 	niLight->name = GetName(a_index);
 
 	niLight->ambient = RE::NiColor();
+	niLight->ambient.x = static_cast<float>(flags.underlying());
+
 	niLight->diffuse = GetDiffuse();
 
 	auto lightRadius = GetRadius();
 	niLight->radius.x = lightRadius;
-	niLight->radius.y = static_cast<float>(flags.underlying());
-	niLight->radius.z = 1.0;
+	niLight->radius.y = lightRadius;
+	niLight->radius.z = lightRadius;
 
 	RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->AddLight(niLight, GetParams(a_ref));
 
