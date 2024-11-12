@@ -231,7 +231,7 @@ SPAWN_LIGHT_PARAMS LightData::SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a
 	niLight->name = GetName(a_index);
 
 	niLight->ambient = RE::NiColor();
-	niLight->ambient.x = static_cast<float>(flags.underlying());
+	niLight->ambient.red = static_cast<float>(flags.underlying());
 
 	niLight->diffuse = GetDiffuse();
 
