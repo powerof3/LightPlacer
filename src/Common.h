@@ -1,33 +1,5 @@
 #pragma once
 
-// for visting variants
-template <class... Ts>
-struct overload : Ts...
-{
-	using Ts::operator()...;
-};
-
-template <class K, class D>
-using Map = ankerl::unordered_dense::map<K, D>;
-
-template <class K>
-using Set = ankerl::unordered_dense::set<K>;
-
-struct string_hash
-{
-	using is_transparent = void;  // enable heterogeneous overloads
-	using is_avalanching = void;  // mark class as high quality avalanching hash
-
-	[[nodiscard]] std::uint64_t operator()(std::string_view str) const noexcept
-	{
-		return ankerl::unordered_dense::hash<std::string_view>{}(str);
-	}
-};
-
-template <class D>
-using StringMap = ankerl::unordered_dense::map<std::string, D, string_hash, std::equal_to<>>;
-using StringSet = ankerl::unordered_dense::set<std::string, string_hash, std::equal_to<>>;
-
 template <>
 struct glz::meta<RE::NiPoint3>
 {

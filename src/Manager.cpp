@@ -250,6 +250,9 @@ void LightManager::UpdateFlickering(RE::TESObjectCELL* a_cell)
 				if (ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistance) {
 					for (auto& [light, ptLight, fade] : lightVec) {
 						if (light && ptLight) {
+							if (ptLight->GetAppCulled()) {
+								continue;
+							}							
 							auto originalFade = light->fade;
 							light->fade = fade;
 							RE::UpdateLight(light, ptLight, ref.get(), -1.0f);
