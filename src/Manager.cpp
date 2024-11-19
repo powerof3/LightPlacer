@@ -77,7 +77,7 @@ void LightManager::TryAttachLightsImpl(const ObjectRefData& a_refData, RE::TESBo
 		return;
 	}
 
-	auto model = skyrim_cast<RE::TESModel*>(a_object);
+	auto model = a_object->As<RE::TESModel>();
 	if (!model) {
 		return;
 	}
@@ -232,9 +232,7 @@ void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 				}
 
 				ForEachLight(handle, [&](const auto& lightREFRData) {
-					if (lightREFRData.ptLight && lightREFRData.conditions) {
-						lightREFRData.ptLight->SetAppCulled(!lightREFRData.conditions->IsTrue(ref.get(), ref.get()));
-					}
+					lightREFRData.UpdateConditions(ref);
 				});
 
 				return false;
@@ -254,16 +252,7 @@ void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 
 			if (ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistance) {
 				ForEachLight(handle, [&](const auto& lightREFRData) {
-					auto& [ptLight, light, fade, diffuse, emittance, conditions] = lightREFRData; 
-					if (ptLight && light) {
-						if (ptLight->GetAppCulled()) {
-							return;
-						}
-						auto originalFade = light->fade;
-						light->fade = fade;
-						RE::UpdateLight(light, ptLight, ref.get(), -1.0f);
-						light->fade = originalFade;
-					}
+					lightREFRData.UpdateFlickering(ref);
 				});
 			}
 			return false;
@@ -276,8 +265,6 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 	if (auto it = processedGameLights.find(a_cell->GetFormID()); it != processedGameLights.end()) {
 		std::scoped_lock locker(*it->second._lock);
 
-		RE::NiColor emittanceColor(1.0, 1.0, 1.0);
-
 		std::erase_if(it->second.emittanceLights, [&](const auto& handle) {
 			RE::TESObjectREFRPtr ref{};
 			RE::LookupReferenceByHandle(handle, ref);
@@ -287,15 +274,7 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 			}
 
 			ForEachLight(handle, [&](const auto& lightREFRData) {
-				auto& [ptLight, light, fade, diffuse, emittance, conditions] = lightREFRData; 
-				if (ptLight && emittance) {
-					if (auto lightForm = emittance->As<RE::TESObjectLIGH>()) {
-						emittanceColor = lightForm->emittanceColor;
-					} else if (auto region = emittance->As<RE::TESRegion>()) {
-						emittanceColor = region->emittanceColor;
-					}
-					ptLight->diffuse = diffuse * emittanceColor;
-				}
+				lightREFRData.UpdateEmittance(ref);
 			});
 
 			return false;

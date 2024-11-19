@@ -14,7 +14,7 @@ ObjectRefData::ObjectRefData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root) :
 
 bool ObjectRefData::IsValid() const
 {
-	if (ref->IsDisabled() || ref->IsDeleted() || !ref->GetParentCell() || !root) {
+	if (ref->IsDisabled() || ref->IsDeleted() || !root || !ref->GetParentCell()) {
 		return false;
 	}
 	return true;
@@ -93,12 +93,6 @@ void LightData::ReadFlags()
 				break;
 			case "Simple"_h:
 				flags.set(LightFlags::Simple);
-				break;
-			case "Particle"_h:
-				flags.set(LightFlags::Particle);
-				break;
-			case "Billboard"_h:
-				flags.set(LightFlags::Billboard);
 				break;
 			default:
 				break;
@@ -240,6 +234,46 @@ RE::NiPointLight* LightData::SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_
 	}
 
 	return niLight;
+}
+
+void LightREFRData::UpdateConditions(const RE::TESObjectREFRPtr& a_ref) const
+{
+	if (ptLight && conditions) {
+		ptLight->SetAppCulled(!conditions->IsTrue(a_ref.get(), a_ref.get()));
+	}
+}
+
+void LightREFRData::UpdateFlickering(const RE::TESObjectREFRPtr& a_ref) const
+{
+	if (ptLight && light) {
+		if (ptLight->GetAppCulled()) {
+			return;
+		}
+		auto originalFade = light->fade;
+		light->fade = fade;
+		UpdateLight_Game(light, ptLight, a_ref.get(), -1.0f);
+		light->fade = originalFade;
+	}
+}
+
+void LightREFRData::UpdateEmittance(const RE::TESObjectREFRPtr& a_ref) const
+{
+	if (ptLight && emittance) {
+		RE::NiColor emittanceColor(1.0, 1.0, 1.0);
+		if (auto lightForm = emittance->As<RE::TESObjectLIGH>()) {
+			emittanceColor = lightForm->emittanceColor;
+		} else if (auto region = emittance->As<RE::TESRegion>()) {
+			emittanceColor = region->emittanceColor;
+		}
+		ptLight->diffuse = diffuse * emittanceColor;
+	}
+}
+
+void LightREFRData::UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer)
+{
+	using func_t = decltype(&UpdateLight_Game);
+	static REL::Relocation<func_t> func{ RELOCATION_ID(17212, 17614) };
+	return func(a_light, a_ptLight, a_ref, a_wantDimmer);
 }
 
 void AttachLightVecPostProcess(AttachLightDataVec& a_attachLightDataVec)

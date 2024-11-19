@@ -27,9 +27,7 @@ struct LightData
 		None = 0,
 		PortalStrict = (1 << 0),
 		Shadow = (1 << 1),
-		Simple = (1 << 2),
-		Particle = (1 << 3),
-		Billboard = (1 << 4)
+		Simple = (1 << 2)
 	};
 
 	void ReadFlags();
@@ -87,12 +85,19 @@ struct LightREFRData
 		       std::tie(rhs.ptLight, rhs.light, rhs.fade, rhs.diffuse, rhs.emittance, rhs.conditions);
 	}
 
+	void UpdateConditions(const RE::TESObjectREFRPtr& a_ref) const;
+	void UpdateFlickering(const RE::TESObjectREFRPtr& a_ref) const;
+	void UpdateEmittance(const RE::TESObjectREFRPtr& a_ref) const;
+
 	RE::NiPointer<RE::NiPointLight>   ptLight;
 	RE::TESObjectLIGH*                light;
 	float                             fade;
 	RE::NiColor                       diffuse;
 	RE::TESForm*                      emittance;
 	std::shared_ptr<RE::TESCondition> conditions;
+
+private:
+	static void UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer);
 };
 
 template <>

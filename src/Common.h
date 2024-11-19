@@ -19,13 +19,6 @@ namespace RE
 		}
 	}
 
-	inline void UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer)
-	{
-		using func_t = decltype(&RE::UpdateLight);
-		static REL::Relocation<func_t> func{ RELOCATION_ID(17212, 17614) };
-		return func(a_light, a_ptLight, a_ref, a_wantDimmer);
-	}
-
 	inline std::string SanitizeModel(const std::string& a_path)
 	{
 		auto path = string::tolower(a_path);
