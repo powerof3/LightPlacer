@@ -87,7 +87,8 @@ struct LightREFRData
 
 	void UpdateConditions(const RE::TESObjectREFRPtr& a_ref) const;
 	void UpdateFlickering(const RE::TESObjectREFRPtr& a_ref) const;
-	void UpdateEmittance(const RE::TESObjectREFRPtr& a_ref) const;
+	void UpdateFlickeringGame(const RE::TESObjectREFRPtr& a_ref) const;
+	void UpdateEmittance() const;
 
 	RE::NiPointer<RE::NiPointLight>   ptLight;
 	RE::TESObjectLIGH*                light;
@@ -98,6 +99,7 @@ struct LightREFRData
 
 private:
 	static void UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer);
+	void        UpdateLight() const;
 };
 
 template <>

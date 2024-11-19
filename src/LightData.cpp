@@ -243,7 +243,7 @@ void LightREFRData::UpdateConditions(const RE::TESObjectREFRPtr& a_ref) const
 	}
 }
 
-void LightREFRData::UpdateFlickering(const RE::TESObjectREFRPtr& a_ref) const
+void LightREFRData::UpdateFlickeringGame(const RE::TESObjectREFRPtr& a_ref) const
 {
 	if (ptLight && light) {
 		if (ptLight->GetAppCulled()) {
@@ -256,7 +256,17 @@ void LightREFRData::UpdateFlickering(const RE::TESObjectREFRPtr& a_ref) const
 	}
 }
 
-void LightREFRData::UpdateEmittance(const RE::TESObjectREFRPtr& a_ref) const
+void LightREFRData::UpdateFlickering(const RE::TESObjectREFRPtr& a_ref) const
+{
+	if (ptLight && light) {
+		if (ptLight->GetAppCulled()) {
+			return;
+		}
+		UpdateLight();
+	}
+}
+
+void LightREFRData::UpdateEmittance() const
 {
 	if (ptLight && emittance) {
 		RE::NiColor emittanceColor(1.0, 1.0, 1.0);
@@ -274,6 +284,80 @@ void LightREFRData::UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPoi
 	using func_t = decltype(&UpdateLight_Game);
 	static REL::Relocation<func_t> func{ RELOCATION_ID(17212, 17614) };
 	return func(a_light, a_ptLight, a_ref, a_wantDimmer);
+}
+
+void LightREFRData::UpdateLight() const
+{
+	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kFlicker)) {
+		auto flickerDelta = RE::BSTimer::GetSingleton()->delta * light->data.flickerPeriodRecip;
+
+		auto constAtten = ptLight->constAttenuation + (clib_util::RNG().generate<float>(1.1f, 13.1f) * flickerDelta);
+		auto linearAtten = ptLight->linearAttenuation + (clib_util::RNG().generate<float>(1.2f, 13.2f) * flickerDelta);
+		auto quadraticAtten = ptLight->quadraticAttenuation + (clib_util::RNG().generate<float>(1.3f, 19.299999f) * flickerDelta);
+		if (constAtten > RE::NI_TWO_PI) {
+			constAtten = constAtten + -RE::NI_TWO_PI;
+		}
+		if (linearAtten > RE::NI_TWO_PI) {
+			linearAtten = linearAtten + -RE::NI_TWO_PI;
+		}
+		if (quadraticAtten > RE::NI_TWO_PI) {
+			quadraticAtten = linearAtten + -RE::NI_TWO_PI;
+		}
+
+		ptLight->constAttenuation = constAtten;
+		ptLight->linearAttenuation = linearAtten;
+		ptLight->quadraticAttenuation = quadraticAtten;
+
+		auto constAttenSine = RE::NiSinQ((constAtten + 1.7f) * (512.0f / RE::NI_TWO_PI));
+		auto linearAttenSine = RE::NiSinQ((linearAtten + 0.5f) * (512.0f / RE::NI_TWO_PI));
+
+		auto flickerMovementMult = ((light->data.flickerMovementAmplitude * constAttenSine) * linearAttenSine) * 0.5f;
+		if ((flickerMovementMult + light->data.flickerMovementAmplitude) <= 0.0f) {
+			flickerMovementMult = 0.0;
+		}
+
+		ptLight->local.translate.x = flickerMovementMult * constAttenSine;
+		ptLight->local.translate.y = flickerMovementMult * linearAttenSine;
+		ptLight->local.translate.z = flickerMovementMult * RE::NiSinQ((quadraticAtten + 0.30000001f) * (512.0f / RE::NI_TWO_PI));
+
+		auto halfAmp = light->data.flickerIntensityAmplitude * 0.5f;
+		auto flickerIntensityMult = std::fmaxf(
+			std::fminf(
+				(((RE::NiSinQ(((linearAtten * 105.93353f) + 52.966763f)) + 1.0f) * 0.083333328f) * (RE::NiSinQ(((constAtten * 89.636063f) + 152.38132f)) + 1.0f)) + (RE::NiSinQ(((quadraticAtten * 244.46198f) + 73.3386f)) * 0.2f),
+				1.0f),
+			-1.0f);
+		ptLight->fade = ((halfAmp * flickerIntensityMult) + (1.0f - halfAmp)) * fade;
+
+	} else {
+		if (light->data.flags.none(RE::TES_LIGHT_FLAGS::kPulse, RE::TES_LIGHT_FLAGS::kPulseSlow)) {
+			return;
+		}
+		auto constAtten = ptLight->constAttenuation + (RE::BSTimer::GetSingleton()->delta * light->data.flickerPeriodRecip);
+		if (constAtten > RE::NI_TWO_PI) {
+			constAtten = constAtten + -RE::NI_TWO_PI;
+		}
+		ptLight->constAttenuation = constAtten;
+
+		auto constAttenRad = constAtten * (512.0f / RE::NI_TWO_PI);
+		auto constAttenCosine = RE::NiCosQ(constAttenRad);
+		auto constAttenSine = RE::NiSinQ(constAttenRad);
+
+		auto halfAmp = light->data.flickerIntensityAmplitude * 0.5f;
+		auto flickerAmp = light->data.flickerMovementAmplitude;
+
+		ptLight->fade = ((constAttenCosine * halfAmp) + (1.0f - halfAmp)) * fade;
+
+		ptLight->local.translate.x = flickerAmp * constAttenCosine;
+		ptLight->local.translate.y = flickerAmp * constAttenSine;
+		ptLight->local.translate.z = flickerAmp * (constAttenSine * constAttenCosine);
+	}
+
+	if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
+		RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(ptLight.get());
+	} else {
+		RE::NiUpdateData data;
+		ptLight->Update(data);
+	}
 }
 
 void AttachLightVecPostProcess(AttachLightDataVec& a_attachLightDataVec)

@@ -20,6 +20,8 @@ public:
 
 	void RemoveLightsFromProcessQueue(RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
 
+	void ToggleGameFlicker();
+
 	template <class F>
 	void ForEachLight(RE::RefHandle handle, F&& func)
 	{
@@ -119,4 +121,6 @@ private:
 
 	LockedMap<RE::RefHandle, Set<LightREFRData, boost::hash<LightREFRData>>> gameLightsData;
 	Map<RE::FormID, ProcessedLights>                                         processedGameLights;
+
+	bool useGameFlicker{ false };
 };

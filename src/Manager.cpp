@@ -252,7 +252,11 @@ void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 
 			if (ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistance) {
 				ForEachLight(handle, [&](const auto& lightREFRData) {
-					lightREFRData.UpdateFlickering(ref);
+					if (useGameFlicker) {
+						lightREFRData.UpdateFlickeringGame(ref);
+					} else {
+						lightREFRData.UpdateFlickering(ref);					
+					}
 				});
 			}
 			return false;
@@ -274,7 +278,7 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 			}
 
 			ForEachLight(handle, [&](const auto& lightREFRData) {
-				lightREFRData.UpdateEmittance(ref);
+				lightREFRData.UpdateEmittance();
 			});
 
 			return false;
@@ -287,4 +291,9 @@ void LightManager::RemoveLightsFromProcessQueue(RE::TESObjectCELL* a_cell, const
 	if (auto it = processedGameLights.find(a_cell->GetFormID()); it != processedGameLights.end()) {
 		it->second.erase(a_handle.native_handle());
 	}
+}
+
+void LightManager::ToggleGameFlicker()
+{
+	useGameFlicker = !useGameFlicker;
 }

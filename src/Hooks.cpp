@@ -80,6 +80,10 @@ namespace Hooks
 			Clone3D<RE::TESObjectMISC>::Install();
 			Clone3D<RE::TESObjectSTAT>::Install();
 			Clone3D<RE::TESObjectCONT>::Install();
+			Clone3D<RE::TESSoulGem>::Install();
+			Clone3D<RE::TESObjectACTI>::Install();
+			Clone3D<RE::TESObjectBOOK>::Install();
+
 			AttachLight::Install();
 
 			RemoveLight::Install();
