@@ -15,7 +15,7 @@ namespace RE
 		if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
 			RE::TaskQueueInterface::GetSingleton()->QueueNodeAttach(a_obj, a_root);
 		} else {
-			a_root->AttachChild(a_obj);
+			a_root->AttachChild(a_obj, true);
 		}
 	}
 

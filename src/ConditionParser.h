@@ -25,7 +25,7 @@ private:
 	bool                ParseVoidParam(const std::string& a_str, VOID_PARAM& a_param, PARAM_TYPE a_type) const;
 
 	// members
-	StringMap<std::uint32_t> funcIDs{
+	Map<std::string, std::uint32_t> funcIDs{
 		{ "GetWantBlocking", 0 },
 		{ "GetDistance", 1 },
 		{ "GetLocked", 5 },

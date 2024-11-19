@@ -1,5 +1,6 @@
 #include "LightData.h"
 #include "ConditionParser.h"
+#include "LightData.h"
 
 ObjectRefData::ObjectRefData(RE::TESObjectREFR* a_ref) :
 	ObjectRefData(a_ref, a_ref->Get3D())
@@ -8,13 +9,12 @@ ObjectRefData::ObjectRefData(RE::TESObjectREFR* a_ref) :
 ObjectRefData::ObjectRefData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root) :
 	ref(a_ref),
 	root(a_root ? a_root->AsNode() : nullptr),
-	cellFormID(a_ref->GetSaveParentCell() ? a_ref->GetSaveParentCell()->GetFormID() : 0),
 	handle(a_ref->CreateRefHandle().native_handle())
 {}
 
 bool ObjectRefData::IsValid() const
 {
-	if (ref->IsDisabled() || ref->IsDeleted() || !root || cellFormID == 0) {
+	if (ref->IsDisabled() || ref->IsDeleted() || !ref->GetParentCell() || !root) {
 		return false;
 	}
 	return true;
@@ -65,9 +65,6 @@ LightData::LightData(const RE::NiStringsExtraData* a_data)
 				break;
 			case "condition"_h:
 				rawConditions.push_back(value);
-				break;
-			case "chance"_h:
-				chance = string::to_num<float>(value);
 				break;
 			default:
 				break;
@@ -140,7 +137,7 @@ bool LightData::IsValid() const
 
 std::string LightData::GetName(std::uint32_t a_index) const
 {
-	return std::format("{}{} PtLight #{}", LP_ID, lightEDID, a_index);
+	return std::format("{}{}|{}|{} #{}", LP_ID, lightEDID, radius, fade, a_index);
 }
 
 RE::NiColor LightData::GetDiffuse() const
@@ -162,7 +159,7 @@ float LightData::GetFade() const
 RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR* a_ref) const
 {
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS params{};
-	params.dynamic = light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic);
+	params.dynamic = light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || (a_ref && a_ref->GetBaseObject() ? a_ref->GetBaseObject()->IsInventoryObject() : false);
 	params.shadowLight = false;
 	params.portalStrict = light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
 	params.affectLand = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightLandscape) == 0 : true;
@@ -206,70 +203,43 @@ RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj
 	return nullptr;
 }
 
-SPAWN_LIGHT_PARAMS LightData::SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
+RE::NiPointLight* LightData::SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
 {
-	SPAWN_LIGHT_PARAMS result{};
+	auto name = GetName(a_index);
 
-	if (chance < 100.0f) {
-		if (const auto rngValue = clib_util::RNG().generate<float>(0.0f, 100.0f); rngValue > chance) {
-			return result;
-		}
-	}
-
-	auto niLight = RE::NiPointLight::Create();
+	auto niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(name));
 	if (!niLight) {
-		return result;
-	}
-
-	RE::NiPoint3 point = a_point;
-	if (point == RE::NiPoint3::Zero()) {
-		point += offset;
-	}
-	niLight->local.translate = point;
-	RE::AttachNode(a_node, niLight);
-
-	niLight->name = GetName(a_index);
-
-	niLight->ambient = RE::NiColor();
-	niLight->ambient.red = static_cast<float>(flags.underlying());
-
-	niLight->diffuse = GetDiffuse();
-
-	auto lightRadius = GetRadius();
-	niLight->radius.x = lightRadius;
-	niLight->radius.y = lightRadius;
-	niLight->radius.z = lightRadius;
-
-	RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->AddLight(niLight, GetParams(a_ref));
-
-	niLight->SetLightAttenuation(lightRadius);
-	niLight->fade = GetFade();
-
-	RE::TESForm* emittanceSrc = emittanceForm;
-	if (!emittanceSrc) {
-		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
-		emittanceSrc = xData ? xData->source : nullptr;
-	}
-
-	return { niLight, !light->GetNoFlicker(), emittanceSrc, conditions != nullptr };
-}
-
-std::uint32_t LightData::ReattachExistingLights(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_node) const
-{
-	auto* shadowSceneNode = RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0];
-	auto  lightParams = GetParams(a_ref);
-
-	std::uint32_t lightCount = 0;
-	RE::BSVisit::TraverseScenegraphLights(a_node, [shadowSceneNode, lightParams, &lightCount](RE::NiPointLight* ptLight) {
-		if (ptLight->name.contains(LP_ID)) {
-			lightCount++;
-			if (auto bsLight = shadowSceneNode->GetPointLight(ptLight); !bsLight) {
-				shadowSceneNode->AddLight(ptLight, lightParams);
-			}
+		niLight = RE::NiPointLight::Create();
+		RE::NiPoint3 point = a_point;
+		if (point == RE::NiPoint3::Zero()) {
+			point += offset;
 		}
-		return RE::BSVisit::BSVisitControl::kContinue;
-	});
-	return lightCount;
+		niLight->local.translate = point;
+		niLight->name = name;
+		RE::AttachNode(a_node, niLight);
+	}
+
+	if (niLight) {
+		niLight->ambient = RE::NiColor();
+		niLight->ambient.red = static_cast<float>(flags.underlying());
+
+		niLight->diffuse = GetDiffuse();
+
+		auto lightRadius = GetRadius();
+		niLight->radius.x = lightRadius;
+		niLight->radius.y = lightRadius;
+		niLight->radius.z = lightRadius;
+
+		auto* shadowSceneNode = RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0];
+		if (!shadowSceneNode->GetPointLight(niLight)) {
+			shadowSceneNode->AddLight(niLight, GetParams(a_ref));
+		}
+
+		niLight->SetLightAttenuation(lightRadius);
+		niLight->fade = GetFade();
+	}
+
+	return niLight;
 }
 
 void AttachLightVecPostProcess(AttachLightDataVec& a_attachLightDataVec)

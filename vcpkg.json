@@ -5,14 +5,14 @@
   "homepage": "",
   "license": "MIT",
   "dependencies": [
+    "boost-unordered",
     "clib-util",
     "glaze",
     "mergemapper",
     "rsm-binary-io",
     "srell",
     "spdlog",
-    "unordered-dense",
     "xbyak"
   ],
-  "builtin-baseline": "89f00b3b8611028566a5264afce725cdfdfddbb4"
+  "builtin-baseline": "db4924694eabc161a7fb8eb43f083d0ca55396e2"
 }

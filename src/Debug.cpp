@@ -1,4 +1,5 @@
 #include "Debug.h"
+#include "Manager.h"
 
 namespace Debug
 {
@@ -21,12 +22,17 @@ namespace Debug
 		{
 			if (a_obj) {
 				if (auto root = a_obj->Get3D()) {
-					logger::info("{:X}", a_obj->GetFormID());
+					RE::ConsoleLog::GetSingleton()->Print("%08X", a_obj->GetFormID());
+					RE::ConsoleLog::GetSingleton()->Print("\tMesh");
 					RE::BSVisit::TraverseScenegraphLights(root, [&](RE::NiPointLight* ptLight) {
-						logger::info("\t{}", ptLight->name.c_str());
-						ptLight->SetAppCulled(!ptLight->GetAppCulled());
+						RE::ConsoleLog::GetSingleton()->Print("\t\t%s", ptLight->name.c_str());
 						return RE::BSVisit::BSVisitControl::kContinue;
 					});
+					RE::ConsoleLog::GetSingleton()->Print("\tLightData");
+					LightManager::GetSingleton()->ForEachLight(a_obj->CreateRefHandle().native_handle(), [](const auto& lightData) {
+						RE::ConsoleLog::GetSingleton()->Print("\t\t%s", lightData.ptLight->name.c_str());
+					});
+
 				}
 			}
 

@@ -7,9 +7,8 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 	switch (a_message->type) {
 	case SKSE::MessagingInterface::kPostLoad:
 		{
-			if (LightManager::GetSingleton()->ReadConfigs()) {
-				Hooks::Install();
-			}
+			Hooks::Install();
+			LightManager::GetSingleton()->ReadConfigs();
 		}
 		break;
 	case SKSE::MessagingInterface::kPostPostLoad:
@@ -79,8 +78,8 @@ void InitializeLog()
 
 	auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
 
-	log->set_level(spdlog::level::info);
-	log->flush_on(spdlog::level::info);
+	log->set_level(spdlog::level::debug);
+	log->flush_on(spdlog::level::debug);
 
 	spdlog::set_default_logger(std::move(log));
 	spdlog::set_pattern("[%H:%M:%S.%e] %v"s);
@@ -96,7 +95,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 
 	SKSE::Init(a_skse, false);
 
-	SKSE::AllocTrampoline(128);
+	SKSE::AllocTrampoline(512);
 
 	const auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(MessageHandler);

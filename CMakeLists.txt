@@ -124,8 +124,8 @@ else ()
 endif()
 
 find_package(glaze CONFIG REQUIRED)
-find_package(unordered_dense CONFIG REQUIRED)
 
+find_path(BOOST_UNORDERED_INCLUDE_DIRS ".editorconfig")
 find_path(CLIB_UTIL_INCLUDE_DIRS "ClibUtil/detail/SimpleIni.h")
 find_path(MERGEMAPPER_INCLUDE_DIRS "MergeMapperPluginAPI.h")
 find_path(SRELL_INCLUDE_DIRS "srell.hpp")
@@ -184,6 +184,7 @@ target_include_directories(
 		${CLIB_UTIL_INCLUDE_DIRS}
 		${MERGEMAPPER_INCLUDE_DIRS}
 		${SRELL_INCLUDE_DIRS}
+
 )
 
 target_link_libraries(
@@ -191,7 +192,6 @@ target_link_libraries(
 	PRIVATE
 		${CommonLibName}::${CommonLibName}
 		glaze::glaze
-		unordered_dense::unordered_dense
 )
 
 target_precompile_headers(

@@ -2,6 +2,8 @@
 
 #define NOMINMAX
 
+#include <shared_mutex>
+
 #include "RE/Skyrim.h"
 #include "SKSE/SKSE.h"
 
@@ -10,7 +12,7 @@
 #include <ClibUtil/simpleINI.hpp>
 #include <ClibUtil/singleton.hpp>
 #include <MergeMapperPluginAPI.h>
-#include <ankerl/unordered_dense.h>
+#include <boost_unordered.hpp>
 #include <glaze/glaze.hpp>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <srell.hpp>
@@ -37,26 +39,52 @@ struct overload : Ts...
 	using Ts::operator()...;
 };
 
-template <class K, class D>
-using Map = ankerl::unordered_dense::map<K, D>;
-
-template <class K>
-using Set = ankerl::unordered_dense::set<K>;
-
-struct string_hash
+// https://www.reddit.com/r/cpp/comments/p132c7/a_c_locking_wrapper/h8b8nml/
+template <
+	class T,
+	class M = std::mutex,
+	template <class...> class RL = std::unique_lock,
+	template <class...> class WL = std::unique_lock>
+struct mutex_guarded
 {
-	using is_transparent = void;  // enable heterogeneous overloads
-	using is_avalanching = void;  // mark class as high quality avalanching hash
+	mutex_guarded() = default;
+	explicit mutex_guarded(T in) :
+		data(std::move(in))
+	{}
 
-	[[nodiscard]] std::uint64_t operator()(std::string_view str) const noexcept
+	auto read(auto&& f) const
 	{
-		return ankerl::unordered_dense::hash<std::string_view>{}(str);
+		auto l = lock();
+		return f(data);
 	}
+	auto write(auto&& f)
+	{
+		auto l = lock();
+		return f(data);
+	}
+
+private:
+	mutable M mutex;
+	T         data;
+
+	auto lock() { return WL<M>(mutex); }
+	auto lock() const { return RL<M>(mutex); }
 };
 
-template <class D>
-using StringMap = ankerl::unordered_dense::map<std::string, D, string_hash, std::equal_to<>>;
-using StringSet = ankerl::unordered_dense::set<std::string, string_hash, std::equal_to<>>;
+template <class T>
+using shared_guarded = mutex_guarded<T, std::shared_mutex, std::shared_lock>;
+
+template <class K, class D, class H = boost::hash<K>>
+using Map = boost::unordered_flat_map<K, D, H>;
+
+template <class K, class H = boost::hash<K>>
+using Set = boost::unordered_flat_set<K, H>;
+
+template <class K, class D, class H = boost::hash<K>>
+using LockedMap = shared_guarded<Map<K, D, H>>;
+
+template <class K, class H = boost::hash<K>>
+using LockedSet = shared_guarded<Set<K, H>>;
 
 namespace stl
 {
@@ -108,6 +136,17 @@ namespace stl
 		std::memcpy(alloc, p.getCode(), p.getSize());
 
 		T::func = reinterpret_cast<std::uintptr_t>(alloc);
+	}
+
+	template <class Key, class Pred>
+	void erase_if(Set<Key>& c, Pred pred)
+	{
+		for (auto first = c.begin(), last = c.end(); first != last;) {
+			if (pred(*first))
+				first = c.erase(first);
+			else
+				++first;
+		}
 	}
 }
 

@@ -11,12 +11,10 @@ struct ObjectRefData
 	// members
 	RE::TESObjectREFR* ref{};
 	RE::NiNode*        root{};
-	RE::FormID         cellFormID{};
 	RE::RefHandle      handle{};
 };
 
-// [light, flickers, emittance, conditions]
-using SPAWN_LIGHT_PARAMS = std::tuple<RE::NiPointLight*, bool, RE::TESForm*, bool>;
+struct LightREFRData;
 
 struct LightData
 {
@@ -48,9 +46,7 @@ struct LightData
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
 
-	SPAWN_LIGHT_PARAMS SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
-	// count
-	std::uint32_t ReattachExistingLights(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_node) const;
+	RE::NiPointLight* SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
 
 	// members
 	RE::TESObjectLIGH*                      light{ nullptr };
@@ -64,10 +60,39 @@ struct LightData
 	std::string                             rawFlags{};
 	std::shared_ptr<RE::TESCondition>       conditions{};
 	std::vector<std::string>                rawConditions{};
-	float                                   chance{ 100.0 };
 
 	constexpr static auto LP_ID = "LightPlacer|"sv;
 	constexpr static auto LP_NODE = "LightPlacerNode #"sv;
+};
+
+struct LightREFRData
+{
+	LightREFRData(RE::NiPointLight* a_ptLight, RE::TESObjectREFR* a_ref, const LightData& a_lightData) :
+		ptLight(a_ptLight),
+		light(a_lightData.light),
+		fade(a_lightData.GetFade()),
+		diffuse(a_lightData.GetDiffuse()),
+		conditions(a_lightData.conditions)
+	{
+		emittance = a_lightData.emittanceForm;
+		if (!emittance) {
+			auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
+			emittance = xData ? xData->source : nullptr;
+		}
+	}
+
+	bool operator==(const LightREFRData& rhs) const
+	{
+		return std::tie(ptLight, light, fade, diffuse, emittance, conditions) ==
+		       std::tie(rhs.ptLight, rhs.light, rhs.fade, rhs.diffuse, rhs.emittance, rhs.conditions);
+	}
+
+	RE::NiPointer<RE::NiPointLight>   ptLight;
+	RE::TESObjectLIGH*                light;
+	float                             fade;
+	RE::NiColor                       diffuse;
+	RE::TESForm*                      emittance;
+	std::shared_ptr<RE::TESCondition> conditions;
 };
 
 template <>
@@ -81,9 +106,20 @@ struct glz::meta<LightData>
 		"offset", &T::offset,
 		"externalEmittance", &T::emittanceFormEDID,
 		"flags", &T::rawFlags,
-		"conditions", &T::rawConditions,
-		"chance", &T::chance);
+		"conditions", &T::rawConditions);
 };
+
+namespace boost
+{
+	template <>
+	struct hash<LightREFRData>
+	{
+		std::size_t operator()(const LightREFRData& data) const
+		{
+			return boost::hash<std::string>()(data.ptLight->name.c_str());
+		}
+	};
+}
 
 struct PointData
 {
@@ -101,9 +137,9 @@ struct FilteredData
 {
 	bool IsInvalid(const std::string& a_model) const;
 
-	StringSet whiteList;
-	StringSet blackList;
-	LightData data{};
+	Set<std::string> whiteList;
+	Set<std::string> blackList;
+	LightData        data{};
 };
 
 using AttachLightData = std::variant<PointData, NodeData, FilteredData>;

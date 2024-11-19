@@ -11,26 +11,39 @@ public:
 	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
 	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root);
 
-	void DetachLights(RE::TESObjectREFR* a_ref);
+	void DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData);
 
-	void UpdateFlickering(RE::TESObjectCELL* a_cell);
+	void AddLightsToProcessQueue(RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
+
+	void UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(RE::TESObjectCELL* a_cell);
-	void UpdateConditions(RE::TESObjectCELL* a_cell);
 
-	void ClearProcessedLights(RE::TESObjectREFR* a_ref);
+	void RemoveLightsFromProcessQueue(RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
+
+	template <class F>
+	void ForEachLight(RE::RefHandle handle, F&& func)
+	{
+		gameLightsData.read([&](auto& map) {
+			if (auto it = map.find(handle); it != map.end()) {
+				for (auto& lightData : it->second) {
+					func(lightData);
+				}
+			}
+		});
+	}
 
 private:
 	struct Config
 	{
 		struct MultiModelSet
 		{
-			StringSet          models;
+			Set<std::string>   models;
 			AttachLightDataVec lightData;
 		};
 
 		struct MultiReferenceSet
 		{
-			StringSet          references;
+			Set<std::string>   references;
 			AttachLightDataVec lightData;
 		};
 
@@ -43,47 +56,50 @@ private:
 		using Format = std::variant<MultiModelSet, MultiReferenceSet, MultiAddonSet>;
 	};
 
-	struct FlickerData
+	struct ProcessedLights
 	{
-		FlickerData(RE::TESObjectLIGH* a_light, RE::NiPointLight* a_ptLight, float a_fade) :
-			light(a_light),
-			ptLight(a_ptLight),
-			fade(a_fade)
-		{}
+		ProcessedLights() = default;
 
-		RE::TESObjectLIGH*              light{};
-		RE::NiPointer<RE::NiPointLight> ptLight{};
-		float                           fade{};
-	};
+		void emplace(const LightREFRData& a_data, RE::RefHandle a_handle)
+		{
+			constexpr auto emplace = [](auto& container, RE::RefHandle handle) {
+				if (auto it = std::ranges::find(container, handle); it == container.end()) {
+					container.push_back(handle);
+				}
+			};
+			
+			std::scoped_lock locker(*_lock);
+			if (!a_data.light->GetNoFlicker()) {
+				emplace(flickeringLights, a_handle);
+			}
+			if (a_data.emittance) {
+				emplace(emittanceLights, a_handle);
+			}
+			if (a_data.conditions) {
+				emplace(conditionalLights, a_handle);
+			}
+		}
 
-	struct EmittanceData
-	{
-		EmittanceData(RE::NiColor a_diffuse, RE::NiPointLight* a_ptLight) :
-			diffuse(std::move(a_diffuse)),
-			ptLight(a_ptLight)
-		{}
+		void erase(RE::RefHandle a_handle)
+		{
+			constexpr auto erase = [](auto& container, RE::RefHandle handle) {
+				if (auto it = std::ranges::find(container, handle); it != container.end()) {
+					container.erase(it);
+				}
+			};
 
-		RE::NiColor                     diffuse{};
-		RE::NiPointer<RE::NiPointLight> ptLight{};
-	};
+			std::scoped_lock locker(*_lock);
+			erase(flickeringLights, a_handle);
+			erase(conditionalLights, a_handle);
+			erase(emittanceLights, a_handle);
+		}
 
-	struct ConditionalData
-	{
-		ConditionalData(RE::NiPointLight* a_ptLight, std::shared_ptr<RE::TESCondition> a_condition, float a_fade) :
-			ptLight(a_ptLight),
-			condition(a_condition),
-			fade(a_fade)
-		{}
+		std::vector<RE::RefHandle> flickeringLights;
+		std::vector<RE::RefHandle> emittanceLights;
+		float                      lastUpdateTime{ 0.0f };
+		std::vector<RE::RefHandle> conditionalLights;
 
-		RE::NiPointer<RE::NiPointLight>   ptLight{};
-		std::shared_ptr<RE::TESCondition> condition{};
-		float                             fade{};
-	};
-
-	struct RefConditionalDataMap
-	{
-		float                                            lastUpdateTime{ 0.0f };
-		Map<RE::RefHandle, std::vector<ConditionalData>> handlesMap{};
+		mutable std::unique_ptr<std::recursive_mutex> _lock{ std::make_unique<std::recursive_mutex>() };
 	};
 
 	void TryAttachLightsImpl(const ObjectRefData& a_refData, RE::TESBoundObject* a_object);
@@ -92,15 +108,15 @@ private:
 	void AttachConfigLights(const ObjectRefData& a_refData, const AttachLightData& a_attachData, std::uint32_t a_index);
 
 	void AttachMeshLights(const ObjectRefData& a_refData, const std::string& a_model);
-	void SpawnAndProcessLight(const LightData& a_lightData, const ObjectRefData& a_refData, RE::NiNode* a_node, const RE::NiPoint3& a_point = RE::NiPoint3::Zero(), std::uint32_t a_index = 0);
+
+	void AttachLight(const LightData& a_lightData, const ObjectRefData& a_refData, RE::NiNode* a_node, std::uint32_t a_index = 0, const RE::NiPoint3& a_point = RE::NiPoint3::Zero());
 
 	// members
 	std::vector<Config::Format>            config{};
-	StringMap<AttachLightDataVec>          gameModels{};
+	Map<std::string, AttachLightDataVec>   gameModels{};
 	Map<RE::FormID, AttachLightDataVec>    gameReferences{};
 	Map<std::uint32_t, AttachLightDataVec> gameAddonNodes{};
 
-	Map<RE::FormID, Map<RE::RefHandle, std::vector<FlickerData>>>                      flickeringRefs{};
-	Map<RE::FormID, Map<RE::RefHandle, Map<RE::TESForm*, std::vector<EmittanceData>>>> emittanceRefs{};
-	Map<RE::FormID, RefConditionalDataMap>                                             conditionalRefs{};
+	LockedMap<RE::RefHandle, Set<LightREFRData, boost::hash<LightREFRData>>> gameLightsData;
+	Map<RE::FormID, ProcessedLights>                                         processedGameLights;
 };
