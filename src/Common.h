@@ -574,7 +574,7 @@ namespace RE
 			-0.024527298,
 			-0.01225757,
 		};
-		return sineTable[static_cast<std::uint32_t>(a_value) & 511];
+		return sineTable[static_cast<std::uint32_t>((512.0f / RE::NI_TWO_PI) * a_value) & 511];
 	}
 
 	inline float NiCosQ(float a_value)
@@ -1093,6 +1093,6 @@ namespace RE
 			0.9996992,
 			0.9999249,
 		};
-		return cosineTable[static_cast<std::uint32_t>(a_value) & 511];
+		return cosineTable[static_cast<std::uint32_t>((512.0f / RE::NI_TWO_PI) * a_value) & 511];
 	}
 }
