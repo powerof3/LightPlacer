@@ -3,16 +3,16 @@
 
 namespace Debug
 {
-	namespace detail
+	namespace LogLights
 	{
-		constexpr auto LONG_NAME = "ToggleWindowLight"sv;
-		constexpr auto SHORT_NAME = "window"sv;
+		constexpr auto LONG_NAME = "LogLights"sv;
+		constexpr auto SHORT_NAME = "loglp"sv;
 
 		[[nodiscard]] const std::string& HelpString()
 		{
 			static auto help = []() {
 				std::string buf;
-				buf += "ToggleWindowLight\n";
+				buf += "Log all Light Placer lights on an object\n";
 				return buf;
 			}();
 			return help;
@@ -38,24 +38,29 @@ namespace Debug
 
 			return false;
 		}
+
+		void Install()
+		{
+			if (const auto function = RE::SCRIPT_FUNCTION::LocateConsoleCommand("ToggleHeapTracking"); function) {
+				static RE::SCRIPT_PARAMETER params[] = {
+					{ "ObjectRef", RE::SCRIPT_PARAM_TYPE::kObjectRef, true }
+				};
+
+				function->functionName = LONG_NAME.data();
+				function->shortName = SHORT_NAME.data();
+				function->helpString = HelpString().data();
+				function->referenceFunction = false;
+				function->SetParameters(params);
+				function->executeFunction = &Execute;
+				function->conditionFunction = nullptr;
+
+				logger::debug("Installed {}", LONG_NAME);
+			}
+		}
 	}
 
 	void Install()
 	{
-		if (const auto function = RE::SCRIPT_FUNCTION::LocateConsoleCommand("ToggleHeapTracking"); function) {
-			static RE::SCRIPT_PARAMETER params[] = {
-				{ "ObjectRef", RE::SCRIPT_PARAM_TYPE::kObjectRef, true }
-			};
-
-			function->functionName = detail::LONG_NAME.data();
-			function->shortName = detail::SHORT_NAME.data();
-			function->helpString = detail::HelpString().data();
-			function->referenceFunction = false;
-			function->SetParameters(params);
-			function->executeFunction = &detail::Execute;
-			function->conditionFunction = nullptr;
-
-			logger::debug("installed {}", detail::LONG_NAME);
-		}
+		LogLights::Install();
 	}
 }

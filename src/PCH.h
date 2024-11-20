@@ -137,17 +137,6 @@ namespace stl
 
 		T::func = reinterpret_cast<std::uintptr_t>(alloc);
 	}
-
-	template <class Key, class Pred>
-	void erase_if(Set<Key>& c, Pred pred)
-	{
-		for (auto first = c.begin(), last = c.end(); first != last;) {
-			if (pred(*first))
-				first = c.erase(first);
-			else
-				++first;
-		}
-	}
 }
 
 #include "Common.h"

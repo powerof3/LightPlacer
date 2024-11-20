@@ -256,7 +256,7 @@ void LightREFRData::UpdateFlickeringGame(const RE::TESObjectREFRPtr& a_ref) cons
 	}
 }
 
-void LightREFRData::UpdateFlickering(const RE::TESObjectREFRPtr& a_ref) const
+void LightREFRData::UpdateFlickering() const
 {
 	if (ptLight && light) {
 		if (ptLight->GetAppCulled()) {

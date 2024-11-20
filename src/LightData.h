@@ -86,7 +86,7 @@ struct LightREFRData
 	}
 
 	void UpdateConditions(const RE::TESObjectREFRPtr& a_ref) const;
-	void UpdateFlickering(const RE::TESObjectREFRPtr& a_ref) const;
+	void UpdateFlickering() const;
 	void UpdateFlickeringGame(const RE::TESObjectREFRPtr& a_ref) const;
 	void UpdateEmittance() const;
 
