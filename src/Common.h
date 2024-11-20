@@ -58,7 +58,7 @@ namespace RE
 		return formID != 0 ? RE::TESForm::LookupByID<T>(GetFormID(a_str)) : nullptr;
 	}
 
-	inline float NiSinQ(float a_value)
+	inline float NiSinQImpl(float a_value)
 	{
 		static constexpr std::array<float, 512> sineTable = {
 			0,
@@ -574,10 +574,10 @@ namespace RE
 			-0.024527298,
 			-0.01225757,
 		};
-		return sineTable[static_cast<std::uint32_t>((512.0f / RE::NI_TWO_PI) * a_value) & 511];
+		return sineTable[static_cast<std::uint32_t>(a_value) & 511];
 	}
 
-	inline float NiCosQ(float a_value)
+	inline float NiCosQImpl(float a_value)
 	{
 		static constexpr std::array<float, 512> cosineTable = {
 			1,
@@ -1093,6 +1093,16 @@ namespace RE
 			0.9996992,
 			0.9999249,
 		};
-		return cosineTable[static_cast<std::uint32_t>((512.0f / RE::NI_TWO_PI) * a_value) & 511];
+		return cosineTable[static_cast<std::uint32_t>(a_value) & 511];
+	}
+
+	inline float NiSinQ(float a_radians)
+	{
+		return NiSinQImpl((512.0f / RE::NI_TWO_PI) * a_radians);
+	}
+
+	inline float NiCosQ(float a_radians)
+	{
+		return NiCosQImpl((512.0f / RE::NI_TWO_PI) * a_radians);
 	}
 }

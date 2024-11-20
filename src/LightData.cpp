@@ -276,28 +276,22 @@ void LightREFRData::UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPoi
 void LightREFRData::UpdateLight() const
 {
 	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kFlicker, RE::TES_LIGHT_FLAGS::kFlickerSlow)) {
-		auto flickerDelta = RE::BSTimer::GetSingleton()->delta * light->data.flickerPeriodRecip;
+		const auto flickerDelta = RE::BSTimer::GetSingleton()->delta * light->data.flickerPeriodRecip;
 
 		auto constAttenOffset = ptLight->constAttenuation + (clib_util::RNG().generate<float>(1.1f, 13.1f) * flickerDelta);
 		auto linearAttenOffset = ptLight->linearAttenuation + (clib_util::RNG().generate<float>(1.2f, 13.2f) * flickerDelta);
 		auto quadraticAttenOffset = ptLight->quadraticAttenuation + (clib_util::RNG().generate<float>(1.3f, 19.3f) * flickerDelta);
 
-		if (constAttenOffset > RE::NI_TWO_PI) {
-			constAttenOffset -= RE::NI_TWO_PI;
-		}
-		if (linearAttenOffset > RE::NI_TWO_PI) {
-			linearAttenOffset -= RE::NI_TWO_PI;
-		}
-		if (quadraticAttenOffset > RE::NI_TWO_PI) {
-			quadraticAttenOffset -= RE::NI_TWO_PI;
-		}
+		constAttenOffset = std::fmod(constAttenOffset, RE::NI_TWO_PI);
+		linearAttenOffset = std::fmod(linearAttenOffset, RE::NI_TWO_PI);
+		quadraticAttenOffset = std::fmod(quadraticAttenOffset, RE::NI_TWO_PI);
 
 		ptLight->constAttenuation = constAttenOffset;
 		ptLight->linearAttenuation = linearAttenOffset;
 		ptLight->quadraticAttenuation = quadraticAttenOffset;
 
-		auto constAttenSine = RE::NiSinQ(constAttenOffset + 1.7f);
-		auto linearAttenSine = RE::NiSinQ(linearAttenOffset + 0.5f);
+		const auto constAttenSine = RE::NiSinQ(constAttenOffset + 1.7f);
+		const auto linearAttenSine = RE::NiSinQ(linearAttenOffset + 0.5f);
 
 		auto flickerMovementMult = ((light->data.flickerMovementAmplitude * constAttenSine) * linearAttenSine) * 0.5f;
 		if ((flickerMovementMult + light->data.flickerMovementAmplitude) <= 0.0f) {
@@ -305,35 +299,37 @@ void LightREFRData::UpdateLight() const
 		}
 
 		ptLight->local.translate.x = flickerMovementMult * constAttenSine;
-		ptLight->local.translate.z = flickerMovementMult * RE::NiSinQ((quadraticAttenOffset + 0.3f));
 		ptLight->local.translate.y = flickerMovementMult * linearAttenSine;
+		ptLight->local.translate.z = flickerMovementMult * RE::NiSinQ(quadraticAttenOffset + 0.3f);
 
-		auto halfAmp = light->data.flickerIntensityAmplitude * 0.5f;
-		auto flickerIntensityMult = std::clamp((((((RE::NiSinQ(linearAttenOffset * 1.3f) + 1.0f) * 0.5f) * ((RE::NiSinQ(constAttenOffset * 1.1f) + 1.0f) * 0.5f) * 0.5f) * 0.33333333f) + (RE::NiSinQ(quadraticAttenOffset * 3.0f) * 0.2f)), -1.0f, 1.0f);
+		const auto halfIntensityAmplitude = light->data.flickerIntensityAmplitude * 0.5f;
 
-		ptLight->fade = ((halfAmp * flickerIntensityMult) + (1.0f - halfAmp)) * fade;
+		const auto flickerIntensity = std::clamp((RE::NiSinQImpl(linearAttenOffset * 1.3f * (512.0f / RE::NI_TWO_PI) + 52.966763f) + 1.0f) * 0.5f *
+														 (RE::NiSinQImpl(constAttenOffset * 1.1f * (512.0f / RE::NI_TWO_PI) + 152.38132f) + 1.0f) * 0.5f * 0.33333331f +
+													 RE::NiSinQImpl(quadraticAttenOffset * 3.0f * (512.0f / RE::NI_TWO_PI) + 73.3386f) * 0.2f,
+			-1.0f, 1.0f);
+
+		ptLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * fade;
 
 	} else {
 		if (light->data.flags.none(RE::TES_LIGHT_FLAGS::kPulse, RE::TES_LIGHT_FLAGS::kPulseSlow)) {
 			return;
 		}
 
-		auto constAtten = ptLight->constAttenuation + (RE::BSTimer::GetSingleton()->delta * light->data.flickerPeriodRecip);
-		if (constAtten > RE::NI_TWO_PI) {
-			constAtten -= RE::NI_TWO_PI;
-		}
-		ptLight->constAttenuation = constAtten;
+		auto constAttenuation = std::fmod(ptLight->constAttenuation + (RE::BSTimer::GetSingleton()->delta * light->data.flickerPeriodRecip), RE::NI_TWO_PI);
+		ptLight->constAttenuation = constAttenuation;
 
-		auto constAttenCosine = RE::NiCosQ(constAtten);
-		auto constAttenSine = RE::NiSinQ(constAtten);
+		auto constAttenCosine = RE::NiCosQ(constAttenuation);
+		auto constAttenSine = RE::NiSinQ(constAttenuation);
 
-		auto halfAmp = light->data.flickerIntensityAmplitude * 0.5f;
+		const auto movementAmplitude = light->data.flickerMovementAmplitude;
+		const auto halfIntensityAmplitude = light->data.flickerIntensityAmplitude * 0.5f;
 
-		ptLight->fade = ((constAttenCosine * halfAmp) + (1.0f - halfAmp)) * fade;
+		ptLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * fade;
 
-		ptLight->local.translate.x = light->data.flickerMovementAmplitude * constAttenCosine;
-		ptLight->local.translate.y = light->data.flickerMovementAmplitude * constAttenSine;
-		ptLight->local.translate.z = light->data.flickerMovementAmplitude * (constAttenSine * constAttenCosine);
+		ptLight->local.translate.x = movementAmplitude * constAttenCosine;
+		ptLight->local.translate.y = movementAmplitude * constAttenSine;
+		ptLight->local.translate.z = movementAmplitude * (constAttenSine * constAttenCosine);
 	}
 
 	if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
