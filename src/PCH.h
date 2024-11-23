@@ -45,16 +45,31 @@ template <
 	class M = std::mutex,
 	template <class...> class RL = std::unique_lock,
 	template <class...> class WL = std::unique_lock>
-struct mutex_guarded
+struct MutexGuard
 {
-	mutex_guarded() = default;
-	explicit mutex_guarded(T in) :
+	MutexGuard() = default;
+	explicit MutexGuard(T in) :
 		data(std::move(in))
 	{}
+	template <class... Args>
+	explicit MutexGuard(Args&&... args) :
+		data(std::forward<Args>(args)...)
+	{}
+	~MutexGuard() = default;
+
+	MutexGuard(const MutexGuard&) = delete;
+	MutexGuard(MutexGuard&&) noexcept = default;
+	MutexGuard& operator=(const MutexGuard&) = delete;
+	MutexGuard& operator=(MutexGuard&&) noexcept = default;
 
 	auto read(auto&& f) const
 	{
 		auto l = lock();
+		return f(data);
+	}
+	auto read_unsafe(auto&& f)
+	{
+		auto l = lock_unsafe();
 		return f(data);
 	}
 	auto write(auto&& f)
@@ -64,27 +79,34 @@ struct mutex_guarded
 	}
 
 private:
-	mutable M mutex;
-	T         data;
+	mutable std::unique_ptr<M> mutex{ std::make_unique<M>() };
+	T                          data;
 
-	auto lock() { return WL<M>(mutex); }
-	auto lock() const { return RL<M>(mutex); }
+	auto lock() { return WL<M>(*mutex); }
+	auto lock() const { return RL<M>(*mutex); }
+	auto lock_unsafe() { return RL<M>(*mutex); }
 };
 
 template <class T>
-using shared_guarded = mutex_guarded<T, std::shared_mutex, std::shared_lock>;
+using MutexGuardShared = MutexGuard<T, std::shared_mutex, std::shared_lock>;
 
-template <class K, class D, class H = boost::hash<K>>
-using Map = boost::unordered_flat_map<K, D, H>;
-
-template <class K, class H = boost::hash<K>>
-using Set = boost::unordered_flat_set<K, H>;
-
-template <class K, class D, class H = boost::hash<K>>
-using LockedMap = shared_guarded<Map<K, D, H>>;
+template <class K, class D, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
+using FlatMap = boost::unordered_flat_map<K, D, H, KEqual>;
 
 template <class K, class H = boost::hash<K>>
-using LockedSet = shared_guarded<Set<K, H>>;
+using FlatSet = boost::unordered_flat_set<K, H>;
+
+template <class K, class D, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
+using NodeMap = boost::unordered_node_map<K, D, H, KEqual>;
+
+template <class K, class H = boost::hash<K>>
+using NodeSet = boost::unordered_node_set<K, H>;
+
+template <class K, class D, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
+using LockedMap = MutexGuardShared<FlatMap<K, D, H, KEqual>>;
+
+template <class K, class H = boost::hash<K>>
+using LockedSet = MutexGuardShared<FlatSet<K, H>>;
 
 namespace stl
 {

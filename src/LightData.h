@@ -36,7 +36,6 @@ struct LightData
 
 	bool                                     IsValid() const;
 	std::string                              GetName(std::uint32_t a_index) const;
-	RE::NiColor                              GetDiffuse() const;
 	float                                    GetRadius() const;
 	float                                    GetFade() const;
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
@@ -44,7 +43,7 @@ struct LightData
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
 
-	RE::NiPointLight* SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
+	RE::BSLight* GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
 
 	// members
 	RE::TESObjectLIGH*                      light{ nullptr };
@@ -63,45 +62,6 @@ struct LightData
 	constexpr static auto LP_NODE = "LightPlacerNode #"sv;
 };
 
-struct LightREFRData
-{
-	LightREFRData(RE::NiPointLight* a_ptLight, RE::TESObjectREFR* a_ref, const LightData& a_lightData) :
-		ptLight(a_ptLight),
-		light(a_lightData.light),
-		fade(a_lightData.GetFade()),
-		diffuse(a_lightData.GetDiffuse()),
-		conditions(a_lightData.conditions)
-	{
-		emittance = a_lightData.emittanceForm;
-		if (!emittance) {
-			auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
-			emittance = xData ? xData->source : nullptr;
-		}
-	}
-
-	bool operator==(const LightREFRData& rhs) const
-	{
-		return std::tie(ptLight, light, fade, diffuse, emittance, conditions) ==
-		       std::tie(rhs.ptLight, rhs.light, rhs.fade, rhs.diffuse, rhs.emittance, rhs.conditions);
-	}
-
-	void UpdateConditions(const RE::TESObjectREFRPtr& a_ref) const;
-	void UpdateFlickering() const;
-	void UpdateFlickeringGame(const RE::TESObjectREFRPtr& a_ref) const;
-	void UpdateEmittance() const;
-
-	RE::NiPointer<RE::NiPointLight>   ptLight;
-	RE::TESObjectLIGH*                light;
-	float                             fade;
-	RE::NiColor                       diffuse;
-	RE::TESForm*                      emittance;
-	std::shared_ptr<RE::TESCondition> conditions;
-
-private:
-	static void UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer);
-	void        UpdateLight() const;
-};
-
 template <>
 struct glz::meta<LightData>
 {
@@ -116,6 +76,43 @@ struct glz::meta<LightData>
 		"conditions", &T::rawConditions);
 };
 
+struct LightREFRData
+{
+	LightREFRData(RE::BSLight* a_bsLight, RE::TESObjectREFR* a_ref, const LightData& a_lightData) :
+		bsLight(a_bsLight),
+		light(a_lightData.light),
+		fade(a_lightData.GetFade()),
+		conditions(a_lightData.conditions)
+	{
+		emittance = a_lightData.emittanceForm;
+		if (!emittance) {
+			auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
+			emittance = xData ? xData->source : nullptr;
+		}
+	}
+
+	bool operator==(const LightREFRData& rhs) const
+	{
+		return bsLight->light->name == rhs.bsLight->light->name;
+	}
+
+	void UpdateConditions(RE::TESObjectREFR* a_ref) const;
+	void UpdateFlickering() const;
+	void UpdateEmittance() const;
+	void ReattachLight() const;
+	void RemoveLight() const;
+
+	RE::NiPointer<RE::BSLight>        bsLight;
+	RE::TESObjectLIGH*                light;
+	float                             fade;
+	RE::TESForm*                      emittance;
+	std::shared_ptr<RE::TESCondition> conditions;
+
+private:
+	static void UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer);
+	void        UpdateLight() const;
+};
+
 namespace boost
 {
 	template <>
@@ -123,10 +120,19 @@ namespace boost
 	{
 		std::size_t operator()(const LightREFRData& data) const
 		{
-			return boost::hash<std::string>()(data.ptLight->name.c_str());
+			return boost::hash<RE::NiPointer<RE::NiLight>>()(data.bsLight->light);
 		}
 	};
 }
+
+struct FilteredData
+{
+	bool IsInvalid(const std::string& a_model) const;
+
+	FlatSet<std::string> whiteList;
+	FlatSet<std::string> blackList;
+	LightData            data{};
+};
 
 struct PointData
 {
@@ -138,15 +144,6 @@ struct NodeData
 {
 	std::vector<std::string> nodes{};
 	LightData                data{};
-};
-
-struct FilteredData
-{
-	bool IsInvalid(const std::string& a_model) const;
-
-	Set<std::string> whiteList;
-	Set<std::string> blackList;
-	LightData        data{};
 };
 
 using AttachLightData = std::variant<PointData, NodeData, FilteredData>;

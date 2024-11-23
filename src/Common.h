@@ -7,8 +7,31 @@ struct glz::meta<RE::NiPoint3>
 	static constexpr auto value = array(&T::x, &T::y, &T::z);
 };
 
+namespace boost
+{
+	template <class T>
+	struct hash<RE::NiPointer<T>>
+	{
+		std::size_t operator()(const RE::NiPointer<T>& ptr) const
+		{
+			return boost::hash<T*>()(ptr.get());
+		}
+	};
+}
+
 namespace RE
 {
+	inline bool IsActor(TESObjectREFR* a_ref)
+	{
+		return a_ref->Is(RE::FormType::ActorCharacter);
+	}
+
+	inline NiColor GetLightDiffuse(TESObjectLIGH* a_light)
+	{
+		auto diffuse = NiColor(a_light->data.color);
+		return a_light->data.flags.any(TES_LIGHT_FLAGS::kNegative) ? -diffuse : diffuse;
+	}
+
 	template <class T>
 	void AttachNode(RE::NiNode* a_root, T* a_obj)
 	{

@@ -4,13 +4,32 @@ namespace Hooks
 {
 	namespace AttachDetach
 	{
+		struct AddAddonNodes
+		{
+			static void thunk(RE::NiAVObject* a_clonedNode, RE::NiAVObject* a_node, std::int32_t a_slot, RE::TESObjectREFR* a_actor, RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim)
+			{
+				func(a_clonedNode, a_node, a_slot, a_actor, a_bipedAnim);
+
+				LightManager::GetSingleton()->TryAttachLights(a_actor, a_bipedAnim, a_slot, a_node);
+			};
+			static inline REL::Relocation<decltype(thunk)> func;
+
+			static void Install()
+			{
+				REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(15527, 15704) };
+				stl::hook_function_prologue<AddAddonNodes, 5>(target.address());
+
+				logger::info("Hooked BipedAnim::AddAddonNodes");
+			}
+		};
+
 		struct AttachLight
 		{
 			static void thunk(RE::TESObjectREFR* a_this, bool a_isMagicLight)
 			{
-				func(a_this, a_isMagicLight);
-
 				LightManager::GetSingleton()->TryAttachLights(a_this, a_this->GetBaseObject());
+
+				func(a_this, a_isMagicLight);
 			};
 			static inline REL::Relocation<decltype(thunk)> func;
 
@@ -23,14 +42,33 @@ namespace Hooks
 			}
 		};
 
+		struct ReAddCasterLights
+		{
+			static void thunk(RE::Actor* a_this, RE::ShadowSceneNode& a_shadowSceneNode)
+			{
+				LightManager::GetSingleton()->ReattachWornLights(a_this->CreateRefHandle());
+
+				func(a_this, a_shadowSceneNode);
+			}
+			static inline REL::Relocation<decltype(thunk)> func;
+
+			static void Install()
+			{
+				REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(37826, 38780) };
+				stl::hook_function_prologue<ReAddCasterLights, 5>(target.address());
+
+				logger::info("Hooked Actor::ReAddCasterLights");
+			}
+		};
+
 		// clears light from the shadowscenenode
 		struct RemoveLight
 		{
 			static void thunk(RE::TESObjectREFR* a_this, bool a_isMagicLight)
 			{
-				func(a_this, a_isMagicLight);
-
 				LightManager::GetSingleton()->DetachLights(a_this, false);
+
+				func(a_this, a_isMagicLight);
 			};
 			static inline REL::Relocation<decltype(thunk)> func;
 
@@ -59,8 +97,8 @@ namespace Hooks
 			static void Install()
 			{
 				std::array targets{
-					std::make_pair(RELOCATION_ID(19102, 19504), OFFSET(0xC0, 0xCA)),   // TESObjectREFR::ClearData
-					std::make_pair(RELOCATION_ID(19302, 19729), OFFSET(0x63C, 0x63A))  // TESObjectREFR::Set3D
+					std::make_pair(RELOCATION_ID(19102, 19504), OFFSET(0xC0, 0xCA)),    // TESObjectREFR::ClearData
+					std::make_pair(RELOCATION_ID(19302, 19729), OFFSET(0x63C, 0x63A)),  // TESObjectREFR::Set3D
 				};
 
 				for (auto& [address, offset] : targets) {
@@ -69,6 +107,25 @@ namespace Hooks
 				}
 
 				logger::info("Hooked ExtraDataList::GetLightData");
+			}
+		};
+
+		struct RunBiped3DDetach
+		{
+			static void thunk(const RE::ActorHandle& a_handle, RE::NiAVObject* a_node)
+			{
+				LightManager::GetSingleton()->DetachWornLights(a_handle, a_node);
+
+				func(a_handle, a_node);
+			};
+			static inline REL::Relocation<decltype(thunk)> func;
+
+			static void Install()
+			{
+				REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(15495, 15660) };
+				stl::hook_function_prologue<RunBiped3DDetach, 5>(target.address());
+
+				logger::info("Hooked BipedAnim::RunBiped3DDetach");
 			}
 		};
 
@@ -83,11 +140,15 @@ namespace Hooks
 			Clone3D<RE::TESSoulGem>::Install();
 			Clone3D<RE::TESObjectACTI>::Install();
 			Clone3D<RE::TESObjectBOOK>::Install();
-
+			Clone3D<RE::TESObjectWEAP>::Install();
+			Clone3D<RE::TESObjectARMO>::Install();
 			AttachLight::Install();
+			AddAddonNodes::Install();
+			ReAddCasterLights::Install();
 
 			RemoveLight::Install();
 			GetLightData::Install();
+			RunBiped3DDetach::Install();
 		}
 	}
 

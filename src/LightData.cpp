@@ -134,12 +134,6 @@ std::string LightData::GetName(std::uint32_t a_index) const
 	return std::format("{}{}|{}|{} #{}", LP_ID, lightEDID, radius, fade, a_index);
 }
 
-RE::NiColor LightData::GetDiffuse() const
-{
-	auto diffuse = RE::NiColor(light->data.color);
-	return light->data.flags.any(RE::TES_LIGHT_FLAGS::kNegative) ? -diffuse : diffuse;
-}
-
 float LightData::GetRadius() const
 {
 	return radius > 0.0f ? radius : static_cast<float>(light->data.radius);
@@ -153,7 +147,7 @@ float LightData::GetFade() const
 RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR* a_ref) const
 {
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS params{};
-	params.dynamic = light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || (a_ref && a_ref->GetBaseObject() ? a_ref->GetBaseObject()->IsInventoryObject() : false);
+	params.dynamic = light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || a_ref && RE::IsActor(a_ref) || (a_ref && a_ref->GetBaseObject() ? a_ref->GetBaseObject()->IsInventoryObject() : false);
 	params.shadowLight = false;
 	params.portalStrict = light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
 	params.affectLand = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightLandscape) == 0 : true;
@@ -197,8 +191,10 @@ RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj
 	return nullptr;
 }
 
-RE::NiPointLight* LightData::SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
+RE::BSLight* LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
 {
+	RE::BSLight* bsLight = nullptr;
+
 	auto name = GetName(a_index);
 
 	auto niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(name));
@@ -217,7 +213,7 @@ RE::NiPointLight* LightData::SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_
 		niLight->ambient = RE::NiColor();
 		niLight->ambient.red = static_cast<float>(flags.underlying());
 
-		niLight->diffuse = GetDiffuse();
+		niLight->diffuse = RE::GetLightDiffuse(light);
 
 		auto lightRadius = GetRadius();
 		niLight->radius.x = lightRadius;
@@ -225,41 +221,32 @@ RE::NiPointLight* LightData::SpawnLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_
 		niLight->radius.z = lightRadius;
 
 		auto* shadowSceneNode = RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0];
-		if (!shadowSceneNode->GetPointLight(niLight)) {
-			shadowSceneNode->AddLight(niLight, GetParams(a_ref));
+		if (bsLight = shadowSceneNode->GetPointLight(niLight); !bsLight) {
+			bsLight = shadowSceneNode->AddLight(niLight, GetParams(a_ref));
 		}
 
 		niLight->SetLightAttenuation(lightRadius);
 		niLight->fade = GetFade();
-	}
 
-	return niLight;
-}
-
-void LightREFRData::UpdateConditions(const RE::TESObjectREFRPtr& a_ref) const
-{
-	if (ptLight && conditions) {
-		ptLight->SetAppCulled(!conditions->IsTrue(a_ref.get(), a_ref.get()));
-	}
-}
-
-void LightREFRData::UpdateFlickeringGame(const RE::TESObjectREFRPtr& a_ref) const
-{
-	if (ptLight && light) {
-		if (ptLight->GetAppCulled()) {
-			return;
+		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
+			niLight->SetAppCulled(true);
 		}
-		auto originalFade = light->fade;
-		light->fade = fade;
-		UpdateLight_Game(light, ptLight, a_ref.get(), -1.0f);
-		light->fade = originalFade;
+	}
+
+	return bsLight;
+}
+
+void LightREFRData::UpdateConditions(RE::TESObjectREFR* a_ref) const
+{
+	if (conditions && bsLight && bsLight->light) {
+		bsLight->light->SetAppCulled(!conditions->IsTrue(a_ref, a_ref));
 	}
 }
 
 void LightREFRData::UpdateFlickering() const
 {
-	if (ptLight && light) {
-		if (ptLight->GetAppCulled()) {
+	if (bsLight && bsLight->light && light) {
+		if (bsLight->light->GetAppCulled()) {
 			return;
 		}
 		UpdateLight();
@@ -275,6 +262,8 @@ void LightREFRData::UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPoi
 
 void LightREFRData::UpdateLight() const
 {
+	auto ptLight = netimmerse_cast<RE::NiPointLight*>(bsLight->light.get());
+
 	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kFlicker, RE::TES_LIGHT_FLAGS::kFlickerSlow)) {
 		const auto flickerDelta = RE::BSTimer::GetSingleton()->delta * light->data.flickerPeriodRecip;
 
@@ -333,7 +322,7 @@ void LightREFRData::UpdateLight() const
 	}
 
 	if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
-		RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(ptLight.get());
+		RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(ptLight);
 	} else {
 		RE::NiUpdateData data;
 		ptLight->Update(data);
@@ -342,14 +331,30 @@ void LightREFRData::UpdateLight() const
 
 void LightREFRData::UpdateEmittance() const
 {
-	if (ptLight && emittance) {
+	if (light && bsLight && bsLight->light && emittance) {
 		RE::NiColor emittanceColor(1.0, 1.0, 1.0);
 		if (auto lightForm = emittance->As<RE::TESObjectLIGH>()) {
 			emittanceColor = lightForm->emittanceColor;
 		} else if (auto region = emittance->As<RE::TESRegion>()) {
 			emittanceColor = region->emittanceColor;
 		}
-		ptLight->diffuse = diffuse * emittanceColor;
+		if (auto ptLight = netimmerse_cast<RE::NiPointLight*>(bsLight->light.get())) {
+			ptLight->diffuse = RE::GetLightDiffuse(light) * emittanceColor;
+		}
+	}
+}
+
+void LightREFRData::ReattachLight() const
+{
+	if (bsLight) {
+		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->AddLight(bsLight.get());
+	}
+}
+
+void LightREFRData::RemoveLight() const
+{
+	if (bsLight) {
+		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->RemoveLight(bsLight);
 	}
 }
 

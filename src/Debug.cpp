@@ -30,9 +30,8 @@ namespace Debug
 					});
 					RE::ConsoleLog::GetSingleton()->Print("\tLightData");
 					LightManager::GetSingleton()->ForEachLight(a_obj->CreateRefHandle().native_handle(), [](const auto& lightData) {
-						RE::ConsoleLog::GetSingleton()->Print("\t\t%s", lightData.ptLight->name.c_str());
+						RE::ConsoleLog::GetSingleton()->Print("\t\t%s", lightData.bsLight->light->name.c_str());
 					});
-
 				}
 			}
 
