@@ -305,7 +305,7 @@ void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {
 			it->second.write([&](auto& innerMap) {
 				innerMap.lastUpdateTime += RE::GetSecondsSinceLastFrame();
-				if (innerMap.lastUpdateTime >= 0.1f) {
+				if (innerMap.lastUpdateTime >= 0.25f) {
 					innerMap.lastUpdateTime = 0.0f;
 
 					std::erase_if(innerMap.conditionalLights, [&](const auto& handle) {
