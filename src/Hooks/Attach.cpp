@@ -8,9 +8,9 @@ namespace Hooks::Attach
 	{
 		static void thunk(RE::NiAVObject* a_clonedNode, RE::NiAVObject* a_node, std::int32_t a_slot, RE::TESObjectREFR* a_actor, RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim)
 		{
-			func(a_clonedNode, a_node, a_slot, a_actor, a_bipedAnim);
+			LightManager::GetSingleton()->AddWornLights(a_actor, a_bipedAnim, a_slot, a_node);
 
-			LightManager::GetSingleton()->TryAttachLights(a_actor, a_bipedAnim, a_slot, a_node);
+			func(a_clonedNode, a_node, a_slot, a_actor, a_bipedAnim);
 		};
 		static inline REL::Relocation<decltype(thunk)> func;
 
@@ -28,7 +28,7 @@ namespace Hooks::Attach
 	{
 		static void thunk(RE::TESObjectREFR* a_this, bool a_isMagicLight)
 		{
-			LightManager::GetSingleton()->TryAttachLights(a_this, a_this->GetBaseObject());
+			LightManager::GetSingleton()->ReattachLights(a_this, a_this->GetBaseObject());
 
 			func(a_this, a_isMagicLight);
 		};

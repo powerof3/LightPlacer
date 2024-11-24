@@ -159,6 +159,22 @@ namespace stl
 
 		T::func = reinterpret_cast<std::uintptr_t>(alloc);
 	}
+
+	template<class T, class F>
+	void unique_insert(std::vector<T>& vec, const F& element)
+	{
+		if (std::find(vec.begin(), vec.end(), element) == vec.end()) {
+			vec.push_back(element);
+		}
+	}
+
+	template <class T, class F>
+	void unique_erase(std::vector<T>& vec, const F& element)
+	{
+		if (auto it = std::find(vec.begin(), vec.end(), element); it != vec.end()) {
+			vec.erase(it);
+		}
+	}
 }
 
 #include "Common.h"

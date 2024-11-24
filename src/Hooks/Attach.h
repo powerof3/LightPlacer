@@ -12,9 +12,9 @@ namespace Hooks::Attach
 		{
 			auto node = func(a_this, a_ref);
 			if constexpr (std::is_same_v<RE::BGSMovableStatic, T>) {
-				LightManager::GetSingleton()->TryAttachLights(a_ref, a_ref ? a_ref->GetBaseObject() : nullptr, node);			
+				LightManager::GetSingleton()->AddLights(a_ref, a_ref ? a_ref->GetBaseObject() : nullptr, node);			
 			} else {
-				LightManager::GetSingleton()->TryAttachLights(a_ref, a_this, node);			
+				LightManager::GetSingleton()->AddLights(a_ref, a_this, node);			
 			}
 			return node;
 		}

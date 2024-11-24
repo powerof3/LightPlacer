@@ -55,19 +55,17 @@ public:
 	bool ReadConfigs();
 	void OnDataLoad();
 
-	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
-	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root);
-	void TryAttachLights(RE::TESObjectREFR* a_ref, RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root);
+	void AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root);
+	void ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
 	void DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData);
 
+	void AddWornLights(RE::TESObjectREFR* a_ref, RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root);
 	void ReattachWornLights(const RE::ActorHandle& a_handle);
 	void DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObject* a_root);
 
 	void AddLightsToProcessQueue(RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
-
 	void UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(RE::TESObjectCELL* a_cell);
-
 	void RemoveLightsFromProcessQueue(RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
 
 	template <class F>
@@ -124,14 +122,16 @@ private:
 
 	void PostProcessLightData(Config::LightDataVec& a_lightDataVec);
 
-	void TryAttachLightsImpl(const ObjectREFRParams& a_refParams, RE::TESBoundObject* a_object, RE::TESModel* a_model);
+	void AttachLightsImpl(const ObjectREFRParams& a_refParams, RE::TESBoundObject* a_object, RE::TESModel* a_model);
 
 	void AttachConfigLights(const ObjectREFRParams& a_refParams, const std::string& a_model, RE::FormID a_baseFormID);
 	void AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightData& a_lightData, std::uint32_t a_index);
 
 	void AttachMeshLights(const ObjectREFRParams& a_refParams, const std::string& a_model);
 
-	void AttachLight(const LightCreateParams& a_lightParams, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, std::uint32_t a_index = 0, const RE::NiPoint3& a_point = RE::NiPoint3::Zero());
+	void AttachLight(const LightCreateParams& a_lightParams, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, std::uint32_t a_index = 0, const RE::NiPoint3& a_point = { 0, 0, 0 });
+
+	bool ReattachLightsImpl(const ObjectREFRParams& a_refParams);
 
 	// members
 	std::vector<Config::Format>                  config{};
@@ -139,7 +139,7 @@ private:
 	FlatMap<RE::FormID, Config::LightDataVec>    gameReferences{};
 	FlatMap<std::uint32_t, Config::LightDataVec> gameAddonNodes{};
 
-	LockedMap<RE::RefHandle, NodeSet<REFR_LIGH>>                         gameRefLights;
-	LockedMap<RE::RefHandle, LockedMap<RE::NiNode*, NodeSet<REFR_LIGH>>> gameActorLights;
-	LockedMap<RE::FormID, MutexGuard<ProcessedLights>>                   processedGameLights;
+	LockedMap<RE::RefHandle, std::vector<REFR_LIGH>>                         gameRefLights;
+	LockedMap<RE::RefHandle, LockedMap<RE::NiNode*, std::vector<REFR_LIGH>>> gameActorLights;
+	LockedMap<RE::FormID, MutexGuard<ProcessedLights>>                       processedGameLights;
 };

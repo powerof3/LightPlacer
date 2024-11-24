@@ -14,11 +14,8 @@ struct ObjectREFRParams
 	RE::RefHandle      handle{};
 };
 
-struct LightCreateParams
+struct LightDataBase
 {
-	LightCreateParams() = default;
-	LightCreateParams(const RE::NiStringsExtraData* a_data);
-
 	// CS light flags
 	enum class LightFlags : std::uint32_t
 	{
@@ -28,22 +25,18 @@ struct LightCreateParams
 		Simple = (1 << 2)
 	};
 
-	void ReadFlags();
-	void ReadConditions();
-	bool PostProcess();
-
-	bool                                     IsValid() const;
+	float                                    GetRadius() const;
+	float                                    GetFade() const;
 	std::string                              GetName(std::uint32_t a_index) const;
 	static std::string                       GetNodeName(std::uint32_t a_index);
 	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
-	float                                    GetRadius() const;
-	float                                    GetFade() const;
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
+	bool                                     IsValid() const;
 
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
 
-	RE::BSLight* GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
+	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point = { 0, 0, 0 }, std::uint32_t a_index = 0) const;
 
 	// members
 	RE::TESObjectLIGH*                      light{ nullptr };
@@ -51,15 +44,27 @@ struct LightCreateParams
 	float                                   radius{ 0.0f };
 	float                                   fade{ 0.0f };
 	RE::NiPoint3                            offset{};
-	RE::TESForm*                            emittanceForm{ nullptr };
-	std::string                             emittanceFormEDID{};
 	REX::EnumSet<LightFlags, std::uint32_t> flags{ LightFlags::None };
-	std::string                             rawFlags{};
+	RE::TESForm*                            emittanceForm{ nullptr };
 	std::shared_ptr<RE::TESCondition>       conditions{};
-	std::vector<std::string>                rawConditions{};
 
 	constexpr static auto LP_ID = "LightPlacer|"sv;
 	constexpr static auto LP_NODE = "LightPlacerNode #"sv;
+};
+
+struct LightCreateParams : public LightDataBase
+{
+	LightCreateParams() = default;
+	LightCreateParams(const RE::NiStringsExtraData* a_data);
+
+	void ReadFlags();
+	void ReadConditions();
+	bool PostProcess();
+
+	// members
+	std::string              emittanceFormEDID{};
+	std::string              rawFlags{};
+	std::vector<std::string> rawConditions{};
 };
 
 template <>
@@ -76,25 +81,34 @@ struct glz::meta<LightCreateParams>
 		"conditions", &T::rawConditions);
 };
 
-struct REFR_LIGH
+struct REFR_LIGH : LightDataBase
 {
-	REFR_LIGH(RE::BSLight* a_bsLight, RE::TESObjectREFR* a_ref, const LightCreateParams& a_lightParams) :
+	REFR_LIGH() = default;
+	REFR_LIGH(const LightCreateParams& a_lightParams, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) :
+		LightDataBase(a_lightParams),
 		bsLight(a_bsLight),
-		light(a_lightParams.light),
-		fade(a_lightParams.GetFade()),
-		conditions(a_lightParams.conditions)
+		niLight(a_niLight),
+		parentNode(a_node),
+		point(a_point),
+		index(a_index)
 	{
-		emittance = a_lightParams.emittanceForm;
-		if (!emittance) {
+		if (!emittanceForm) {
 			auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
-			emittance = xData ? xData->source : nullptr;
+			emittanceForm = xData ? xData->source : nullptr;
 		}
 	}
 
 	bool operator==(const REFR_LIGH& rhs) const
 	{
-		return bsLight->light->name == rhs.bsLight->light->name;
+		return niLight->name == rhs.niLight->name;
 	}
+
+	bool operator==(const RE::NiPointLight* rhs) const
+	{
+		return niLight->name == rhs->name;
+	}
+
+	void ReattachLight(RE::TESObjectREFR* a_ref);
 
 	void UpdateConditions(RE::TESObjectREFR* a_ref) const;
 	void UpdateFlickering() const;
@@ -102,25 +116,13 @@ struct REFR_LIGH
 	void ReattachLight() const;
 	void RemoveLight() const;
 
-	RE::NiPointer<RE::BSLight>        bsLight;
-	RE::TESObjectLIGH*                light;
-	float                             fade;
-	RE::TESForm*                      emittance;
-	std::shared_ptr<RE::TESCondition> conditions;
+	RE::NiPointer<RE::BSLight>      bsLight;
+	RE::NiPointer<RE::NiPointLight> niLight;
+	RE::NiPointer<RE::NiNode>       parentNode;
+	RE::NiPoint3                    point;
+	std::uint32_t                   index;
 
 private:
 	static void UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer);
 	void        UpdateLight() const;
 };
-
-namespace boost
-{
-	template <>
-	struct hash<REFR_LIGH>
-	{
-		std::size_t operator()(const REFR_LIGH& data) const
-		{
-			return boost::hash<RE::NiPointer<RE::NiLight>>()(data.bsLight->light);
-		}
-	};
-}

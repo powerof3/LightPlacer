@@ -19,6 +19,129 @@ bool ObjectREFRParams::IsValid() const
 	return true;
 }
 
+bool LightDataBase::IsValid() const
+{
+	return light != nullptr;
+}
+
+std::string LightDataBase::GetName(std::uint32_t a_index) const
+{
+	return std::format("{}{}|{}|{} #{}", LP_ID, lightEDID, radius, fade, a_index);
+}
+
+std::string LightDataBase::GetNodeName(std::uint32_t a_index)
+{
+	return std::format("{}{}", LP_NODE, a_index);
+}
+
+std::string LightDataBase::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index)
+{
+	return std::format("{} {}{}", a_obj->name.c_str(), LP_NODE, a_index);
+}
+
+float LightDataBase::GetRadius() const
+{
+	return radius > 0.0f ? radius : static_cast<float>(light->data.radius);
+}
+
+float LightDataBase::GetFade() const
+{
+	return fade > 0.0f ? fade : light->fade;
+}
+
+RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightDataBase::GetParams(RE::TESObjectREFR* a_ref) const
+{
+	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS params{};
+	params.dynamic = light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || a_ref && RE::IsActor(a_ref) || (a_ref && a_ref->GetBaseObject() ? a_ref->GetBaseObject()->IsInventoryObject() : false);
+	params.shadowLight = false;
+	params.portalStrict = light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
+	params.affectLand = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightLandscape) == 0 : true;
+	params.affectWater = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightWater) == 0 : true;
+	params.neverFades = a_ref ? !a_ref->IsHeadingMarker() : true;
+	params.fov = 1.0f;
+	params.falloff = light->data.fallofExponent;
+	params.nearDistance = light->data.nearDistance;
+	params.depthBias = 1.0;
+	params.sceneGraphIndex = 0;
+	params.restrictedNode = nullptr;
+	params.lensFlareData = light->lensFlare;
+	return params;
+}
+
+RE::NiNode* LightDataBase::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
+{
+	auto obj = a_root->GetObjectByName(a_nodeName);
+	return obj ? GetOrCreateNode(a_root, obj, a_index) : nullptr;
+}
+
+RE::NiNode* LightDataBase::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
+{
+	if (auto node = a_obj->AsNode()) {
+		return node;
+	}
+
+	if (auto geometry = a_obj->AsGeometry()) {
+		auto name = GetNodeName(a_obj, a_index);
+		if (auto node = a_root->GetObjectByName(name); node && node->AsNode()) {
+			return node->AsNode();
+		}
+		if (auto newNode = RE::NiNode::Create(0); newNode) {
+			newNode->name = name;
+			newNode->local.translate = geometry->modelBound.center;
+			RE::AttachNode(a_root, newNode);
+			return newNode;
+		}
+	}
+
+	return nullptr;
+}
+
+std::pair<RE::BSLight*, RE::NiPointLight*> LightDataBase::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
+{
+	RE::BSLight*      bsLight = nullptr;
+	RE::NiPointLight* niLight = nullptr;
+
+	auto name = GetName(a_index);
+
+	niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(name));
+	if (!niLight) {
+		niLight = RE::NiPointLight::Create();
+		RE::NiPoint3 point = a_point;
+		if (point == RE::NiPoint3::Zero()) {
+			point += offset;
+		}
+		niLight->local.translate = point;
+		niLight->name = name;
+		RE::AttachNode(a_node, niLight);
+	}
+
+	if (niLight) {
+		niLight->ambient = RE::NiColor();
+		niLight->ambient.red = static_cast<float>(flags.underlying());
+
+		niLight->diffuse = RE::GetLightDiffuse(light);
+
+		auto lightRadius = GetRadius();
+		niLight->radius.x = lightRadius;
+		niLight->radius.y = lightRadius;
+		niLight->radius.z = lightRadius;
+
+		auto* shadowSceneNode = RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0];
+		if (bsLight = shadowSceneNode->GetPointLight(niLight); !bsLight) {
+			bsLight = shadowSceneNode->AddLight(niLight, GetParams(a_ref));
+		}
+
+		niLight->SetLightAttenuation(lightRadius);
+		niLight->fade = GetFade();
+
+		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
+			niLight->SetAppCulled(true);
+		}
+	}
+
+	return { bsLight, niLight };
+}
+
 LightCreateParams::LightCreateParams(const RE::NiStringsExtraData* a_data)
 {
 	std::vector<std::string> data(a_data->value, a_data->value + a_data->size);
@@ -123,139 +246,25 @@ bool LightCreateParams::PostProcess()
 	return true;
 }
 
-bool LightCreateParams::IsValid() const
+void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 {
-	return light != nullptr;
-}
+	auto lights = GenLight(a_ref, parentNode.get(), point, index);
 
-std::string LightCreateParams::GetName(std::uint32_t a_index) const
-{
-	return std::format("{}{}|{}|{} #{}", LP_ID, lightEDID, radius, fade, a_index);
-}
-
-std::string LightCreateParams::GetNodeName(std::uint32_t a_index)
-{
-	return std::format("{}{}", LP_NODE, a_index);
-}
-
-std::string LightCreateParams::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index)
-{
-	return std::format("{} {}{}", a_obj->name.c_str(), LP_NODE, a_index);
-}
-
-float LightCreateParams::GetRadius() const
-{
-	return radius > 0.0f ? radius : static_cast<float>(light->data.radius);
-}
-
-float LightCreateParams::GetFade() const
-{
-	return fade > 0.0f ? fade : light->fade;
-}
-
-RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightCreateParams::GetParams(RE::TESObjectREFR* a_ref) const
-{
-	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS params{};
-	params.dynamic = light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || a_ref && RE::IsActor(a_ref) || (a_ref && a_ref->GetBaseObject() ? a_ref->GetBaseObject()->IsInventoryObject() : false);
-	params.shadowLight = false;
-	params.portalStrict = light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
-	params.affectLand = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightLandscape) == 0 : true;
-	params.affectWater = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightWater) == 0 : true;
-	params.neverFades = a_ref ? !a_ref->IsHeadingMarker() : true;
-	params.fov = 1.0f;
-	params.falloff = light->data.fallofExponent;
-	params.nearDistance = light->data.nearDistance;
-	params.depthBias = 1.0;
-	params.sceneGraphIndex = 0;
-	params.restrictedNode = nullptr;
-	params.lensFlareData = light->lensFlare;
-	return params;
-}
-
-RE::NiNode* LightCreateParams::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
-{
-	auto obj = a_root->GetObjectByName(a_nodeName);
-	return obj ? GetOrCreateNode(a_root, obj, a_index) : nullptr;
-}
-
-RE::NiNode* LightCreateParams::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
-{
-	if (auto node = a_obj->AsNode()) {
-		return node;
-	}
-
-	if (auto geometry = a_obj->AsGeometry()) {
-		auto name = GetNodeName(a_obj, a_index);
-		if (auto node = a_root->GetObjectByName(name); node && node->AsNode()) {
-			return node->AsNode();
-		}
-		if (auto newNode = RE::NiNode::Create(0); newNode) {
-			newNode->name = name;
-			newNode->local.translate = geometry->modelBound.center;
-			RE::AttachNode(a_root, newNode);
-			return newNode;
-		}
-	}
-
-	return nullptr;
-}
-
-RE::BSLight* LightCreateParams::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
-{
-	RE::BSLight* bsLight = nullptr;
-
-	auto name = GetName(a_index);
-
-	auto niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(name));
-	if (!niLight) {
-		niLight = RE::NiPointLight::Create();
-		RE::NiPoint3 point = a_point;
-		if (point == RE::NiPoint3::Zero()) {
-			point += offset;
-		}
-		niLight->local.translate = point;
-		niLight->name = name;
-		RE::AttachNode(a_node, niLight);
-	}
-
-	if (niLight) {
-		niLight->ambient = RE::NiColor();
-		niLight->ambient.red = static_cast<float>(flags.underlying());
-
-		niLight->diffuse = RE::GetLightDiffuse(light);
-
-		auto lightRadius = GetRadius();
-		niLight->radius.x = lightRadius;
-		niLight->radius.y = lightRadius;
-		niLight->radius.z = lightRadius;
-
-		auto* shadowSceneNode = RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0];
-		if (bsLight = shadowSceneNode->GetPointLight(niLight); !bsLight) {
-			bsLight = shadowSceneNode->AddLight(niLight, GetParams(a_ref));
-		}
-
-		niLight->SetLightAttenuation(lightRadius);
-		niLight->fade = GetFade();
-
-		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
-			niLight->SetAppCulled(true);
-		}
-	}
-
-	return bsLight;
+	bsLight.reset(lights.first);
+	niLight.reset(lights.second);
 }
 
 void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref) const
 {
-	if (conditions && bsLight && bsLight->light) {
-		bsLight->light->SetAppCulled(!conditions->IsTrue(a_ref, a_ref));
+	if (conditions && niLight) {
+		niLight->SetAppCulled(!conditions->IsTrue(a_ref, a_ref));
 	}
 }
 
 void REFR_LIGH::UpdateFlickering() const
 {
-	if (bsLight && bsLight->light && light) {
-		if (bsLight->light->GetAppCulled()) {
+	if (light && niLight) {
+		if (niLight->GetAppCulled()) {
 			return;
 		}
 		UpdateLight();
@@ -271,22 +280,20 @@ void REFR_LIGH::UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer
 
 void REFR_LIGH::UpdateLight() const
 {
-	auto ptLight = netimmerse_cast<RE::NiPointLight*>(bsLight->light.get());
-
 	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kFlicker, RE::TES_LIGHT_FLAGS::kFlickerSlow)) {
 		const auto flickerDelta = RE::BSTimer::GetSingleton()->delta * light->data.flickerPeriodRecip;
 
-		auto constAttenOffset = ptLight->constAttenuation + (clib_util::RNG().generate<float>(1.1f, 13.1f) * flickerDelta);
-		auto linearAttenOffset = ptLight->linearAttenuation + (clib_util::RNG().generate<float>(1.2f, 13.2f) * flickerDelta);
-		auto quadraticAttenOffset = ptLight->quadraticAttenuation + (clib_util::RNG().generate<float>(1.3f, 19.3f) * flickerDelta);
+		auto constAttenOffset = niLight->constAttenuation + (clib_util::RNG().generate<float>(1.1f, 13.1f) * flickerDelta);
+		auto linearAttenOffset = niLight->linearAttenuation + (clib_util::RNG().generate<float>(1.2f, 13.2f) * flickerDelta);
+		auto quadraticAttenOffset = niLight->quadraticAttenuation + (clib_util::RNG().generate<float>(1.3f, 19.3f) * flickerDelta);
 
 		constAttenOffset = std::fmod(constAttenOffset, RE::NI_TWO_PI);
 		linearAttenOffset = std::fmod(linearAttenOffset, RE::NI_TWO_PI);
 		quadraticAttenOffset = std::fmod(quadraticAttenOffset, RE::NI_TWO_PI);
 
-		ptLight->constAttenuation = constAttenOffset;
-		ptLight->linearAttenuation = linearAttenOffset;
-		ptLight->quadraticAttenuation = quadraticAttenOffset;
+		niLight->constAttenuation = constAttenOffset;
+		niLight->linearAttenuation = linearAttenOffset;
+		niLight->quadraticAttenuation = quadraticAttenOffset;
 
 		const auto constAttenSine = RE::NiSinQ(constAttenOffset + 1.7f);
 		const auto linearAttenSine = RE::NiSinQ(linearAttenOffset + 0.5f);
@@ -296,9 +303,9 @@ void REFR_LIGH::UpdateLight() const
 			flickerMovementMult = 0.0f;
 		}
 
-		ptLight->local.translate.x = flickerMovementMult * constAttenSine;
-		ptLight->local.translate.y = flickerMovementMult * linearAttenSine;
-		ptLight->local.translate.z = flickerMovementMult * RE::NiSinQ(quadraticAttenOffset + 0.3f);
+		niLight->local.translate.x = flickerMovementMult * constAttenSine;
+		niLight->local.translate.y = flickerMovementMult * linearAttenSine;
+		niLight->local.translate.z = flickerMovementMult * RE::NiSinQ(quadraticAttenOffset + 0.3f);
 
 		const auto halfIntensityAmplitude = light->data.flickerIntensityAmplitude * 0.5f;
 
@@ -307,15 +314,15 @@ void REFR_LIGH::UpdateLight() const
 													 RE::NiSinQImpl(quadraticAttenOffset * 3.0f * (512.0f / RE::NI_TWO_PI) + 73.3386f) * 0.2f,
 			-1.0f, 1.0f);
 
-		ptLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * fade;
+		niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * fade;
 
 	} else {
 		if (light->data.flags.none(RE::TES_LIGHT_FLAGS::kPulse, RE::TES_LIGHT_FLAGS::kPulseSlow)) {
 			return;
 		}
 
-		auto constAttenuation = std::fmod(ptLight->constAttenuation + (RE::BSTimer::GetSingleton()->delta * light->data.flickerPeriodRecip), RE::NI_TWO_PI);
-		ptLight->constAttenuation = constAttenuation;
+		auto constAttenuation = std::fmod(niLight->constAttenuation + (RE::BSTimer::GetSingleton()->delta * light->data.flickerPeriodRecip), RE::NI_TWO_PI);
+		niLight->constAttenuation = constAttenuation;
 
 		auto constAttenCosine = RE::NiCosQ(constAttenuation);
 		auto constAttenSine = RE::NiSinQ(constAttenuation);
@@ -323,33 +330,31 @@ void REFR_LIGH::UpdateLight() const
 		const auto movementAmplitude = light->data.flickerMovementAmplitude;
 		const auto halfIntensityAmplitude = light->data.flickerIntensityAmplitude * 0.5f;
 
-		ptLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * fade;
+		niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * fade;
 
-		ptLight->local.translate.x = movementAmplitude * constAttenCosine;
-		ptLight->local.translate.y = movementAmplitude * constAttenSine;
-		ptLight->local.translate.z = movementAmplitude * (constAttenSine * constAttenCosine);
+		niLight->local.translate.x = movementAmplitude * constAttenCosine;
+		niLight->local.translate.y = movementAmplitude * constAttenSine;
+		niLight->local.translate.z = movementAmplitude * (constAttenSine * constAttenCosine);
 	}
 
 	if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
-		RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(ptLight);
+		RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(niLight.get());
 	} else {
 		RE::NiUpdateData data;
-		ptLight->Update(data);
+		niLight->Update(data);
 	}
 }
 
 void REFR_LIGH::UpdateEmittance() const
 {
-	if (light && bsLight && bsLight->light && emittance) {
+	if (light && niLight && emittanceForm) {
 		RE::NiColor emittanceColor(1.0, 1.0, 1.0);
-		if (auto lightForm = emittance->As<RE::TESObjectLIGH>()) {
+		if (auto lightForm = emittanceForm->As<RE::TESObjectLIGH>()) {
 			emittanceColor = lightForm->emittanceColor;
-		} else if (auto region = emittance->As<RE::TESRegion>()) {
+		} else if (auto region = emittanceForm->As<RE::TESRegion>()) {
 			emittanceColor = region->emittanceColor;
 		}
-		if (auto ptLight = netimmerse_cast<RE::NiPointLight*>(bsLight->light.get())) {
-			ptLight->diffuse = RE::GetLightDiffuse(light) * emittanceColor;
-		}
+		niLight->diffuse = RE::GetLightDiffuse(light) * emittanceColor;
 	}
 }
 
