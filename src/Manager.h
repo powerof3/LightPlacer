@@ -2,6 +2,53 @@
 
 #include "LightData.h"
 
+struct Config
+{
+	struct FilteredData
+	{
+		bool IsInvalid(const std::string& a_model) const;
+
+		FlatSet<std::string> whiteList;
+		FlatSet<std::string> blackList;
+		LightCreateParams    data{};
+	};
+
+	struct PointData
+	{
+		std::vector<RE::NiPoint3> points{};
+		LightCreateParams         data{};
+	};
+
+	struct NodeData
+	{
+		std::vector<std::string> nodes{};
+		LightCreateParams        data{};
+	};
+
+	using LightData = std::variant<PointData, NodeData, FilteredData>;
+	using LightDataVec = std::vector<LightData>;
+
+	struct MultiModelSet
+	{
+		FlatSet<std::string> models;
+		LightDataVec         lightData;
+	};
+
+	struct MultiReferenceSet
+	{
+		FlatSet<std::string> references;
+		LightDataVec         lightData;
+	};
+
+	struct MultiAddonSet
+	{
+		FlatSet<std::uint32_t> addonNodes;
+		LightDataVec           lightData;
+	};
+
+	using Format = std::variant<MultiModelSet, MultiReferenceSet, MultiAddonSet>;
+};
+
 class LightManager : public ISingleton<LightManager>
 {
 public:
@@ -51,7 +98,6 @@ public:
 		});
 	}
 
-	
 	template <class F>
 	void ForEachLight(RE::TESObjectREFR* a_ref, RE::RefHandle a_handle, F&& func)
 	{
@@ -63,65 +109,12 @@ public:
 	}
 
 private:
-	struct Config
-	{
-		struct MultiModelSet
-		{
-			FlatSet<std::string> models;
-			AttachLightDataVec   lightData;
-		};
-
-		struct MultiReferenceSet
-		{
-			FlatSet<std::string> references;
-			AttachLightDataVec   lightData;
-		};
-
-		struct MultiAddonSet
-		{
-			FlatSet<std::uint32_t> addonNodes;
-			AttachLightDataVec     lightData;
-		};
-
-		using Format = std::variant<MultiModelSet, MultiReferenceSet, MultiAddonSet>;
-	};
-
 	struct ProcessedLights
 	{
 		ProcessedLights() = default;
 
-		void emplace(const LightREFRData& a_data, RE::RefHandle a_handle)
-		{
-			constexpr auto emplace = [](auto& container, RE::RefHandle handle) {
-				if (auto it = std::ranges::find(container, handle); it == container.end()) {
-					container.push_back(handle);
-				}
-			};
-
-			if (!a_data.light->GetNoFlicker()) {
-				emplace(flickeringLights, a_handle);
-			}
-			if (a_data.emittance) {
-				emplace(emittanceLights, a_handle);
-			}
-			if (a_data.conditions) {
-				emplace(conditionalLights, a_handle);
-			}
-		}
-
-		void erase(RE::RefHandle a_handle)
-		{
-			constexpr auto erase = [](auto& container, RE::RefHandle handle) {
-				if (auto it = std::ranges::find(container, handle); it != container.end()) {
-					container.erase(it);
-				}
-			};
-
-			erase(flickeringLights, a_handle);
-			erase(conditionalLights, a_handle);
-			erase(emittanceLights, a_handle);
-			erase(emittanceLights, a_handle);
-		}
+		void emplace(const REFR_LIGH& a_data, RE::RefHandle a_handle);
+		void erase(RE::RefHandle a_handle);
 
 		std::vector<RE::RefHandle> flickeringLights;
 		std::vector<RE::RefHandle> emittanceLights;
@@ -129,22 +122,24 @@ private:
 		std::vector<RE::RefHandle> conditionalLights;
 	};
 
-	void TryAttachLightsImpl(const ObjectRefData& a_refData, RE::TESBoundObject* a_object, RE::TESModel* a_model);
+	void PostProcessLightData(Config::LightDataVec& a_lightDataVec);
 
-	void AttachConfigLights(const ObjectRefData& a_refData, const std::string& a_model, RE::FormID a_baseFormID);
-	void AttachConfigLights(const ObjectRefData& a_refData, const AttachLightData& a_attachData, std::uint32_t a_index);
+	void TryAttachLightsImpl(const ObjectREFRParams& a_refParams, RE::TESBoundObject* a_object, RE::TESModel* a_model);
 
-	void AttachMeshLights(const ObjectRefData& a_refData, const std::string& a_model);
+	void AttachConfigLights(const ObjectREFRParams& a_refParams, const std::string& a_model, RE::FormID a_baseFormID);
+	void AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightData& a_lightData, std::uint32_t a_index);
 
-	void AttachLight(const LightData& a_lightData, const ObjectRefData& a_refData, RE::NiNode* a_node, std::uint32_t a_index = 0, const RE::NiPoint3& a_point = RE::NiPoint3::Zero());
+	void AttachMeshLights(const ObjectREFRParams& a_refParams, const std::string& a_model);
+
+	void AttachLight(const LightCreateParams& a_lightParams, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, std::uint32_t a_index = 0, const RE::NiPoint3& a_point = RE::NiPoint3::Zero());
 
 	// members
-	std::vector<Config::Format>                config{};
-	FlatMap<std::string, AttachLightDataVec>   gameModels{};
-	FlatMap<RE::FormID, AttachLightDataVec>    gameReferences{};
-	FlatMap<std::uint32_t, AttachLightDataVec> gameAddonNodes{};
+	std::vector<Config::Format>                  config{};
+	FlatMap<std::string, Config::LightDataVec>   gameModels{};
+	FlatMap<RE::FormID, Config::LightDataVec>    gameReferences{};
+	FlatMap<std::uint32_t, Config::LightDataVec> gameAddonNodes{};
 
-	LockedMap<RE::RefHandle, NodeSet<LightREFRData>>                         gameRefLights;
-	LockedMap<RE::RefHandle, LockedMap<RE::NiNode*, NodeSet<LightREFRData>>> gameActorLights;
-	LockedMap<RE::FormID, MutexGuard<ProcessedLights>>                       processedGameLights;
+	LockedMap<RE::RefHandle, NodeSet<REFR_LIGH>>                         gameRefLights;
+	LockedMap<RE::RefHandle, LockedMap<RE::NiNode*, NodeSet<REFR_LIGH>>> gameActorLights;
+	LockedMap<RE::FormID, MutexGuard<ProcessedLights>>                   processedGameLights;
 };

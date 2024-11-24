@@ -1,5 +1,43 @@
 #include "Manager.h"
 
+bool Config::FilteredData::IsInvalid(const std::string& a_model) const
+{
+	return (!blackList.empty() && blackList.contains(a_model)) || (!whiteList.empty() && !whiteList.contains(a_model));
+}
+
+void LightManager::ProcessedLights::emplace(const REFR_LIGH& a_data, RE::RefHandle a_handle)
+{
+	constexpr auto emplace = [](auto& container, RE::RefHandle handle) {
+		if (auto it = std::ranges::find(container, handle); it == container.end()) {
+			container.push_back(handle);
+		}
+	};
+
+	if (!a_data.light->GetNoFlicker()) {
+		emplace(flickeringLights, a_handle);
+	}
+	if (a_data.emittance) {
+		emplace(emittanceLights, a_handle);
+	}
+	if (a_data.conditions) {
+		emplace(conditionalLights, a_handle);
+	}
+}
+
+void LightManager::ProcessedLights::erase(RE::RefHandle a_handle)
+{
+	constexpr auto erase = [](auto& container, RE::RefHandle handle) {
+		if (auto it = std::ranges::find(container, handle); it != container.end()) {
+			container.erase(it);
+		}
+	};
+
+	erase(flickeringLights, a_handle);
+	erase(conditionalLights, a_handle);
+	erase(emittanceLights, a_handle);
+	erase(emittanceLights, a_handle);
+}
+
 bool LightManager::ReadConfigs()
 {
 	logger::info("{:*^30}", "CONFIG FILES");
@@ -30,19 +68,19 @@ void LightManager::OnDataLoad()
 	for (auto& multiData : config) {
 		std::visit(overload{
 					   [&](Config::MultiModelSet& models) {
-						   AttachLightVecPostProcess(models.lightData);
+						   PostProcessLightData(models.lightData);
 						   for (auto& model : models.models) {
 							   gameModels[model].append_range(models.lightData);
 						   }
 					   },
 					   [&](Config::MultiReferenceSet& references) {
-						   AttachLightVecPostProcess(references.lightData);
+						   PostProcessLightData(references.lightData);
 						   for (auto& rawID : references.references) {
 							   gameReferences[RE::GetFormID(rawID)].append_range(references.lightData);
 						   }
 					   },
 					   [&](Config::MultiAddonSet& addonNodes) {
-						   AttachLightVecPostProcess(addonNodes.lightData);
+						   PostProcessLightData(addonNodes.lightData);
 						   for (auto& index : addonNodes.addonNodes) {
 							   gameAddonNodes[index].append_range(addonNodes.lightData);
 						   }
@@ -51,14 +89,33 @@ void LightManager::OnDataLoad()
 	}
 }
 
+void LightManager::PostProcessLightData(Config::LightDataVec& a_lightDataVec)
+{
+	std::erase_if(a_lightDataVec, [](auto& attachLightData) {
+		bool failedPostProcess = false;
+		std::visit(overload{
+					   [&](Config::PointData& pointData) {
+						   failedPostProcess = !pointData.data.PostProcess();
+					   },
+					   [&](Config::NodeData& nodeData) {
+						   failedPostProcess = !nodeData.data.PostProcess();
+					   },
+					   [&](Config::FilteredData& filteredData) {
+						   failedPostProcess = !filteredData.data.PostProcess();
+					   } },
+			attachLightData);
+		return failedPostProcess;
+	});
+}
+
 void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base)
 {
 	if (!a_ref || !a_base || a_base->Is(RE::FormType::Light)) {
 		return;
 	}
 
-	ObjectRefData refData(a_ref);
-	TryAttachLightsImpl(refData, a_base, a_base->As<RE::TESModel>());
+	ObjectREFRParams refParams(a_ref);
+	TryAttachLightsImpl(refParams, a_base, a_base->As<RE::TESModel>());
 }
 
 void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root)
@@ -67,8 +124,8 @@ void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject*
 		return;
 	}
 
-	ObjectRefData refData(a_ref, a_root);
-	TryAttachLightsImpl(refData, a_base, a_base->As<RE::TESModel>());
+	ObjectREFRParams refParams(a_ref, a_root);
+	TryAttachLightsImpl(refParams, a_base, a_base->As<RE::TESModel>());
 }
 
 void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root)
@@ -91,13 +148,13 @@ void LightManager::TryAttachLights(RE::TESObjectREFR* a_ref, RE::BSTSmartPointer
 		return;
 	}
 
-	ObjectRefData refData(a_ref, a_root);
-	TryAttachLightsImpl(refData, bipObject.item->As<RE::TESBoundObject>(), bipObject.part);
+	ObjectREFRParams refParams(a_ref, a_root);
+	TryAttachLightsImpl(refParams, bipObject.item->As<RE::TESBoundObject>(), bipObject.part);
 }
 
-void LightManager::TryAttachLightsImpl(const ObjectRefData& a_refData, RE::TESBoundObject* a_object, RE::TESModel* a_model)
+void LightManager::TryAttachLightsImpl(const ObjectREFRParams& a_refParams, RE::TESBoundObject* a_object, RE::TESModel* a_model)
 {
-	if (!a_refData.IsValid() || !a_model) {
+	if (!a_refParams.IsValid() || !a_model) {
 		return;
 	}
 
@@ -106,13 +163,13 @@ void LightManager::TryAttachLightsImpl(const ObjectRefData& a_refData, RE::TESBo
 		return;
 	}
 
-	AttachConfigLights(a_refData, modelPath, a_object->GetFormID());
-	AttachMeshLights(a_refData, modelPath);
+	AttachConfigLights(a_refParams, modelPath, a_object->GetFormID());
+	AttachMeshLights(a_refParams, modelPath);
 }
 
-void LightManager::AttachConfigLights(const ObjectRefData& a_refData, const std::string& a_model, RE::FormID a_baseFormID)
+void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const std::string& a_model, RE::FormID a_baseFormID)
 {
-	auto refID = a_refData.ref->GetFormID();
+	auto refID = a_refParams.ref->GetFormID();
 
 	auto fIt = gameReferences.find(refID);
 	if (fIt == gameReferences.end()) {
@@ -121,25 +178,25 @@ void LightManager::AttachConfigLights(const ObjectRefData& a_refData, const std:
 
 	if (fIt != gameReferences.end()) {
 		for (const auto& [index, data] : std::views::enumerate(fIt->second)) {
-			AttachConfigLights(a_refData, data, index);
+			AttachConfigLights(a_refParams, data, index);
 		}
 	}
 
 	if (auto mIt = gameModels.find(a_model); mIt != gameModels.end()) {
 		for (const auto& [index, data] : std::views::enumerate(mIt->second)) {
-			AttachConfigLights(a_refData, data, index);
+			AttachConfigLights(a_refParams, data, index);
 		}
 	}
 }
 
-void LightManager::AttachConfigLights(const ObjectRefData& a_refData, const AttachLightData& a_attachData, std::uint32_t a_index)
+void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightData& a_lightData, std::uint32_t a_index)
 {
 	RE::NiAVObject* lightPlacerNode = nullptr;
-	auto            rootNode = a_refData.root;
+	auto            rootNode = a_refParams.root;
 
 	std::visit(overload{
-				   [&](const PointData& pointData) {
-					   auto name = std::format("{}{}", LightData::LP_NODE, a_index);
+				   [&](const Config::PointData& pointData) {
+					   auto name = pointData.data.GetNodeName(a_index);
 					   if (lightPlacerNode = rootNode->GetObjectByName(name); !lightPlacerNode) {
 						   lightPlacerNode = RE::NiNode::Create(0);
 						   lightPlacerNode->name = name;
@@ -147,42 +204,42 @@ void LightManager::AttachConfigLights(const ObjectRefData& a_refData, const Atta
 					   }
 					   if (lightPlacerNode) {
 						   for (auto const& [pointIdx, point] : std::views::enumerate(pointData.points)) {
-							   AttachLight(pointData.data, a_refData, lightPlacerNode->AsNode(), pointIdx, point);
+							   AttachLight(pointData.data, a_refParams, lightPlacerNode->AsNode(), pointIdx, point);
 						   }
 					   }
 				   },
-				   [&](const NodeData& nodeData) {
+				   [&](const Config::NodeData& nodeData) {
 					   for (const auto& nodeName : nodeData.nodes) {
 						   if (lightPlacerNode = nodeData.data.GetOrCreateNode(rootNode, nodeName, a_index); lightPlacerNode) {
-							   AttachLight(nodeData.data, a_refData, lightPlacerNode->AsNode());
+							   AttachLight(nodeData.data, a_refParams, lightPlacerNode->AsNode());
 						   }
 					   }
 				   },
-				   [&](const FilteredData&) {
+				   [&](const Config::FilteredData&) {
 					   return;  // not handled here.
 				   } },
-		a_attachData);
+		a_lightData);
 }
 
-void LightManager::AttachMeshLights(const ObjectRefData& a_refData, const std::string& a_model)
+void LightManager::AttachMeshLights(const ObjectREFRParams& a_refParams, const std::string& a_model)
 {
 	std::int32_t LP_INDEX = 0;
 	std::int32_t LP_ADDON_INDEX = 0;
 
-	RE::BSVisit::TraverseScenegraphObjects(a_refData.root, [&](RE::NiAVObject* a_obj) {
+	RE::BSVisit::TraverseScenegraphObjects(a_refParams.root, [&](RE::NiAVObject* a_obj) {
 		if (auto addonNode = netimmerse_cast<RE::BSValueNode*>(a_obj)) {
 			if (auto it = gameAddonNodes.find(addonNode->value); it != gameAddonNodes.end()) {
 				for (const auto& data : it->second) {
-					if (auto& filteredData = std::get<FilteredData>(data); !filteredData.IsInvalid(a_model)) {
-						AttachLight(filteredData.data, a_refData, addonNode, LP_ADDON_INDEX);
+					if (auto& filteredData = std::get<Config::FilteredData>(data); !filteredData.IsInvalid(a_model)) {
+						AttachLight(filteredData.data, a_refParams, addonNode, LP_ADDON_INDEX);
 						LP_ADDON_INDEX++;
 					}
 				}
 			}
 		} else if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
-			if (auto lightData = LightData(xData); lightData.IsValid()) {
-				if (auto node = lightData.GetOrCreateNode(a_refData.root->AsNode(), a_obj, LP_INDEX)) {
-					AttachLight(lightData, a_refData, node, LP_INDEX);
+			if (auto lightParams = LightCreateParams(xData); lightParams.IsValid()) {
+				if (auto node = lightParams.GetOrCreateNode(a_refParams.root->AsNode(), a_obj, LP_INDEX)) {
+					AttachLight(lightParams, a_refParams, node, LP_INDEX);
 				}
 				LP_INDEX++;
 			}
@@ -191,26 +248,26 @@ void LightManager::AttachMeshLights(const ObjectRefData& a_refData, const std::s
 	});
 }
 
-void LightManager::AttachLight(const LightData& a_lightData, const ObjectRefData& a_refData, RE::NiNode* a_node, std::uint32_t a_index, const RE::NiPoint3& a_point)
+void LightManager::AttachLight(const LightCreateParams& a_lightParams, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, std::uint32_t a_index, const RE::NiPoint3& a_point)
 {
-	auto& [ref, root, handle] = a_refData;
+	auto& [ref, root, handle] = a_refParams;
 
-	if (auto bsLight = a_lightData.GenLight(ref, a_node, a_point, a_index); bsLight && bsLight->light) {
+	if (auto bsLight = a_lightParams.GenLight(ref, a_node, a_point, a_index); bsLight && bsLight->light) {
 		if (RE::IsActor(ref)) {
 			gameActorLights.write([&](auto& map) {
 				map[handle].write([&](auto& nodeMap) {
-					LightREFRData data(bsLight, ref, a_lightData);
-					nodeMap[root].emplace(data);
+					REFR_LIGH lightData(bsLight, ref, a_lightParams);
+					nodeMap[root].emplace(lightData);
 					processedGameLights.write([&](auto& map) {
 						map[ref->GetParentCell()->GetFormID()].write([&](auto& innerMap) {
-							innerMap.emplace(data, handle);
+							innerMap.emplace(lightData, handle);
 						});
 					});
 				});
 			});
 		} else {
 			gameRefLights.write([&](auto& map) {
-				map[handle].emplace(bsLight, ref, a_lightData);
+				map[handle].emplace(bsLight, ref, a_lightParams);
 			});
 		}
 	}
@@ -225,8 +282,8 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 			if (auto it = map.find(handle); it != map.end()) {
 				it->second.write([&](auto& nodeMap) {
 					for (auto& [node, lightDataVec] : nodeMap) {
-						for (auto& lightRefrData : lightDataVec) {
-							lightRefrData.RemoveLight();
+						for (auto& lightData : lightDataVec) {
+							lightData.RemoveLight();
 						}
 					}
 				});
@@ -257,8 +314,8 @@ void LightManager::ReattachWornLights(const RE::ActorHandle& a_handle)
 		if (auto it = map.find(handle); it != map.end()) {
 			it->second.read([&](auto& nodeMap) {
 				for (auto& [node, lightDataVec] : nodeMap) {
-					for (auto& lightRefrData : lightDataVec) {
-						lightRefrData.ReattachLight();
+					for (auto& lightData : lightDataVec) {
+						lightData.ReattachLight();
 					}
 				}
 			});

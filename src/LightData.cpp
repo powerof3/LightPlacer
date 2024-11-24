@@ -1,18 +1,17 @@
 #include "LightData.h"
 #include "ConditionParser.h"
-#include "LightData.h"
 
-ObjectRefData::ObjectRefData(RE::TESObjectREFR* a_ref) :
-	ObjectRefData(a_ref, a_ref->Get3D())
+ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref) :
+	ObjectREFRParams(a_ref, a_ref->Get3D())
 {}
 
-ObjectRefData::ObjectRefData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root) :
+ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root) :
 	ref(a_ref),
 	root(a_root ? a_root->AsNode() : nullptr),
 	handle(a_ref->CreateRefHandle().native_handle())
 {}
 
-bool ObjectRefData::IsValid() const
+bool ObjectREFRParams::IsValid() const
 {
 	if (ref->IsDisabled() || ref->IsDeleted() || !root || !ref->GetParentCell()) {
 		return false;
@@ -20,7 +19,7 @@ bool ObjectRefData::IsValid() const
 	return true;
 }
 
-LightData::LightData(const RE::NiStringsExtraData* a_data)
+LightCreateParams::LightCreateParams(const RE::NiStringsExtraData* a_data)
 {
 	std::vector<std::string> data(a_data->value, a_data->value + a_data->size);
 
@@ -78,7 +77,7 @@ LightData::LightData(const RE::NiStringsExtraData* a_data)
 	}
 }
 
-void LightData::ReadFlags()
+void LightCreateParams::ReadFlags()
 {
 	// glaze doesn't reflect flag enums
 	if (!rawFlags.empty()) {
@@ -101,14 +100,14 @@ void LightData::ReadFlags()
 	}
 }
 
-void LightData::ReadConditions()
+void LightCreateParams::ReadConditions()
 {
 	if (!rawConditions.empty()) {
 		ConditionParser::GetSingleton()->BuildCondition(conditions, rawConditions);
 	}
 }
 
-bool LightData::PostProcess()
+bool LightCreateParams::PostProcess()
 {
 	light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);
 
@@ -124,27 +123,37 @@ bool LightData::PostProcess()
 	return true;
 }
 
-bool LightData::IsValid() const
+bool LightCreateParams::IsValid() const
 {
 	return light != nullptr;
 }
 
-std::string LightData::GetName(std::uint32_t a_index) const
+std::string LightCreateParams::GetName(std::uint32_t a_index) const
 {
 	return std::format("{}{}|{}|{} #{}", LP_ID, lightEDID, radius, fade, a_index);
 }
 
-float LightData::GetRadius() const
+std::string LightCreateParams::GetNodeName(std::uint32_t a_index)
+{
+	return std::format("{}{}", LP_NODE, a_index);
+}
+
+std::string LightCreateParams::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index)
+{
+	return std::format("{} {}{}", a_obj->name.c_str(), LP_NODE, a_index);
+}
+
+float LightCreateParams::GetRadius() const
 {
 	return radius > 0.0f ? radius : static_cast<float>(light->data.radius);
 }
 
-float LightData::GetFade() const
+float LightCreateParams::GetFade() const
 {
 	return fade > 0.0f ? fade : light->fade;
 }
 
-RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR* a_ref) const
+RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightCreateParams::GetParams(RE::TESObjectREFR* a_ref) const
 {
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS params{};
 	params.dynamic = light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || a_ref && RE::IsActor(a_ref) || (a_ref && a_ref->GetBaseObject() ? a_ref->GetBaseObject()->IsInventoryObject() : false);
@@ -163,20 +172,20 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR*
 	return params;
 }
 
-RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
+RE::NiNode* LightCreateParams::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
 {
 	auto obj = a_root->GetObjectByName(a_nodeName);
 	return obj ? GetOrCreateNode(a_root, obj, a_index) : nullptr;
 }
 
-RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
+RE::NiNode* LightCreateParams::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
 {
 	if (auto node = a_obj->AsNode()) {
 		return node;
 	}
 
 	if (auto geometry = a_obj->AsGeometry()) {
-		auto name = std::format("{} {}{}", a_obj->name.c_str(), LP_NODE, a_index);
+		auto name = GetNodeName(a_obj, a_index);
 		if (auto node = a_root->GetObjectByName(name); node && node->AsNode()) {
 			return node->AsNode();
 		}
@@ -191,7 +200,7 @@ RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj
 	return nullptr;
 }
 
-RE::BSLight* LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
+RE::BSLight* LightCreateParams::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
 {
 	RE::BSLight* bsLight = nullptr;
 
@@ -236,14 +245,14 @@ RE::BSLight* LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, c
 	return bsLight;
 }
 
-void LightREFRData::UpdateConditions(RE::TESObjectREFR* a_ref) const
+void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref) const
 {
 	if (conditions && bsLight && bsLight->light) {
 		bsLight->light->SetAppCulled(!conditions->IsTrue(a_ref, a_ref));
 	}
 }
 
-void LightREFRData::UpdateFlickering() const
+void REFR_LIGH::UpdateFlickering() const
 {
 	if (bsLight && bsLight->light && light) {
 		if (bsLight->light->GetAppCulled()) {
@@ -253,14 +262,14 @@ void LightREFRData::UpdateFlickering() const
 	}
 }
 
-void LightREFRData::UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer)
+void REFR_LIGH::UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer)
 {
 	using func_t = decltype(&UpdateLight_Game);
 	static REL::Relocation<func_t> func{ RELOCATION_ID(17212, 17614) };
 	return func(a_light, a_ptLight, a_ref, a_wantDimmer);
 }
 
-void LightREFRData::UpdateLight() const
+void REFR_LIGH::UpdateLight() const
 {
 	auto ptLight = netimmerse_cast<RE::NiPointLight*>(bsLight->light.get());
 
@@ -329,7 +338,7 @@ void LightREFRData::UpdateLight() const
 	}
 }
 
-void LightREFRData::UpdateEmittance() const
+void REFR_LIGH::UpdateEmittance() const
 {
 	if (light && bsLight && bsLight->light && emittance) {
 		RE::NiColor emittanceColor(1.0, 1.0, 1.0);
@@ -344,40 +353,16 @@ void LightREFRData::UpdateEmittance() const
 	}
 }
 
-void LightREFRData::ReattachLight() const
+void REFR_LIGH::ReattachLight() const
 {
 	if (bsLight) {
 		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->AddLight(bsLight.get());
 	}
 }
 
-void LightREFRData::RemoveLight() const
+void REFR_LIGH::RemoveLight() const
 {
 	if (bsLight) {
 		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->RemoveLight(bsLight);
 	}
-}
-
-void AttachLightVecPostProcess(AttachLightDataVec& a_attachLightDataVec)
-{
-	std::erase_if(a_attachLightDataVec, [](auto& attachLightData) {
-		bool failedPostProcess = false;
-		std::visit(overload{
-					   [&](PointData& pointData) {
-						   failedPostProcess = !pointData.data.PostProcess();
-					   },
-					   [&](NodeData& nodeData) {
-						   failedPostProcess = !nodeData.data.PostProcess();
-					   },
-					   [&](FilteredData& filteredData) {
-						   failedPostProcess = !filteredData.data.PostProcess();
-					   } },
-			attachLightData);
-		return failedPostProcess;
-	});
-}
-
-bool FilteredData::IsInvalid(const std::string& a_model) const
-{
-	return (!blackList.empty() && blackList.contains(a_model)) || (!whiteList.empty() && !whiteList.contains(a_model));
 }

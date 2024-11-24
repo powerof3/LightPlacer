@@ -1,10 +1,10 @@
 #pragma once
 
-struct ObjectRefData
+struct ObjectREFRParams
 {
-	ObjectRefData() = default;
-	ObjectRefData(RE::TESObjectREFR* a_ref);
-	ObjectRefData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root);
+	ObjectREFRParams() = default;
+	ObjectREFRParams(RE::TESObjectREFR* a_ref);
+	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root);
 
 	bool IsValid() const;
 
@@ -14,12 +14,10 @@ struct ObjectRefData
 	RE::RefHandle      handle{};
 };
 
-struct LightREFRData;
-
-struct LightData
+struct LightCreateParams
 {
-	LightData() = default;
-	LightData(const RE::NiStringsExtraData* a_data);
+	LightCreateParams() = default;
+	LightCreateParams(const RE::NiStringsExtraData* a_data);
 
 	// CS light flags
 	enum class LightFlags : std::uint32_t
@@ -36,6 +34,8 @@ struct LightData
 
 	bool                                     IsValid() const;
 	std::string                              GetName(std::uint32_t a_index) const;
+	static std::string                       GetNodeName(std::uint32_t a_index);
+	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	float                                    GetRadius() const;
 	float                                    GetFade() const;
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
@@ -63,9 +63,9 @@ struct LightData
 };
 
 template <>
-struct glz::meta<LightData>
+struct glz::meta<LightCreateParams>
 {
-	using T = LightData;
+	using T = LightCreateParams;
 	static constexpr auto value = object(
 		"light", &T::lightEDID,
 		"radius", &T::radius,
@@ -76,22 +76,22 @@ struct glz::meta<LightData>
 		"conditions", &T::rawConditions);
 };
 
-struct LightREFRData
+struct REFR_LIGH
 {
-	LightREFRData(RE::BSLight* a_bsLight, RE::TESObjectREFR* a_ref, const LightData& a_lightData) :
+	REFR_LIGH(RE::BSLight* a_bsLight, RE::TESObjectREFR* a_ref, const LightCreateParams& a_lightParams) :
 		bsLight(a_bsLight),
-		light(a_lightData.light),
-		fade(a_lightData.GetFade()),
-		conditions(a_lightData.conditions)
+		light(a_lightParams.light),
+		fade(a_lightParams.GetFade()),
+		conditions(a_lightParams.conditions)
 	{
-		emittance = a_lightData.emittanceForm;
+		emittance = a_lightParams.emittanceForm;
 		if (!emittance) {
 			auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
 			emittance = xData ? xData->source : nullptr;
 		}
 	}
 
-	bool operator==(const LightREFRData& rhs) const
+	bool operator==(const REFR_LIGH& rhs) const
 	{
 		return bsLight->light->name == rhs.bsLight->light->name;
 	}
@@ -116,37 +116,11 @@ private:
 namespace boost
 {
 	template <>
-	struct hash<LightREFRData>
+	struct hash<REFR_LIGH>
 	{
-		std::size_t operator()(const LightREFRData& data) const
+		std::size_t operator()(const REFR_LIGH& data) const
 		{
 			return boost::hash<RE::NiPointer<RE::NiLight>>()(data.bsLight->light);
 		}
 	};
 }
-
-struct FilteredData
-{
-	bool IsInvalid(const std::string& a_model) const;
-
-	FlatSet<std::string> whiteList;
-	FlatSet<std::string> blackList;
-	LightData            data{};
-};
-
-struct PointData
-{
-	std::vector<RE::NiPoint3> points{};
-	LightData                 data{};
-};
-
-struct NodeData
-{
-	std::vector<std::string> nodes{};
-	LightData                data{};
-};
-
-using AttachLightData = std::variant<PointData, NodeData, FilteredData>;
-using AttachLightDataVec = std::vector<AttachLightData>;
-
-void AttachLightVecPostProcess(AttachLightDataVec& a_attachLightDataVec);
