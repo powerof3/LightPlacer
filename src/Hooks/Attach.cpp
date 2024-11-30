@@ -63,6 +63,26 @@ namespace Hooks::Attach
 		}
 	};
 
+	struct Resume
+	{
+		static void thunk(RE::ShaderReferenceEffect* a_this)
+		{
+			bool suspended = a_this->flags.any(RE::ShaderReferenceEffect::Flag::kSuspended);
+			func(a_this);
+			if (suspended != a_this->flags.any(RE::ShaderReferenceEffect::Flag::kSuspended)) {
+				LightManager::GetSingleton()->ReattachTempEffectLights(a_this);
+			}
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+		static inline constexpr std::size_t            size{ 0x38 };
+
+		static void Install()
+		{
+			stl::write_vfunc<RE::ShaderReferenceEffect, Resume>();
+			logger::info("Hooked ShaderReferenceEffect::Resume"sv);
+		}
+	};
+
 	void Install()
 	{
 		Clone3D<RE::BGSMovableStatic, 2>::Install();
@@ -76,9 +96,12 @@ namespace Hooks::Attach
 		Clone3D<RE::TESObjectBOOK>::Install();
 		Clone3D<RE::TESObjectWEAP>::Install();
 		Clone3D<RE::TESObjectARMO>::Install();
+		BSTempEffect::Init<RE::ShaderReferenceEffect>::Install();
+		BSTempEffect::Init<RE::ModelReferenceEffect>::Install();
 		AddAddonNodes::Install();
 
 		AttachLight::Install();
 		ReAddCasterLights::Install();
+		Resume::Install();
 	}
 }

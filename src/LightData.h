@@ -9,9 +9,10 @@ struct ObjectREFRParams
 	bool IsValid() const;
 
 	// members
-	RE::TESObjectREFR* ref{};
-	RE::NiNode*        root{};
-	RE::RefHandle      handle{};
+	RE::TESObjectREFR*   ref{};
+	RE::ReferenceEffect* effect{};
+	RE::NiNode*          root{};
+	RE::RefHandle        handle{};
 };
 
 struct LightDataBase
@@ -123,6 +124,38 @@ struct REFR_LIGH : LightDataBase
 	std::uint32_t                   index;
 
 private:
-	static void UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer);
-	void        UpdateLight() const;
+	void UpdateLight() const;
+};
+
+struct Timer
+{
+	Timer() = default;
+
+	bool UpdateTimer(float a_interval, float a_delta);
+	bool UpdateTimer(float a_interval);
+
+	// members
+	float lastUpdateTime{ 0.0f };
+};
+
+struct ProcessedREFRLights : Timer
+{
+	ProcessedREFRLights() = default;
+
+	void emplace(const REFR_LIGH& a_data, RE::RefHandle a_handle);
+	void erase(RE::RefHandle a_handle);
+
+	// members
+	std::vector<RE::RefHandle> conditionalFlickeringLights;
+	std::vector<RE::RefHandle> emittanceLights;
+};
+
+struct ProcessedEffectLights
+{
+	ProcessedEffectLights() = default;
+
+	// members
+	Timer                  flickerTimer;
+	Timer                  conditionalTimer;
+	std::vector<REFR_LIGH> lights;
 };

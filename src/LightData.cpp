@@ -7,6 +7,7 @@ ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref) :
 
 ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root) :
 	ref(a_ref),
+	effect(nullptr),
 	root(a_root ? a_root->AsNode() : nullptr),
 	handle(a_ref->CreateRefHandle().native_handle())
 {}
@@ -264,18 +265,11 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref) const
 void REFR_LIGH::UpdateFlickering() const
 {
 	if (light && niLight) {
-		if (niLight->GetAppCulled()) {
+		if (light->GetNoFlicker() || niLight->GetAppCulled()) {
 			return;
 		}
 		UpdateLight();
 	}
-}
-
-void REFR_LIGH::UpdateLight_Game(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer)
-{
-	using func_t = decltype(&UpdateLight_Game);
-	static REL::Relocation<func_t> func{ RELOCATION_ID(17212, 17614) };
-	return func(a_light, a_ptLight, a_ref, a_wantDimmer);
 }
 
 void REFR_LIGH::UpdateLight() const
@@ -370,4 +364,35 @@ void REFR_LIGH::RemoveLight() const
 	if (bsLight) {
 		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->RemoveLight(bsLight);
 	}
+}
+
+bool Timer::UpdateTimer(float a_interval, float a_delta)
+{
+	lastUpdateTime += a_delta;
+	if (lastUpdateTime >= a_interval) {
+		lastUpdateTime = 0.0f;
+		return true;
+	}
+	return false;
+}
+
+bool Timer::UpdateTimer(float a_interval)
+{
+	return UpdateTimer(a_interval, RE::BSTimer::GetSingleton()->delta);
+}
+
+void ProcessedREFRLights::emplace(const REFR_LIGH& a_data, RE::RefHandle a_handle)
+{
+	if (!a_data.light->GetNoFlicker() || a_data.conditions) {
+		stl::unique_insert(conditionalFlickeringLights, a_handle);
+	}
+	if (a_data.emittanceForm) {
+		stl::unique_insert(emittanceLights, a_handle);
+	}
+}
+
+void ProcessedREFRLights::erase(RE::RefHandle a_handle)
+{
+	stl::unique_erase(conditionalFlickeringLights, a_handle);
+	stl::unique_erase(emittanceLights, a_handle);
 }

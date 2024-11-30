@@ -1,5 +1,5 @@
 #include "Hooks.h"
-#include "Manager.h"
+#include "Update.h"
 
 namespace Hooks::Update
 {
@@ -8,7 +8,9 @@ namespace Hooks::Update
 	{
 		static void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(19002, 19413), OFFSET(0x9E1, 0x936) };  //TESObjectCELL::AttachReference3D
+			REL::Version gameVersion(RE::GetGameVersion());
+
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(19002, 19413), OFFSET(0x9E1, (RE::GetGameVersion() >= SKSE::RUNTIME_LATEST ? 0x936 : 0x948)) };  //TESObjectCELL::AttachReference3D
 
 			struct Patch : Xbyak::CodeGenerator
 			{
@@ -62,7 +64,7 @@ namespace Hooks::Update
 
 		static void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(18458, 18889), 0x52 }; // TESObjectCELL::RunAnimations
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(18458, 18889), 0x52 };  // TESObjectCELL::RunAnimations
 			stl::write_thunk_call<UpdateActivateParents>(target.address());
 
 			logger::info("Hooked TESObjectCELL::UpdateActivateParents");
@@ -127,6 +129,8 @@ namespace Hooks::Update
 
 		UpdateActivateParents::Install();
 		UpdateManagedNodes::Install();
+		BSTempEffect::UpdatePosition<RE::ShaderReferenceEffect>::Install();
+		BSTempEffect::UpdatePosition<RE::ModelReferenceEffect>::Install();
 
 		RemoveExternalEmittance::Install();
 	}

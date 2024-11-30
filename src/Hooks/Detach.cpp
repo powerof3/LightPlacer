@@ -1,5 +1,5 @@
 #include "Hooks.h"
-#include "Manager.h"
+#include "Detach.h"
 
 namespace Hooks::Detach
 {
@@ -71,10 +71,33 @@ namespace Hooks::Detach
 		}
 	};
 
+	struct Suspend
+	{
+		static void thunk(RE::ShaderReferenceEffect* a_this)
+		{
+			bool suspended = a_this->flags.any(RE::ShaderReferenceEffect::Flag::kSuspended);
+			func(a_this);
+			if (suspended != a_this->flags.any(RE::ShaderReferenceEffect::Flag::kSuspended)) {
+				LightManager::GetSingleton()->DetachTempEffectLights(a_this, false);
+			}
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+		static inline constexpr std::size_t            size{ 0x37 };
+
+		static void Install()
+		{
+			stl::write_vfunc<RE::ShaderReferenceEffect, Suspend>();
+			logger::info("Hooked ShaderReferenceEffect::Suspend"sv);
+		}
+	};
+
 	void Install()
 	{
 		RemoveLight::Install();
 		GetLightData::Install();
 		RunBiped3DDetach::Install();
+		BSTempEffect::DetachImpl<RE::ShaderReferenceEffect>::Install();
+		BSTempEffect::DetachImpl<RE::ModelReferenceEffect>::Install();
+		Suspend::Install();
 	}
 }

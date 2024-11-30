@@ -12,9 +12,9 @@ namespace Hooks::Attach
 		{
 			auto node = func(a_this, a_ref);
 			if constexpr (std::is_same_v<RE::BGSMovableStatic, T>) {
-				LightManager::GetSingleton()->AddLights(a_ref, a_ref ? a_ref->GetBaseObject() : nullptr, node);			
+				LightManager::GetSingleton()->AddLights(a_ref, a_ref ? a_ref->GetBaseObject() : nullptr, node);
 			} else {
-				LightManager::GetSingleton()->AddLights(a_ref, a_this, node);			
+				LightManager::GetSingleton()->AddLights(a_ref, a_this, node);
 			}
 			return node;
 		}
@@ -23,10 +23,36 @@ namespace Hooks::Attach
 
 		static void Install()
 		{
-			stl::write_vfunc<T, index, Clone3D>();		
+			stl::write_vfunc<T, index, Clone3D>();
 			logger::info("Hooked {}::Clone3D"sv, typeid(T).name());
 		}
 	};
-	
-	void Install();
+
+	namespace BSTempEffect
+	{
+		template <class T>
+		struct Init
+		{
+			static void thunk(T* a_this)
+			{
+				func(a_this);
+				
+				RE::FormID effectID = 0;
+				if constexpr (std::is_same_v<RE::ShaderReferenceEffect, T>) {
+					effectID = a_this->effectData ? a_this->effectData->GetFormID() : 0;
+				} else if constexpr (std::is_same_v<RE::ModelReferenceEffect, T>) {
+					effectID = a_this->artObject ? a_this->artObject->GetFormID() : 0;
+				}
+				LightManager::GetSingleton()->AddTempEffectLights(a_this, effectID);
+			}
+			static inline REL::Relocation<decltype(thunk)> func;
+			static inline constexpr std::size_t            size{ 0x36 };
+
+			static void Install()
+			{
+				stl::write_vfunc<T, Init>();
+				logger::info("Hooked {}::Init"sv, typeid(T).name());
+			}
+		};
+	}
 }

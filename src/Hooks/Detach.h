@@ -1,0 +1,24 @@
+#pragma once
+
+#include "Manager.h"
+
+namespace Hooks::Detach::BSTempEffect
+{
+	template <class T>
+	struct DetachImpl
+	{
+		static void thunk(T* a_this)
+		{
+			func(a_this);
+			LightManager::GetSingleton()->DetachTempEffectLights(a_this, true);
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+		static inline constexpr std::size_t            size{ 0x3E };
+
+		static void Install()
+		{
+			stl::write_vfunc<T, DetachImpl>();
+			logger::info("Hooked {}::DetachImpl"sv, typeid(T).name());
+		}
+	};
+}

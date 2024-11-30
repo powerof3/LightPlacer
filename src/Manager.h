@@ -40,18 +40,37 @@ struct Config
 		LightDataVec         lightData;
 	};
 
+	struct MultiEffectShaderSet
+	{
+		FlatSet<std::string> effectShaders;
+		LightDataVec         lightData;
+	};
+
+	struct MultiArtObjectSet
+	{
+		FlatSet<std::string> artObjects;
+		LightDataVec         lightData;
+	};
+
 	struct MultiAddonSet
 	{
 		FlatSet<std::uint32_t> addonNodes;
 		LightDataVec           lightData;
 	};
 
-	using Format = std::variant<MultiModelSet, MultiReferenceSet, MultiAddonSet>;
+	using Format = std::variant<MultiModelSet, MultiReferenceSet, MultiEffectShaderSet, MultiArtObjectSet, MultiAddonSet>;
 };
 
 class LightManager : public ISingleton<LightManager>
 {
 public:
+	enum class TYPE
+	{
+		kRef = 0,
+		kActor,
+		kEffect
+	};
+
 	bool ReadConfigs();
 	void OnDataLoad();
 
@@ -63,10 +82,16 @@ public:
 	void ReattachWornLights(const RE::ActorHandle& a_handle);
 	void DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObject* a_root);
 
+	void AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectID);
+	void ReattachTempEffectLights(RE::ReferenceEffect* a_effect);
+	void DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clear);
+
 	void AddLightsToProcessQueue(RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
 	void UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(RE::TESObjectCELL* a_cell);
 	void RemoveLightsFromProcessQueue(RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
+
+	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);
 
 	template <class F>
 	void ForEachLight(RE::RefHandle a_handle, F&& func)
@@ -107,29 +132,15 @@ public:
 	}
 
 private:
-	struct ProcessedLights
-	{
-		ProcessedLights() = default;
-
-		void emplace(const REFR_LIGH& a_data, RE::RefHandle a_handle);
-		void erase(RE::RefHandle a_handle);
-
-		std::vector<RE::RefHandle> flickeringLights;
-		std::vector<RE::RefHandle> emittanceLights;
-		float                      lastUpdateTime{ 0.0f };
-		std::vector<RE::RefHandle> conditionalLights;
-	};
-
 	void PostProcessLightData(Config::LightDataVec& a_lightDataVec);
 
-	void AttachLightsImpl(const ObjectREFRParams& a_refParams, RE::TESBoundObject* a_object, RE::TESModel* a_model);
+	void AttachLightsImpl(const ObjectREFRParams& a_refParams, RE::TESBoundObject* a_object, RE::TESModel* a_model, TYPE a_type);
 
-	void AttachConfigLights(const ObjectREFRParams& a_refParams, const std::string& a_model, RE::FormID a_baseFormID);
-	void AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightData& a_lightData, std::uint32_t a_index);
+	void AttachReferenceLights(const ObjectREFRParams& a_refParams, const std::string& a_model, RE::FormID a_baseFormID, TYPE a_type);
+	void AttachMeshLights(const ObjectREFRParams& a_refParams, const std::string& a_model, TYPE a_type);
+	void AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightData& a_lightData, std::uint32_t a_index, TYPE a_type);
 
-	void AttachMeshLights(const ObjectREFRParams& a_refParams, const std::string& a_model);
-
-	void AttachLight(const LightCreateParams& a_lightParams, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, std::uint32_t a_index = 0, const RE::NiPoint3& a_point = { 0, 0, 0 });
+	void AttachLight(const LightCreateParams& a_lightParams, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index = 0, const RE::NiPoint3& a_point = { 0, 0, 0 });
 
 	bool ReattachLightsImpl(const ObjectREFRParams& a_refParams);
 
@@ -137,9 +148,12 @@ private:
 	std::vector<Config::Format>                  config{};
 	FlatMap<std::string, Config::LightDataVec>   gameModels{};
 	FlatMap<RE::FormID, Config::LightDataVec>    gameReferences{};
+	FlatMap<RE::FormID, Config::LightDataVec>    gameEffectShaders{};
+	FlatMap<RE::FormID, Config::LightDataVec>    gameArtObjects{};
 	FlatMap<std::uint32_t, Config::LightDataVec> gameAddonNodes{};
 
-	LockedMap<RE::RefHandle, std::vector<REFR_LIGH>>                         gameRefLights;
-	LockedMap<RE::RefHandle, LockedMap<RE::NiNode*, std::vector<REFR_LIGH>>> gameActorLights;
-	LockedMap<RE::FormID, MutexGuard<ProcessedLights>>                       processedGameLights;
+	LockedMap<RE::RefHandle, std::vector<REFR_LIGH>>                             gameRefLights;
+	LockedMap<RE::RefHandle, LockedNiPtrMap<RE::NiNode, std::vector<REFR_LIGH>>> gameActorLights;
+	LockedNiPtrMap<RE::ReferenceEffect, ProcessedEffectLights>                   gameEffectLights;
+	LockedMap<RE::FormID, MutexGuard<ProcessedREFRLights>>                       processedGameLights;
 };
