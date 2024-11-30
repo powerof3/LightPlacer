@@ -71,7 +71,11 @@ struct LightData
 	float                                   radius{ 0.0f };
 	float                                   fade{ 0.0f };
 	RE::NiPoint3                            offset;
+#if defined(SKYRIMVR)
+	stl::enumeration<LightFlags, std::uint32_t> flags{ LightFlags::None };
+#else
 	REX::EnumSet<LightFlags, std::uint32_t> flags{ LightFlags::None };
+#endif
 	RE::TESForm*                            emittanceForm{ nullptr };
 	std::shared_ptr<RE::TESCondition>       conditions;
 

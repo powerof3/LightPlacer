@@ -105,6 +105,11 @@ namespace stl
 
 #ifdef SKYRIM_AE
 #	define OFFSET(se, ae) ae
+#	define OFFSET_3(se, ae, vr) ae
+#elif SKYRIMVR
+#	define OFFSET(se, ae) se
+#	define OFFSET_3(se, ae, vr) vr
 #else
 #	define OFFSET(se, ae) se
+#	define OFFSET_3(se, ae, vr) se
 #endif

@@ -57,10 +57,20 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 	}
 
 	const auto ver = a_skse->RuntimeVersion();
-	if (ver < SKSE::RUNTIME_1_5_39) {
+	if (ver <
+#	ifdef SKYRIMVR
+		SKSE::RUNTIME_VR_1_4_15
+#	else
+		SKSE::RUNTIME_1_5_39
+#	endif
+	) {
 		logger::critical(FMT_STRING("Unsupported runtime version {}"), ver.string());
 		return false;
 	}
+
+#	ifdef SKYRIMVR
+	REL::IDDatabase::get().IsVRAddressLibraryAtLeastVersion("LightPlacer VR", "0.159.0");
+#	endif
 
 	return true;
 }
