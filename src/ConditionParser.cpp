@@ -572,13 +572,11 @@ RE::TESForm* ConditionParser::LookupForm(const std::string& a_str)
 			}
 			if (modName) {
 				return RE::TESDataHandler::GetSingleton()->LookupForm(*formID, *modName);
-			} else {
-				return RE::TESForm::LookupByID(*formID);
 			}
+			return RE::TESForm::LookupByID(*formID);
 		}
 	} else {
-		const auto& editorID = std::get<std::string>(formOrEditorID);
-		return RE::TESForm::LookupByEditorID(editorID);
+		return RE::TESForm::LookupByEditorID(std::get<std::string>(formOrEditorID));
 	}
 
 	return nullptr;

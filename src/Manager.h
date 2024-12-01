@@ -10,19 +10,19 @@ struct Config
 
 		FlatSet<std::string> whiteList;
 		FlatSet<std::string> blackList;
-		LightCreateParams    data{};
+		LightCreateParams    data;
 	};
 
 	struct PointData
 	{
-		std::vector<RE::NiPoint3> points{};
-		LightCreateParams         data{};
+		std::vector<RE::NiPoint3> points;
+		LightCreateParams         data;
 	};
 
 	struct NodeData
 	{
-		std::vector<std::string> nodes{};
-		LightCreateParams        data{};
+		std::vector<std::string> nodes;
+		LightCreateParams        data;
 	};
 
 	using LightData = std::variant<PointData, NodeData, FilteredData>;
@@ -139,11 +139,11 @@ private:
 	bool ReattachLightsImpl(const ObjectREFRParams& a_refParams);
 
 	// members
-	std::vector<Config::Format>                  config{};
-	FlatMap<std::string, Config::LightDataVec>   gameModels{};
-	FlatMap<RE::FormID, Config::LightDataVec>    gameReferences{};
-	FlatMap<RE::FormID, Config::LightDataVec>    gameVisualEffects{};
-	FlatMap<std::uint32_t, Config::LightDataVec> gameAddonNodes{};
+	std::vector<Config::Format>                  config;
+	FlatMap<std::string, Config::LightDataVec>   gameModels;
+	FlatMap<RE::FormID, Config::LightDataVec>    gameReferences;
+	FlatMap<RE::FormID, Config::LightDataVec>    gameVisualEffects;
+	FlatMap<std::uint32_t, Config::LightDataVec> gameAddonNodes;
 
 	LockedMap<RE::RefHandle, std::vector<REFR_LIGH>>                             gameRefLights;
 	LockedMap<RE::RefHandle, LockedNiPtrMap<RE::NiNode, std::vector<REFR_LIGH>>> gameActorLights;

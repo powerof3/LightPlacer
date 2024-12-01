@@ -10,10 +10,10 @@ struct glz::meta<RE::NiPoint3>
 namespace RE
 {
 	template <class T>
-	void AttachNode(RE::NiNode* a_root, T* a_obj)
+	void AttachNode(NiNode* a_root, T* a_obj)
 	{
-		if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
-			RE::TaskQueueInterface::GetSingleton()->QueueNodeAttach(a_obj, a_root);
+		if (TaskQueueInterface::ShouldUseTaskQueue()) {
+			TaskQueueInterface::GetSingleton()->QueueNodeAttach(a_obj, a_root);
 		} else {
 			a_root->AttachChild(a_obj, true);
 		}
@@ -27,24 +27,23 @@ namespace RE
 			if (g_mergeMapperInterface) {
 				const auto [mergedModName, mergedFormID] = g_mergeMapperInterface->GetNewFormID(modName.c_str(), formID);
 				return TESDataHandler::GetSingleton()->LookupFormID(mergedFormID, mergedModName);
-			} else {
-				return TESDataHandler::GetSingleton()->LookupFormID(formID, modName);
 			}
+			return TESDataHandler::GetSingleton()->LookupFormID(formID, modName);
 		}
 		if (string::is_only_hex(a_str, true)) {
-			return string::to_num<RE::FormID>(a_str, true);
+			return string::to_num<FormID>(a_str, true);
 		}
-		if (const auto form = RE::TESForm::LookupByEditorID(a_str)) {
+		if (const auto form = TESForm::LookupByEditorID(a_str)) {
 			return form->GetFormID();
 		}
-		return static_cast<RE::FormID>(0);
+		return 0;
 	}
 
 	template <class T>
 	T* GetFormFromID(const std::string& a_str)
 	{
 		auto formID = GetFormID(a_str);
-		return formID != 0 ? RE::TESForm::LookupByID<T>(GetFormID(a_str)) : nullptr;
+		return formID != 0 ? TESForm::LookupByID<T>(GetFormID(a_str)) : nullptr;
 	}
 
 	inline NiColor GetLightDiffuse(TESObjectLIGH* a_light)
@@ -75,7 +74,7 @@ namespace RE
 
 	inline bool IsActor(TESObjectREFR* a_ref)
 	{
-		return a_ref->Is(RE::FormType::ActorCharacter);
+		return a_ref->Is(FormType::ActorCharacter);
 	}
 
 	inline float NiSinQImpl(float a_value)
@@ -1118,12 +1117,12 @@ namespace RE
 
 	inline float NiSinQ(float a_radians)
 	{
-		return NiSinQImpl((512.0f / RE::NI_TWO_PI) * a_radians);
+		return NiSinQImpl((512.0f / NI_TWO_PI) * a_radians);
 	}
 
 	inline float NiCosQ(float a_radians)
 	{
-		return NiCosQImpl((512.0f / RE::NI_TWO_PI) * a_radians);
+		return NiCosQImpl((512.0f / NI_TWO_PI) * a_radians);
 	}
 
 	inline std::string SanitizeModel(const std::string& a_path)
@@ -1137,7 +1136,7 @@ namespace RE
 		return path;
 	}
 
-	inline void UpdateLight(RE::TESObjectLIGH* a_light, const RE::NiPointer<RE::NiPointLight>& a_ptLight, RE::TESObjectREFR* a_ref, float a_wantDimmer)
+	inline void UpdateLight(TESObjectLIGH* a_light, const NiPointer<RE::NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer)
 	{
 		using func_t = decltype(&UpdateLight);
 		static REL::Relocation<func_t> func{ RELOCATION_ID(17212, 17614) };

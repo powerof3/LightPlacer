@@ -9,7 +9,6 @@
 
 #include <ClibUtil/RNG.hpp>
 #include <ClibUtil/distribution.hpp>
-#include <ClibUtil/simpleINI.hpp>
 #include <ClibUtil/singleton.hpp>
 #include <MergeMapperPluginAPI.h>
 #include <boost_unordered.hpp>
@@ -20,18 +19,14 @@
 #include <srell.hpp>
 #include <xbyak/xbyak.h>
 
-#include <ClibUtil/editorID.hpp>
-
 #define DLLEXPORT __declspec(dllexport)
 
 namespace logger = SKSE::log;
 namespace string = clib_util::string;
-namespace ini = clib_util::ini;
-namespace edid = clib_util::editorID;
 namespace dist = clib_util::distribution;
 
 using namespace std::literals;
-using namespace string::literals;
+using namespace clib_util::string::literals;
 using namespace clib_util::singleton;
 
 namespace stl
@@ -66,8 +61,9 @@ namespace stl
 			Patch(std::uintptr_t a_originalFuncAddr, std::size_t a_originalByteLength)
 			{
 				// Hook returns here. Execute the restored bytes and jump back to the original function.
-				for (size_t i = 0; i < a_originalByteLength; i++)
-					db(*reinterpret_cast<uint8_t*>(a_originalFuncAddr + i));
+				for (size_t i = 0; i < a_originalByteLength; ++i) {
+					db(*reinterpret_cast<std::uint8_t*>(a_originalFuncAddr + i));
+				}
 
 				jmp(qword[rip]);
 				dq(a_originalFuncAddr + a_originalByteLength);

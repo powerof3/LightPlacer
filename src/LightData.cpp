@@ -13,10 +13,7 @@ ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_r
 
 bool ObjectREFRParams::IsValid() const
 {
-	if (ref->IsDisabled() || ref->IsDeleted() || !root || !ref->GetParentCell()) {
-		return false;
-	}
-	return true;
+	return !ref->IsDisabled() && !ref->IsDeleted() && root && ref->GetParentCell();
 }
 
 bool LightDataBase::IsValid() const

@@ -1,5 +1,5 @@
-#include "Hooks.h"
 #include "Detach.h"
+#include "Hooks.h"
 
 namespace Hooks::Detach
 {
@@ -82,7 +82,7 @@ namespace Hooks::Detach
 			}
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static inline constexpr std::size_t            size{ 0x37 };
+		static constexpr std::size_t                   size{ 0x37 };
 
 		static void Install()
 		{

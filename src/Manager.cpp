@@ -76,7 +76,7 @@ void LightManager::OnDataLoad()
 
 	logger::info("{:*^50}", "RESULTS");
 
-	constexpr auto log_size = []<typename K, typename D>(std::string_view ID, const FlatMap<K,D>& a_map) {
+	constexpr auto log_size = []<typename K, typename D>(std::string_view ID, const FlatMap<K, D>& a_map) {
 		logger::info("{} : {} entries", ID, a_map.size());
 	};
 
@@ -352,15 +352,13 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 				   },
 				   [&](const Config::NodeData& nodeData) {
 					   for (const auto& nodeName : nodeData.nodes) {
-						   lightPlacerNode = nodeData.data.GetOrCreateNode(rootNode, nodeName, a_index);
+						   lightPlacerNode = LightCreateParams::GetOrCreateNode(rootNode, nodeName, a_index);
 						   if (lightPlacerNode) {
 							   AttachLight(nodeData.data, a_refParams, lightPlacerNode->AsNode(), a_type);
 						   }
 					   }
 				   },
-				   [&](const Config::FilteredData&) {
-					   return;  // not handled here.
-				   } },
+				   [&](const Config::FilteredData&) {} },
 		a_lightData);
 }
 
@@ -482,7 +480,7 @@ void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 			auto        pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 
 			it->second.write([&](auto& innerMap) {
-				bool updateConditions = innerMap.UpdateTimer(0.25f);
+				const bool updateConditions = innerMap.UpdateTimer(0.25f);
 
 				std::erase_if(innerMap.conditionalFlickeringLights, [&](const auto& handle) {
 					RE::TESObjectREFRPtr ref{};

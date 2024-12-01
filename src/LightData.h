@@ -41,19 +41,19 @@ struct LightDataBase
 
 	// members
 	RE::TESObjectLIGH*                      light{ nullptr };
-	std::string                             lightEDID{};
+	std::string                             lightEDID;
 	float                                   radius{ 0.0f };
 	float                                   fade{ 0.0f };
-	RE::NiPoint3                            offset{};
+	RE::NiPoint3                            offset;
 	REX::EnumSet<LightFlags, std::uint32_t> flags{ LightFlags::None };
 	RE::TESForm*                            emittanceForm{ nullptr };
-	std::shared_ptr<RE::TESCondition>       conditions{};
+	std::shared_ptr<RE::TESCondition>       conditions;
 
 	constexpr static auto LP_ID = "LightPlacer|"sv;
 	constexpr static auto LP_NODE = "LightPlacerNode #"sv;
 };
 
-struct LightCreateParams : public LightDataBase
+struct LightCreateParams : LightDataBase
 {
 	LightCreateParams() = default;
 	LightCreateParams(const RE::NiStringsExtraData* a_data);
@@ -63,9 +63,9 @@ struct LightCreateParams : public LightDataBase
 	bool PostProcess();
 
 	// members
-	std::string              emittanceFormEDID{};
-	std::string              rawFlags{};
-	std::vector<std::string> rawConditions{};
+	std::string              emittanceFormEDID;
+	std::string              rawFlags;
+	std::vector<std::string> rawConditions;
 };
 
 template <>
