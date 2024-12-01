@@ -78,7 +78,7 @@ public:
 	void ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
 	void DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData);
 
-	void AddWornLights(RE::TESObjectREFR* a_ref, RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root);
+	void AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root);
 	void ReattachWornLights(const RE::ActorHandle& a_handle);
 	void DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObject* a_root);
 

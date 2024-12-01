@@ -13,6 +13,8 @@
 #include <ClibUtil/singleton.hpp>
 #include <MergeMapperPluginAPI.h>
 #include <boost_unordered.hpp>
+#include <frozen/bits/elsa_std.h>
+#include <frozen/unordered_map.h>
 #include <glaze/glaze.hpp>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <srell.hpp>

@@ -112,7 +112,7 @@ namespace Hooks::Update
 				std::make_pair(RELOCATION_ID(19301, 19728), OFFSET(0x1BA, 0x206))   // TESObjectREFR::Release3DRelatedData
 			};
 
-			for (auto& [address, offset] : targets) {
+			for (const auto& [address, offset] : targets) {
 				REL::Relocation<std::uintptr_t> target{ address, offset };
 				stl::write_thunk_call<RemoveExternalEmittance>(target.address());
 			}

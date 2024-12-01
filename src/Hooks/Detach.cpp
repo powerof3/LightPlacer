@@ -11,7 +11,7 @@ namespace Hooks::Detach
 			LightManager::GetSingleton()->DetachLights(a_this, false);
 
 			func(a_this, a_isMagicLight);
-		};
+		}
 		static inline REL::Relocation<decltype(thunk)> func;
 
 		static void Install()
@@ -43,7 +43,7 @@ namespace Hooks::Detach
 				std::make_pair(RELOCATION_ID(19302, 19729), OFFSET(0x63C, 0x63A)),  // TESObjectREFR::Set3D
 			};
 
-			for (auto& [address, offset] : targets) {
+			for (const auto& [address, offset] : targets) {
 				REL::Relocation<std::uintptr_t> target{ address, offset };
 				stl::write_thunk_call<GetLightData>(target.address());
 			}
@@ -59,7 +59,7 @@ namespace Hooks::Detach
 			LightManager::GetSingleton()->DetachWornLights(a_handle, a_node);
 
 			func(a_handle, a_node);
-		};
+		}
 		static inline REL::Relocation<decltype(thunk)> func;
 
 		static void Install()

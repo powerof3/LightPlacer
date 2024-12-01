@@ -154,7 +154,7 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 	}
 }
 
-void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root)
+void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root)
 {
 	if (!a_ref || a_slot == -1) {
 		return;
@@ -201,21 +201,24 @@ void LightManager::ReattachWornLights(const RE::ActorHandle& a_handle)
 
 void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObject* a_root)
 {
-	if (a_root) {
-		auto handle = a_handle.native_handle();
-		gameActorLights.write([&](auto& map) {
-			if (auto it = map.find(handle); it != map.end()) {
-				it->second.write([&](auto& nodeMap) {
-					if (auto it = nodeMap.find(a_root->AsNode()); it != nodeMap.end()) {
-						for (auto& lightData : it->second) {
-							lightData.RemoveLight();
-						}
-						nodeMap.erase(it);
-					}
-				});
-			}
-		});
+	if (!a_root) {
+		return;
 	}
+
+	auto handle = a_handle.native_handle();
+
+	gameActorLights.write([&](auto& map) {
+		if (auto it = map.find(handle); it != map.end()) {
+			it->second.write([&](auto& nodeMap) {
+				if (auto nIt = nodeMap.find(a_root->AsNode()); nIt != nodeMap.end()) {
+					for (auto& lightData : nIt->second) {
+						lightData.RemoveLight();
+					}
+					nodeMap.erase(nIt);
+				}
+			});
+		}
+	});
 }
 
 void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectID)
@@ -323,8 +326,9 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 
 	std::visit(overload{
 				   [&](const Config::PointData& pointData) {
-					   auto name = pointData.data.GetNodeName(a_index);
-					   if (lightPlacerNode = rootNode->GetObjectByName(name); !lightPlacerNode) {
+					   auto name = LightCreateParams::GetNodeName(a_index);
+					   lightPlacerNode = rootNode->GetObjectByName(name); 
+					   if (!lightPlacerNode) {
 						   lightPlacerNode = RE::NiNode::Create(0);
 						   lightPlacerNode->name = name;
 						   RE::AttachNode(rootNode, lightPlacerNode);
@@ -337,7 +341,8 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 				   },
 				   [&](const Config::NodeData& nodeData) {
 					   for (const auto& nodeName : nodeData.nodes) {
-						   if (lightPlacerNode = nodeData.data.GetOrCreateNode(rootNode, nodeName, a_index); lightPlacerNode) {
+						   lightPlacerNode = nodeData.data.GetOrCreateNode(rootNode, nodeName, a_index); 
+						   if (lightPlacerNode) {
 							   AttachLight(nodeData.data, a_refParams, lightPlacerNode->AsNode(), a_type);
 						   }
 					   }
@@ -365,7 +370,7 @@ void LightManager::AttachMeshLights(const ObjectREFRParams& a_refParams, const s
 			}
 		} else if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
 			if (auto lightParams = LightCreateParams(xData); lightParams.IsValid()) {
-				if (auto node = lightParams.GetOrCreateNode(a_refParams.root->AsNode(), a_obj, LP_INDEX)) {
+				if (auto node = LightCreateParams::GetOrCreateNode(a_refParams.root->AsNode(), a_obj, LP_INDEX)) {
 					AttachLight(lightParams, a_refParams, node, a_type, LP_INDEX);
 				}
 				LP_INDEX++;
@@ -379,10 +384,7 @@ void LightManager::AttachLight(const LightCreateParams& a_lightParams, const Obj
 {
 	auto& [ref, effect, root, handle] = a_refParams;
 
-	RE::BSLight*      bsLight = nullptr;
-	RE::NiPointLight* niLight = nullptr;
-
-	if (std::tie(bsLight, niLight) = a_lightParams.GenLight(ref, a_node, a_point, a_index); bsLight && niLight) {
+	if (auto [bsLight, niLight] = a_lightParams.GenLight(ref, a_node, a_point, a_index); bsLight && niLight) {
 		switch (a_type) {
 		case TYPE::kRef:
 			{
@@ -402,8 +404,8 @@ void LightManager::AttachLight(const LightCreateParams& a_lightParams, const Obj
 						if (std::find(lightDataVec.begin(), lightDataVec.end(), niLight) == lightDataVec.end()) {
 							REFR_LIGH lightData(a_lightParams, bsLight, niLight, ref, a_node, a_point, a_index);
 							lightDataVec.push_back(lightData);
-							processedGameLights.write([&](auto& map) {
-								map[ref->GetParentCell()->GetFormID()].write([&](auto& innerMap) {
+							processedGameLights.write([&](auto& cellMap) {
+								cellMap[ref->GetParentCell()->GetFormID()].write([&](auto& innerMap) {
 									innerMap.emplace(lightData, handle);
 								});
 							});
@@ -479,7 +481,7 @@ void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 						return true;
 					}
 
-					bool withinFlickerDistance = ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistance;
+					const bool withinFlickerDistance = ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistance;
 
 					ForEachLight(ref.get(), handle, [&](const auto& lightREFRData) {
 						if (updateConditions) {

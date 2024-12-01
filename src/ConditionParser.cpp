@@ -567,8 +567,7 @@ RE::TESForm* ConditionParser::LookupForm(const std::string& a_str)
 			if (mergedFormID != *formID) {
 				formID.emplace(mergedFormID);
 			}
-			const std::string mergedModString{ mergedModName };
-			if (modName && !mergedModString.empty() && *modName != mergedModString) {
+			if (const std::string mergedModString{ mergedModName }; modName && !mergedModString.empty() && *modName != mergedModString) {
 				modName.emplace(mergedModName);
 			}
 			if (modName) {
@@ -585,7 +584,7 @@ RE::TESForm* ConditionParser::LookupForm(const std::string& a_str)
 	return nullptr;
 }
 
-bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_param, PARAM_TYPE a_type) const
+bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_param, PARAM_TYPE a_type)
 {
 	switch (a_type) {
 	case PARAM_TYPE::kInt:
@@ -732,19 +731,14 @@ bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_par
 		break;
 	case PARAM_TYPE::kKeyword:
 		{
-			switch (dist::get_record_type(a_str)) {
-			case dist::kEditorID:
-				{
-					const auto& keywordArray = RE::TESDataHandler::GetSingleton()->GetFormArray<RE::BGSKeyword>();
-					const auto  it = std::ranges::find_if(keywordArray, [&](const auto& keyword) { return keyword->formEditorID == a_str.c_str(); });
-					if (it != keywordArray.end()) {
-						a_param.ptr = *it;
-					}
+			if (dist::get_record_type(a_str) == dist::kEditorID) {
+				const auto& keywordArray = RE::TESDataHandler::GetSingleton()->GetFormArray<RE::BGSKeyword>();
+				const auto  it = std::ranges::find_if(keywordArray, [&](const auto& keyword) { return keyword->formEditorID == a_str.c_str(); });
+				if (it != keywordArray.end()) {
+					a_param.ptr = *it;
 				}
-				break;
-			default:
-				a_param.ptr = LookupForm(a_str);
-				break;
+			} else {
+				a_param.ptr = LookupForm(a_str);			
 			}
 		}
 		break;

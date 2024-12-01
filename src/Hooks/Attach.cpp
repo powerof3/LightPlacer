@@ -11,7 +11,7 @@ namespace Hooks::Attach
 			LightManager::GetSingleton()->AddWornLights(a_actor, a_bipedAnim, a_slot, a_node);
 
 			func(a_clonedNode, a_node, a_slot, a_actor, a_bipedAnim);
-		};
+		}
 		static inline REL::Relocation<decltype(thunk)> func;
 
 		static void Install()
@@ -31,7 +31,7 @@ namespace Hooks::Attach
 			LightManager::GetSingleton()->ReattachLights(a_this, a_this->GetBaseObject());
 
 			func(a_this, a_isMagicLight);
-		};
+		}
 		static inline REL::Relocation<decltype(thunk)> func;
 
 		static void Install()
@@ -74,7 +74,7 @@ namespace Hooks::Attach
 			}
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static inline constexpr std::size_t            size{ 0x38 };
+		static constexpr std::size_t                   size{ 0x38 };
 
 		static void Install()
 		{

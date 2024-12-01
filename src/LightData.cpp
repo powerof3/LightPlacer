@@ -7,7 +7,6 @@ ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref) :
 
 ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root) :
 	ref(a_ref),
-	effect(nullptr),
 	root(a_root ? a_root->AsNode() : nullptr),
 	handle(a_ref->CreateRefHandle().native_handle())
 {}
@@ -69,13 +68,13 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightDataBase::GetParams(RE::TESObjectR
 	return params;
 }
 
-RE::NiNode* LightDataBase::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
+RE::NiNode* LightDataBase::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index)
 {
 	auto obj = a_root->GetObjectByName(a_nodeName);
 	return obj ? GetOrCreateNode(a_root, obj, a_index) : nullptr;
 }
 
-RE::NiNode* LightDataBase::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
+RE::NiNode* LightDataBase::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index)
 {
 	if (auto node = a_obj->AsNode()) {
 		return node;
@@ -149,7 +148,8 @@ LightCreateParams::LightCreateParams(const RE::NiStringsExtraData* a_data)
 
 	for (const auto& str : data) {
 		std::istringstream strstream(str);
-		std::string        key, value;
+		std::string        key;
+		std::string        value;
 
 		if (std::getline(strstream, key, ':')) {
 			std::getline(strstream, value);
@@ -227,7 +227,7 @@ void LightCreateParams::ReadFlags()
 void LightCreateParams::ReadConditions()
 {
 	if (!rawConditions.empty()) {
-		ConditionParser::GetSingleton()->BuildCondition(conditions, rawConditions);
+		ConditionParser::BuildCondition(conditions, rawConditions);
 	}
 }
 

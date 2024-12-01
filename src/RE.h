@@ -41,7 +41,7 @@ namespace RE
 	}
 
 	template <class T>
-	inline T* GetFormFromID(const std::string& a_str)
+	T* GetFormFromID(const std::string& a_str)
 	{
 		auto formID = GetFormID(a_str);
 		return formID != 0 ? RE::TESForm::LookupByID<T>(GetFormID(a_str)) : nullptr;
@@ -1130,8 +1130,8 @@ namespace RE
 	{
 		auto path = string::tolower(a_path);
 
-		path = srell::regex_replace(path, srell::regex("/+|\\\\+"), "\\");
-		path = srell::regex_replace(path, srell::regex("^\\\\+"), "");
+		path = srell::regex_replace(path, srell::regex(R"(/+|\\+)"), "\\");
+		path = srell::regex_replace(path, srell::regex(R"(^\\+)"), "");
 		path = srell::regex_replace(path, srell::regex(R"(.*?[^\s]meshes\\|^meshes\\)", srell::regex::icase), "");
 
 		return path;

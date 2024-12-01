@@ -124,6 +124,7 @@ else ()
 endif()
 
 find_package(glaze CONFIG REQUIRED)
+find_package(frozen CONFIG REQUIRED)
 
 find_path(BOOST_UNORDERED_INCLUDE_DIRS ".editorconfig")
 find_path(CLIB_UTIL_INCLUDE_DIRS "ClibUtil/detail/SimpleIni.h")
@@ -192,6 +193,7 @@ target_link_libraries(
 	PRIVATE
 		${CommonLibName}::${CommonLibName}
 		glaze::glaze
+		frozen::frozen
 )
 
 target_precompile_headers(

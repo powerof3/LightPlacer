@@ -7,6 +7,7 @@
   "dependencies": [
     "boost-unordered",
     "clib-util",
+    "frozen",
     "glaze",
     "mergemapper",
     "rsm-binary-io",

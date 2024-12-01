@@ -19,7 +19,7 @@ namespace Hooks::Attach
 			return node;
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static inline constexpr std::size_t            size{ 0x4A };
+		static constexpr std::size_t                   size{ 0x4A };
 
 		static void Install()
 		{
@@ -36,7 +36,7 @@ namespace Hooks::Attach
 			static void thunk(T* a_this)
 			{
 				func(a_this);
-				
+
 				RE::FormID effectID = 0;
 				if constexpr (std::is_same_v<RE::ShaderReferenceEffect, T>) {
 					effectID = a_this->effectData ? a_this->effectData->GetFormID() : 0;
@@ -46,7 +46,7 @@ namespace Hooks::Attach
 				LightManager::GetSingleton()->AddTempEffectLights(a_this, effectID);
 			}
 			static inline REL::Relocation<decltype(thunk)> func;
-			static inline constexpr std::size_t            size{ 0x36 };
+			static constexpr std::size_t                   size{ 0x36 };
 
 			static void Install()
 			{
