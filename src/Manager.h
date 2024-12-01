@@ -132,7 +132,7 @@ public:
 	}
 
 private:
-	void PostProcessLightData(Config::LightDataVec& a_lightDataVec);
+	static void PostProcessLightData(Config::LightDataVec& a_lightDataVec);
 
 	void AttachLightsImpl(const ObjectREFRParams& a_refParams, RE::TESBoundObject* a_object, RE::TESModel* a_model, TYPE a_type);
 

@@ -7,7 +7,7 @@ bool Config::FilteredData::IsInvalid(const std::string& a_model) const
 
 bool LightManager::ReadConfigs()
 {
-	logger::info("{:*^30}", "CONFIG FILES");
+	logger::info("{:*^50}", "CONFIG FILES");
 
 	std::filesystem::path dir{ "Data\\LightPlacer" };
 	if (!std::filesystem::exists(dir)) {
@@ -20,10 +20,14 @@ bool LightManager::ReadConfigs()
 			continue;
 		}
 		logger::info("Reading {}...", dirEntry.path().string());
-		std::string buffer;
-		auto        err = glz::read_file_json(config, dirEntry.path().string(), buffer);
+		std::string                 buffer;
+		std::vector<Config::Format> tmpConfig;
+		auto                        err = glz::read_file_json(tmpConfig, dirEntry.path().string(), buffer);
 		if (err) {
-			logger::info("\terror:{}", glz::format_error(err, buffer));
+			logger::error("\terror:{}", glz::format_error(err, buffer));
+		} else {
+			logger::info("\t{} entries", tmpConfig.size());
+			config.append_range(std::move(tmpConfig));
 		}
 	}
 
@@ -72,6 +76,18 @@ void LightManager::OnDataLoad()
 					   } },
 			multiData);
 	}
+
+	logger::info("{:*^50}", "RESULTS");
+
+	constexpr auto log_size = []<typename K, typename D>(std::string_view ID, const FlatMap<K,D>& a_map) {
+		logger::info("{} : {} entries", ID, a_map.size());
+	};
+
+	log_size("Models", gameModels);
+	log_size("References", gameReferences);
+	log_size("EffectShaders", gameEffectShaders);
+	log_size("ArtObjects", gameArtObjects);
+	log_size("AddonNodes", gameAddonNodes);
 }
 
 void LightManager::PostProcessLightData(Config::LightDataVec& a_lightDataVec)
@@ -327,7 +343,7 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 	std::visit(overload{
 				   [&](const Config::PointData& pointData) {
 					   auto name = LightCreateParams::GetNodeName(a_index);
-					   lightPlacerNode = rootNode->GetObjectByName(name); 
+					   lightPlacerNode = rootNode->GetObjectByName(name);
 					   if (!lightPlacerNode) {
 						   lightPlacerNode = RE::NiNode::Create(0);
 						   lightPlacerNode->name = name;
@@ -341,7 +357,7 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 				   },
 				   [&](const Config::NodeData& nodeData) {
 					   for (const auto& nodeName : nodeData.nodes) {
-						   lightPlacerNode = nodeData.data.GetOrCreateNode(rootNode, nodeName, a_index); 
+						   lightPlacerNode = nodeData.data.GetOrCreateNode(rootNode, nodeName, a_index);
 						   if (lightPlacerNode) {
 							   AttachLight(nodeData.data, a_refParams, lightPlacerNode->AsNode(), a_type);
 						   }

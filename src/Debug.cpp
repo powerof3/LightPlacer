@@ -40,6 +40,8 @@ namespace Debug
 
 		void Install()
 		{
+			logger::info("{:*^50}", "DEBUG");
+
 			if (const auto function = RE::SCRIPT_FUNCTION::LocateConsoleCommand("ToggleHeapTracking"); function) {
 				static RE::SCRIPT_PARAMETER params[] = {
 					{ "ObjectRef", RE::SCRIPT_PARAM_TYPE::kObjectRef, true }
@@ -53,7 +55,7 @@ namespace Debug
 				function->executeFunction = &Execute;
 				function->conditionFunction = nullptr;
 
-				logger::debug("Installed {}", LONG_NAME);
+				logger::debug("Installed {} console command", LONG_NAME);
 			}
 		}
 	}

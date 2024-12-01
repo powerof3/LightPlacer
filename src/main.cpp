@@ -13,7 +13,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 		break;
 	case SKSE::MessagingInterface::kPostPostLoad:
 		{
-			logger::info("{:*^30}", "MERGES");
+			logger::info("{:*^50}", "MERGES");
 			MergeMapperPluginAPI::GetMergeMapperInterface001();
 			if (g_mergeMapperInterface) {
 				const auto version = g_mergeMapperInterface->GetBuildNumber();

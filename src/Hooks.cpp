@@ -4,7 +4,7 @@ namespace Hooks
 {
 	void Install()
 	{
-		logger::info("{:*^30}", "HOOKS");
+		logger::info("{:*^50}", "HOOKS");
 
 		Attach::Install();
 		Detach::Install();
