@@ -249,7 +249,7 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 
 	if (auto it = map.find(a_effectID); it != map.end()) {
 		for (const auto& [index, data] : std::views::enumerate(it->second)) {
-			AttachConfigLights(refParams, data, index, TYPE::kEffect);
+			AttachConfigLights(refParams, data, static_cast<std::uint32_t>(index), TYPE::kEffect);
 		}
 	}
 }
@@ -305,13 +305,13 @@ void LightManager::AttachReferenceLights(const ObjectREFRParams& a_refParams, co
 
 	if (fIt != gameReferences.end()) {
 		for (const auto& [index, data] : std::views::enumerate(fIt->second)) {
-			AttachConfigLights(a_refParams, data, index, a_type);
+			AttachConfigLights(a_refParams, data, static_cast<std::uint32_t>(index), a_type);
 		}
 	}
 
 	if (auto mIt = gameModels.find(a_model); mIt != gameModels.end()) {
 		for (const auto& [index, data] : std::views::enumerate(mIt->second)) {
-			AttachConfigLights(a_refParams, data, index, a_type);
+			AttachConfigLights(a_refParams, data, static_cast<std::uint32_t>(index), a_type);
 		}
 	}
 }
@@ -330,8 +330,8 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 						   RE::AttachNode(rootNode, lightPlacerNode);
 					   }
 					   if (lightPlacerNode) {
-						   for (auto const& [pointIdx, point] : std::views::enumerate(pointData.points)) {
-							   AttachLight(pointData.data, a_refParams, lightPlacerNode->AsNode(), a_type, pointIdx, point);
+						   for (const auto& [pointIdx, point] : std::views::enumerate(pointData.points)) {
+							   AttachLight(pointData.data, a_refParams, lightPlacerNode->AsNode(), a_type, static_cast<std::uint32_t>(pointIdx), point);
 						   }
 					   }
 				   },
