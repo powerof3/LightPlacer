@@ -40,15 +40,9 @@ struct Config
 		LightDataVec         lightData;
 	};
 
-	struct MultiEffectShaderSet
+	struct MultiVisualEffectSet
 	{
-		FlatSet<std::string> effectShaders;
-		LightDataVec         lightData;
-	};
-
-	struct MultiArtObjectSet
-	{
-		FlatSet<std::string> artObjects;
+		FlatSet<std::string> visualEffects;
 		LightDataVec         lightData;
 	};
 
@@ -58,7 +52,7 @@ struct Config
 		LightDataVec           lightData;
 	};
 
-	using Format = std::variant<MultiModelSet, MultiReferenceSet, MultiEffectShaderSet, MultiArtObjectSet, MultiAddonSet>;
+	using Format = std::variant<MultiModelSet, MultiReferenceSet, MultiVisualEffectSet, MultiAddonSet>;
 };
 
 class LightManager : public ISingleton<LightManager>
@@ -148,12 +142,11 @@ private:
 	std::vector<Config::Format>                  config{};
 	FlatMap<std::string, Config::LightDataVec>   gameModels{};
 	FlatMap<RE::FormID, Config::LightDataVec>    gameReferences{};
-	FlatMap<RE::FormID, Config::LightDataVec>    gameEffectShaders{};
-	FlatMap<RE::FormID, Config::LightDataVec>    gameArtObjects{};
+	FlatMap<RE::FormID, Config::LightDataVec>    gameVisualEffects{};
 	FlatMap<std::uint32_t, Config::LightDataVec> gameAddonNodes{};
 
 	LockedMap<RE::RefHandle, std::vector<REFR_LIGH>>                             gameRefLights;
 	LockedMap<RE::RefHandle, LockedNiPtrMap<RE::NiNode, std::vector<REFR_LIGH>>> gameActorLights;
-	LockedNiPtrMap<RE::ReferenceEffect, ProcessedEffectLights>                   gameEffectLights;
-	LockedMap<RE::FormID, MutexGuard<ProcessedREFRLights>>                       processedGameLights;
+	LockedNiPtrMap<RE::ReferenceEffect, ProcessedEffectLights>                   gameVisualEffectLights;
+	LockedMap<RE::FormID, MutexGuard<ProcessedREFRLights>>                       processedGameRefLights;
 };

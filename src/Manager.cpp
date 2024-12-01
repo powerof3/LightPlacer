@@ -65,11 +65,8 @@ void LightManager::OnDataLoad()
 					   [&](Config::MultiReferenceSet& references) {
 						   append_formIDs(references.references, references.lightData, gameReferences);
 					   },
-					   [&](Config::MultiEffectShaderSet& effectShaders) {
-						   append_formIDs(effectShaders.effectShaders, effectShaders.lightData, gameEffectShaders);
-					   },
-					   [&](Config::MultiArtObjectSet& artObjects) {
-						   append_formIDs(artObjects.artObjects, artObjects.lightData, gameArtObjects);
+					   [&](Config::MultiVisualEffectSet& visualEffects) {
+						   append_formIDs(visualEffects.visualEffects, visualEffects.lightData, gameVisualEffects);
 					   },
 					   [&](Config::MultiAddonSet& addonNodes) {
 						   append_integers(addonNodes.addonNodes, addonNodes.lightData, gameAddonNodes);
@@ -85,8 +82,7 @@ void LightManager::OnDataLoad()
 
 	log_size("Models", gameModels);
 	log_size("References", gameReferences);
-	log_size("EffectShaders", gameEffectShaders);
-	log_size("ArtObjects", gameArtObjects);
+	log_size("VisualEffects", gameVisualEffects);
 	log_size("AddonNodes", gameAddonNodes);
 }
 
@@ -243,7 +239,7 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 		return;
 	}
 
-	if (gameEffectLights.read([&](auto& map) {
+	if (gameVisualEffectLights.read([&](auto& map) {
 			return map.contains(a_effect);
 		})) {
 		return;
@@ -264,9 +260,8 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 	}
 
 	refParams.effect = a_effect;
-	auto& map = a_effect->As<RE::ShaderReferenceEffect>() ? gameEffectShaders : gameArtObjects;
 
-	if (auto it = map.find(a_effectID); it != map.end()) {
+	if (auto it = gameVisualEffects.find(a_effectID); it != gameVisualEffects.end()) {
 		for (const auto& [index, data] : std::views::enumerate(it->second)) {
 			AttachConfigLights(refParams, data, static_cast<std::uint32_t>(index), TYPE::kEffect);
 		}
@@ -275,7 +270,7 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 
 void LightManager::ReattachTempEffectLights(RE::ReferenceEffect* a_effect)
 {
-	gameEffectLights.read([&](auto& map) {
+	gameVisualEffectLights.read([&](auto& map) {
 		if (auto it = map.find(a_effect); it != map.end()) {
 			for (auto& lightData : it->second.lights) {
 				lightData.ReattachLight();
@@ -286,7 +281,7 @@ void LightManager::ReattachTempEffectLights(RE::ReferenceEffect* a_effect)
 
 void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clear)
 {
-	gameEffectLights.write([&](auto& map) {
+	gameVisualEffectLights.write([&](auto& map) {
 		if (auto it = map.find(a_effect); it != map.end()) {
 			for (auto& lightData : it->second.lights) {
 				lightData.RemoveLight();
@@ -420,7 +415,7 @@ void LightManager::AttachLight(const LightCreateParams& a_lightParams, const Obj
 						if (std::find(lightDataVec.begin(), lightDataVec.end(), niLight) == lightDataVec.end()) {
 							REFR_LIGH lightData(a_lightParams, bsLight, niLight, ref, a_node, a_point, a_index);
 							lightDataVec.push_back(lightData);
-							processedGameLights.write([&](auto& cellMap) {
+							processedGameRefLights.write([&](auto& cellMap) {
 								cellMap[ref->GetParentCell()->GetFormID()].write([&](auto& innerMap) {
 									innerMap.emplace(lightData, handle);
 								});
@@ -432,7 +427,7 @@ void LightManager::AttachLight(const LightCreateParams& a_lightParams, const Obj
 			break;
 		case TYPE::kEffect:
 			{
-				gameEffectLights.write([&](auto& map) {
+				gameVisualEffectLights.write([&](auto& map) {
 					auto& effectLights = map[effect];
 					if (std::find(effectLights.lights.begin(), effectLights.lights.end(), niLight) == effectLights.lights.end()) {
 						effectLights.lights.emplace_back(a_lightParams, bsLight, niLight, ref, a_node, a_point, a_index);
@@ -471,7 +466,7 @@ void LightManager::AddLightsToProcessQueue(RE::TESObjectCELL* a_cell, RE::TESObj
 	auto handle = a_ref->CreateRefHandle().native_handle();
 
 	ForEachLight(a_ref, handle, [&](const auto& lightREFRData) {
-		processedGameLights.write([&](auto& map) {
+		processedGameRefLights.write([&](auto& map) {
 			map[cellFormID].write([&](auto& innerMap) {
 				innerMap.emplace(lightREFRData, handle);
 			});
@@ -481,7 +476,7 @@ void LightManager::AddLightsToProcessQueue(RE::TESObjectCELL* a_cell, RE::TESObj
 
 void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 {
-	processedGameLights.read_unsafe([&](auto& map) {
+	processedGameRefLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {
 			static auto flickeringDistance = RE::GetINISetting("fFlickeringLightDistance:General")->GetFloat() * RE::GetINISetting("fFlickeringLightDistance:General")->GetFloat();
 			auto        pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
@@ -517,7 +512,7 @@ void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 
 void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 {
-	processedGameLights.read_unsafe([&](auto& map) {
+	processedGameRefLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {
 			it->second.write([&](auto& innerMap) {
 				std::erase_if(innerMap.emittanceLights, [&](const auto& handle) {
@@ -543,7 +538,7 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 
 void LightManager::RemoveLightsFromProcessQueue(RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle)
 {
-	processedGameLights.read_unsafe([&](auto& map) {
+	processedGameRefLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {
 			it->second.write([&](auto& innerMap) {
 				innerMap.erase(a_handle.native_handle());
@@ -556,7 +551,7 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 {
 	auto ref = a_effect->target.get();
 
-	gameEffectLights.read_unsafe([&](auto& map) {
+	gameVisualEffectLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_effect); it != map.end()) {
 			auto& [flickerTimer, conditionTimer, lightDataVec] = it->second;
 			bool updateFlicker = flickerTimer.UpdateTimer(RE::BSTimer::GetSingleton()->delta * 2.0f);
