@@ -1,6 +1,21 @@
 #include "LightData.h"
 #include "ConditionParser.h"
 
+bool Timer::UpdateTimer(float a_interval, float a_delta)
+{
+	lastUpdateTime += a_delta;
+	if (lastUpdateTime >= a_interval) {
+		lastUpdateTime = 0.0f;
+		return true;
+	}
+	return false;
+}
+
+bool Timer::UpdateTimer(float a_interval)
+{
+	return UpdateTimer(a_interval, RE::BSTimer::GetSingleton()->delta);
+}
+
 ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref) :
 	ObjectREFRParams(a_ref, a_ref->Get3D())
 {}
@@ -23,12 +38,12 @@ bool LightDataBase::IsValid() const
 
 std::string LightDataBase::GetName(std::uint32_t a_index) const
 {
-	return std::format("{}{}|{}|{} #{}", LP_ID, lightEDID, radius, fade, a_index);
+	return std::format("{} [{:X}|{}|{}] #{}", LP_ID, light->GetFormID(), radius, fade, a_index);
 }
 
 std::string LightDataBase::GetNodeName(std::uint32_t a_index)
 {
-	return std::format("{}{}", LP_NODE, a_index);
+	return std::format("{} #{}", LP_NODE, a_index);
 }
 
 std::string LightDataBase::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index)
@@ -116,9 +131,13 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightDataBase::GenLight(RE::TESObject
 		niLight->ambient = RE::NiColor();
 		niLight->ambient.red = static_cast<float>(flags.underlying());
 
-		niLight->diffuse = RE::GetLightDiffuse(light);
+		if (color == RE::COLOR_BLACK) {
+			niLight->diffuse = RE::GetLightDiffuse(light);
+		} else {
+			niLight->diffuse = color;
+		}
 
-		auto lightRadius = GetRadius();
+		const auto lightRadius = GetRadius();
 		niLight->radius.x = lightRadius;
 		niLight->radius.y = lightRadius;
 		niLight->radius.z = lightRadius;
@@ -141,6 +160,14 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightDataBase::GenLight(RE::TESObject
 
 LightCreateParams::LightCreateParams(const RE::NiStringsExtraData* a_data)
 {
+	constexpr auto get_pt3 = []<class T>(const std::string& a_value, T& valueOut) {
+		if (const auto pt3 = string::split(a_value, ","sv); pt3.size() == 3) {
+			valueOut[0] = string::to_num<float>(pt3[0]);
+			valueOut[1] = string::to_num<float>(pt3[1]);
+			valueOut[2] = string::to_num<float>(pt3[2]);
+		}
+	};
+
 	std::vector<std::string> data(a_data->value, a_data->value + a_data->size);
 
 	for (const auto& str : data) {
@@ -159,6 +186,9 @@ LightCreateParams::LightCreateParams(const RE::NiStringsExtraData* a_data)
 					light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(value);
 				}
 				break;
+			case "color"_h:
+				get_pt3(value, color);
+				break;
 			case "radius"_h:
 				radius = string::to_num<float>(value);
 				break;
@@ -166,13 +196,7 @@ LightCreateParams::LightCreateParams(const RE::NiStringsExtraData* a_data)
 				fade = string::to_num<float>(value);
 				break;
 			case "offset"_h:
-				{
-					if (auto pt3 = string::split(value, ","sv); pt3.size() == 3) {
-						offset.x = string::to_num<float>(pt3[0]);
-						offset.y = string::to_num<float>(pt3[1]);
-						offset.z = string::to_num<float>(pt3[2]);
-					}
-				}
+				get_pt3(value, offset);
 				break;
 			case "emittanceForm"_h:
 				{
@@ -252,6 +276,13 @@ void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 	niLight.reset(lights.second);
 }
 
+void REFR_LIGH::UpdateAnimation()
+{
+	if (colorController && niLight) {
+		niLight->diffuse = colorController->GetValue(RE::BSTimer::GetSingleton()->delta);
+	}
+}
+
 void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref) const
 {
 	if (conditions && niLight) {
@@ -262,7 +293,7 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref) const
 void REFR_LIGH::UpdateFlickering() const
 {
 	if (light && niLight) {
-		if (light->GetNoFlicker() || niLight->GetAppCulled()) {
+		if (niLight->GetAppCulled()) {
 			return;
 		}
 		UpdateLight();
@@ -363,33 +394,19 @@ void REFR_LIGH::RemoveLight() const
 	}
 }
 
-bool Timer::UpdateTimer(float a_interval, float a_delta)
-{
-	lastUpdateTime += a_delta;
-	if (lastUpdateTime >= a_interval) {
-		lastUpdateTime = 0.0f;
-		return true;
-	}
-	return false;
-}
-
-bool Timer::UpdateTimer(float a_interval)
-{
-	return UpdateTimer(a_interval, RE::BSTimer::GetSingleton()->delta);
-}
-
 void ProcessedREFRLights::emplace(const REFR_LIGH& a_data, RE::RefHandle a_handle)
 {
-	if (!a_data.light->GetNoFlicker() || a_data.conditions) {
-		stl::unique_insert(conditionalFlickeringLights, a_handle);
+	if (a_data.conditions || a_data.colorController || !a_data.light->GetNoFlicker()) {
+		stl::unique_insert(animatedLights, a_handle);		
 	}
-	if (a_data.emittanceForm) {
+
+	if (a_data.isReference && a_data.emittanceForm) {
 		stl::unique_insert(emittanceLights, a_handle);
 	}
 }
 
 void ProcessedREFRLights::erase(RE::RefHandle a_handle)
 {
-	stl::unique_erase(conditionalFlickeringLights, a_handle);
+	stl::unique_erase(animatedLights, a_handle);
 	stl::unique_erase(emittanceLights, a_handle);
 }

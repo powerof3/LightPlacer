@@ -1,5 +1,18 @@
 #pragma once
 
+#include "LightControllers.h"
+
+struct Timer
+{
+	Timer() = default;
+
+	bool UpdateTimer(float a_interval, float a_delta);
+	bool UpdateTimer(float a_interval);
+
+	// members
+	float lastUpdateTime{ 0.0f };
+};
+
 struct ObjectREFRParams
 {
 	ObjectREFRParams() = default;
@@ -41,7 +54,7 @@ struct LightDataBase
 
 	// members
 	RE::TESObjectLIGH*                      light{ nullptr };
-	std::string                             lightEDID;
+	RE::NiColor                             color{ RE::COLOR_BLACK };
 	float                                   radius{ 0.0f };
 	float                                   fade{ 0.0f };
 	RE::NiPoint3                            offset;
@@ -49,8 +62,8 @@ struct LightDataBase
 	RE::TESForm*                            emittanceForm{ nullptr };
 	std::shared_ptr<RE::TESCondition>       conditions;
 
-	constexpr static auto LP_ID = "LightPlacer|"sv;
-	constexpr static auto LP_NODE = "LightPlacerNode #"sv;
+	constexpr static auto LP_ID = "LightPlacer"sv;
+	constexpr static auto LP_NODE = "LightPlacerNode"sv;
 };
 
 struct LightCreateParams : LightDataBase
@@ -63,9 +76,11 @@ struct LightCreateParams : LightDataBase
 	bool PostProcess();
 
 	// members
-	std::string              emittanceFormEDID;
-	std::string              rawFlags;
-	std::vector<std::string> rawConditions;
+	std::string                        lightEDID;
+	std::string                        emittanceFormEDID;
+	std::string                        rawFlags;
+	std::vector<std::string>           rawConditions;
+	std::vector<Keyframe<RE::NiColor>> rawColorController;
 };
 
 template <>
@@ -74,12 +89,14 @@ struct glz::meta<LightCreateParams>
 	using T = LightCreateParams;
 	static constexpr auto value = object(
 		"light", &T::lightEDID,
+		"color", &T::color,
 		"radius", &T::radius,
 		"fade", &T::fade,
 		"offset", &T::offset,
 		"externalEmittance", &T::emittanceFormEDID,
 		"flags", &T::rawFlags,
-		"conditions", &T::rawConditions);
+		"conditions", &T::rawConditions,
+		"colorController", &T::rawColorController);
 };
 
 struct REFR_LIGH : LightDataBase
@@ -91,11 +108,16 @@ struct REFR_LIGH : LightDataBase
 		niLight(a_niLight),
 		parentNode(a_node),
 		point(a_point),
-		index(a_index)
+		index(a_index),
+		isReference(!RE::IsActor(a_ref))
 	{
 		if (!emittanceForm) {
 			auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
 			emittanceForm = xData ? xData->source : nullptr;
+		}
+
+		if (!a_lightParams.rawColorController.empty()) {
+			colorController = LightColorController(a_lightParams.rawColorController);
 		}
 	}
 
@@ -111,31 +133,23 @@ struct REFR_LIGH : LightDataBase
 
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 
+	void UpdateAnimation();
 	void UpdateConditions(RE::TESObjectREFR* a_ref) const;
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;
 	void ReattachLight() const;
 	void RemoveLight() const;
 
-	RE::NiPointer<RE::BSLight>      bsLight;
-	RE::NiPointer<RE::NiPointLight> niLight;
-	RE::NiPointer<RE::NiNode>       parentNode;
-	RE::NiPoint3                    point;
-	std::uint32_t                   index;
+	RE::NiPointer<RE::BSLight>          bsLight;
+	RE::NiPointer<RE::NiPointLight>     niLight;
+	RE::NiPointer<RE::NiNode>           parentNode;
+	std::optional<LightColorController> colorController;
+	RE::NiPoint3                        point;
+	std::uint32_t                       index{ 0 };
+	bool                                isReference{};
 
 private:
 	void UpdateLight() const;
-};
-
-struct Timer
-{
-	Timer() = default;
-
-	bool UpdateTimer(float a_interval, float a_delta);
-	bool UpdateTimer(float a_interval);
-
-	// members
-	float lastUpdateTime{ 0.0f };
 };
 
 struct ProcessedREFRLights : Timer
@@ -146,7 +160,7 @@ struct ProcessedREFRLights : Timer
 	void erase(RE::RefHandle a_handle);
 
 	// members
-	std::vector<RE::RefHandle> conditionalFlickeringLights;
+	std::vector<RE::RefHandle> animatedLights; // color/flickering
 	std::vector<RE::RefHandle> emittanceLights;
 };
 

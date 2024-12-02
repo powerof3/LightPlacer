@@ -90,7 +90,7 @@ public:
 	template <class F>
 	void ForEachLight(RE::RefHandle a_handle, F&& func)
 	{
-		gameRefLights.read([&](const auto& map) {
+		gameRefLights.read_unsafe([&](auto& map) {
 			if (auto it = map.find(a_handle); it != map.end()) {
 				for (auto& lightData : it->second) {
 					func(lightData);
@@ -102,9 +102,9 @@ public:
 	template <class F>
 	void ForEachWornLight(RE::RefHandle a_handle, F&& func)
 	{
-		gameActorLights.read([&](const auto& map) {
+		gameActorLights.read_unsafe([&](auto& map) {
 			if (auto it = map.find(a_handle); it != map.end()) {
-				it->second.read([&](const auto& nodeMap) {
+				it->second.read_unsafe([&](auto& nodeMap) {
 					for (auto& [node, lightDataVec] : nodeMap) {
 						for (auto& lightData : lightDataVec) {
 							func(lightData);
@@ -149,4 +149,6 @@ private:
 	LockedMap<RE::RefHandle, LockedNiPtrMap<RE::NiNode, std::vector<REFR_LIGH>>> gameActorLights;
 	LockedNiPtrMap<RE::ReferenceEffect, ProcessedEffectLights>                   gameVisualEffectLights;
 	LockedMap<RE::FormID, MutexGuard<ProcessedREFRLights>>                       processedGameRefLights;
+
+	float flickeringDistanceSq{ 0.0f };
 };

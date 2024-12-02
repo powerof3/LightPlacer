@@ -1,4 +1,5 @@
 #pragma once
+#include "PCH.h"
 
 template <>
 struct glz::meta<RE::NiPoint3>
@@ -7,8 +8,17 @@ struct glz::meta<RE::NiPoint3>
 	static constexpr auto value = array(&T::x, &T::y, &T::z);
 };
 
+template <>
+struct glz::meta<RE::NiColor>
+{
+	using T = RE::NiColor;
+	static constexpr auto value = array(&T::red, &T::green, &T::blue);
+};
+
 namespace RE
 {
+	static constexpr NiColor COLOR_BLACK(0, 0, 0);
+
 	template <class T>
 	void AttachNode(NiNode* a_root, T* a_obj)
 	{
@@ -72,9 +82,14 @@ namespace RE
 		return REL::Version(version);
 	}
 
-	inline bool IsActor(TESObjectREFR* a_ref)
+	inline bool IsActor(const TESObjectREFR* a_ref)
 	{
 		return a_ref->Is(FormType::ActorCharacter);
+	}
+
+	inline bool IsActor(const TESObjectREFRPtr& a_ref)
+	{
+		return a_ref ? a_ref->Is(FormType::ActorCharacter) : false;
 	}
 
 	inline float NiSinQImpl(float a_value)
@@ -1136,7 +1151,7 @@ namespace RE
 		return path;
 	}
 
-	inline void UpdateLight(TESObjectLIGH* a_light, const NiPointer<RE::NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer)
+	inline void UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer)
 	{
 		using func_t = decltype(&UpdateLight);
 		static REL::Relocation<func_t> func{ RELOCATION_ID(17212, 17614) };

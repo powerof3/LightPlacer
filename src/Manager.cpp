@@ -57,19 +57,21 @@ void LightManager::OnDataLoad()
 		}
 	};
 
+	flickeringDistanceSq = std::powf(RE::GetINISetting("fFlickeringLightDistance:General")->GetFloat(), 2);
+
 	for (auto& multiData : config) {
 		std::visit(overload{
 					   [&](Config::MultiModelSet& models) {
-						   append_strings(models.models, models.lightData, gameModels);
+						   append_strings(models.models, models.lights, gameModels);
 					   },
 					   [&](Config::MultiReferenceSet& references) {
-						   append_formIDs(references.references, references.lightData, gameReferences);
+						   append_formIDs(references.references, references.lights, gameReferences);
 					   },
 					   [&](Config::MultiVisualEffectSet& visualEffects) {
-						   append_formIDs(visualEffects.visualEffects, visualEffects.lightData, gameVisualEffects);
+						   append_formIDs(visualEffects.visualEffects, visualEffects.lights, gameVisualEffects);
 					   },
 					   [&](Config::MultiAddonSet& addonNodes) {
-						   append_integers(addonNodes.addonNodes, addonNodes.lightData, gameAddonNodes);
+						   append_integers(addonNodes.addonNodes, addonNodes.lights, gameAddonNodes);
 					   } },
 			multiData);
 	}
@@ -141,9 +143,9 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 		gameActorLights.write([&](auto& map) {
 			if (auto it = map.find(handle); it != map.end()) {
 				it->second.write([&](auto& nodeMap) {
-					for (auto& [node, lightDataVec] : nodeMap) {
-						for (auto& lightData : lightDataVec) {
-							lightData.RemoveLight();
+					for (auto& [node, lightRefrDataVec] : nodeMap) {
+						for (auto& lightRefrData : lightRefrDataVec) {
+							lightRefrData.RemoveLight();
 						}
 					}
 				});
@@ -476,13 +478,12 @@ void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 {
 	processedGameRefLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {
-			static auto flickeringDistance = RE::GetINISetting("fFlickeringLightDistance:General")->GetFloat() * RE::GetINISetting("fFlickeringLightDistance:General")->GetFloat();
-			auto        pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+			const auto pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 
 			it->second.write([&](auto& innerMap) {
 				const bool updateConditions = innerMap.UpdateTimer(0.25f);
 
-				std::erase_if(innerMap.conditionalFlickeringLights, [&](const auto& handle) {
+				std::erase_if(innerMap.animatedLights, [&](auto& handle) {
 					RE::TESObjectREFRPtr ref{};
 					RE::LookupReferenceByHandle(handle, ref);
 
@@ -490,12 +491,13 @@ void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 						return true;
 					}
 
-					const bool withinFlickerDistance = ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistance;
+					const bool withinFlickerDistance = ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistanceSq;
 
-					ForEachLight(ref.get(), handle, [&](const auto& lightREFRData) {
+					ForEachLight(ref.get(), handle, [=](auto& lightREFRData) {
 						if (updateConditions) {
 							lightREFRData.UpdateConditions(ref.get());
 						}
+						lightREFRData.UpdateAnimation();
 						if (withinFlickerDistance) {
 							lightREFRData.UpdateFlickering();
 						}
@@ -521,11 +523,9 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 						return true;
 					}
 
-					if (!RE::IsActor(ref.get())) {
-						ForEachLight(handle, [&](const auto& lightREFRData) {
-							lightREFRData.UpdateEmittance();
-						});
-					}
+					ForEachLight(handle, [](const auto& lightREFRData) {
+						lightREFRData.UpdateEmittance();
+					});
 
 					return false;
 				});
@@ -547,18 +547,22 @@ void LightManager::RemoveLightsFromProcessQueue(RE::TESObjectCELL* a_cell, const
 
 void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 {
-	auto ref = a_effect->target.get();
+	const auto ref = a_effect->target.get();
 
 	gameVisualEffectLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_effect); it != map.end()) {
 			auto& [flickerTimer, conditionTimer, lightDataVec] = it->second;
-			bool updateFlicker = flickerTimer.UpdateTimer(RE::BSTimer::GetSingleton()->delta * 2.0f);
-			bool updateConditions = conditionTimer.UpdateTimer(0.25f);
+
+			const bool updateFlicker = flickerTimer.UpdateTimer(RE::BSTimer::GetSingleton()->delta * 2.0f);
+			const bool updateConditions = conditionTimer.UpdateTimer(0.25f);
+			const bool withinFlickerDistance = ref->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < flickeringDistanceSq;
+
 			for (auto& lightData : lightDataVec) {
 				if (updateConditions) {
 					lightData.UpdateConditions(ref.get());
 				}
-				if (updateFlicker) {
+				lightData.UpdateAnimation();
+				if (withinFlickerDistance && updateFlicker) {
 					lightData.UpdateFlickering();
 				}
 			}
