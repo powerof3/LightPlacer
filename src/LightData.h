@@ -81,6 +81,8 @@ struct LightCreateParams : LightDataBase
 	std::string                        rawFlags;
 	std::vector<std::string>           rawConditions;
 	std::vector<Keyframe<RE::NiColor>> rawColorController;
+	std::vector<Keyframe<float>>       rawRadiusController;
+	std::vector<Keyframe<float>>       rawFadeController;
 };
 
 template <>
@@ -96,12 +98,15 @@ struct glz::meta<LightCreateParams>
 		"externalEmittance", &T::emittanceFormEDID,
 		"flags", &T::rawFlags,
 		"conditions", &T::rawConditions,
-		"colorController", &T::rawColorController);
+		"colorController", &T::rawColorController,
+		"radiusController", &T::rawRadiusController,
+		"fadeController", &T::rawFadeController);
 };
 
 struct REFR_LIGH : LightDataBase
 {
 	REFR_LIGH() = default;
+
 	REFR_LIGH(const LightCreateParams& a_lightParams, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) :
 		LightDataBase(a_lightParams),
 		bsLight(a_bsLight),
@@ -118,6 +123,12 @@ struct REFR_LIGH : LightDataBase
 
 		if (!a_lightParams.rawColorController.empty()) {
 			colorController = LightColorController(a_lightParams.rawColorController);
+		}
+		if (!a_lightParams.rawRadiusController.empty()) {
+			radiusController = LightRadiusController(a_lightParams.rawRadiusController);
+		}
+		if (!a_lightParams.rawFadeController.empty()) {
+			fadeController = LightRadiusController(a_lightParams.rawFadeController);
 		}
 	}
 
@@ -140,13 +151,15 @@ struct REFR_LIGH : LightDataBase
 	void ReattachLight() const;
 	void RemoveLight() const;
 
-	RE::NiPointer<RE::BSLight>          bsLight;
-	RE::NiPointer<RE::NiPointLight>     niLight;
-	RE::NiPointer<RE::NiNode>           parentNode;
-	std::optional<LightColorController> colorController;
-	RE::NiPoint3                        point;
-	std::uint32_t                       index{ 0 };
-	bool                                isReference{};
+	RE::NiPointer<RE::BSLight>           bsLight;
+	RE::NiPointer<RE::NiPointLight>      niLight;
+	RE::NiPointer<RE::NiNode>            parentNode;
+	std::optional<LightColorController>  colorController;
+	std::optional<LightRadiusController> radiusController;
+	std::optional<LightRadiusController> fadeController;
+	RE::NiPoint3                         point;
+	std::uint32_t                        index{ 0 };
+	bool                                 isReference{};
 
 private:
 	void UpdateLight() const;
@@ -160,7 +173,7 @@ struct ProcessedREFRLights : Timer
 	void erase(RE::RefHandle a_handle);
 
 	// members
-	std::vector<RE::RefHandle> animatedLights; // color/flickering
+	std::vector<RE::RefHandle> animatedLights;  // color/flickering
 	std::vector<RE::RefHandle> emittanceLights;
 };
 

@@ -83,7 +83,7 @@ public:
 	void AddLightsToProcessQueue(RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
 	void UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(RE::TESObjectCELL* a_cell);
-	void RemoveLightsFromProcessQueue(RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
+	void RemoveLightsFromProcessQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
 
 	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);
 

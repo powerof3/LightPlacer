@@ -534,7 +534,7 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 	});
 }
 
-void LightManager::RemoveLightsFromProcessQueue(RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle)
+void LightManager::RemoveLightsFromProcessQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle)
 {
 	processedGameRefLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {

@@ -54,9 +54,11 @@ T LightController<T>::GetValue(float a_time)
 }
 
 using ColorKeyframe = Keyframe<RE::NiColor>;
+using FloatKeyframe = Keyframe<float>;
 
 using LightColorController = LightController<RE::NiColor>;
 using LightFadeController = LightController<float>;
+using LightRadiusController = LightController<float>;
 
 template <>
 struct glz::meta<ColorKeyframe>
@@ -66,4 +68,14 @@ struct glz::meta<ColorKeyframe>
 	static constexpr auto value = object(
 		"time", &T::time,
 		"color", &T::value);
+};
+
+template <>
+struct glz::meta<FloatKeyframe>
+{
+	using T = FloatKeyframe;
+
+	static constexpr auto value = object(
+		"time", &T::time,
+		"value", &T::value);
 };

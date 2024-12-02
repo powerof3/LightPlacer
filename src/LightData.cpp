@@ -278,8 +278,19 @@ void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 
 void REFR_LIGH::UpdateAnimation()
 {
-	if (colorController && niLight) {
-		niLight->diffuse = colorController->GetValue(RE::BSTimer::GetSingleton()->delta);
+	if (niLight) {
+		if (colorController) {
+			niLight->diffuse = colorController->GetValue(RE::BSTimer::GetSingleton()->delta);
+		}
+		if (radiusController) {
+			auto newRadius = radiusController->GetValue(RE::BSTimer::GetSingleton()->delta);
+			niLight->radius.x = newRadius;
+			niLight->radius.y = newRadius;
+			niLight->radius.z = newRadius;
+		}
+		if (fadeController) {
+			niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta);
+		}
 	}
 }
 
@@ -329,14 +340,16 @@ void REFR_LIGH::UpdateLight() const
 		niLight->local.translate.y = flickerMovementMult * linearAttenSine;
 		niLight->local.translate.z = flickerMovementMult * RE::NiSinQ(quadraticAttenOffset + 0.3f);
 
-		const auto halfIntensityAmplitude = light->data.flickerIntensityAmplitude * 0.5f;
+		if (!fadeController) {
+			const auto halfIntensityAmplitude = light->data.flickerIntensityAmplitude * 0.5f;
 
-		const auto flickerIntensity = std::clamp((RE::NiSinQImpl(linearAttenOffset * 1.3f * (512.0f / RE::NI_TWO_PI) + 52.966763f) + 1.0f) * 0.5f *
-														 (RE::NiSinQImpl(constAttenOffset * 1.1f * (512.0f / RE::NI_TWO_PI) + 152.38132f) + 1.0f) * 0.5f * 0.33333331f +
-													 RE::NiSinQImpl(quadraticAttenOffset * 3.0f * (512.0f / RE::NI_TWO_PI) + 73.3386f) * 0.2f,
-			-1.0f, 1.0f);
+			const auto flickerIntensity = std::clamp((RE::NiSinQImpl(linearAttenOffset * 1.3f * (512.0f / RE::NI_TWO_PI) + 52.966763f) + 1.0f) * 0.5f *
+															 (RE::NiSinQImpl(constAttenOffset * 1.1f * (512.0f / RE::NI_TWO_PI) + 152.38132f) + 1.0f) * 0.5f * 0.33333331f +
+														 RE::NiSinQImpl(quadraticAttenOffset * 3.0f * (512.0f / RE::NI_TWO_PI) + 73.3386f) * 0.2f,
+				-1.0f, 1.0f);
 
-		niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * fade;
+			niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * fade;
+		}
 
 	} else {
 		if (light->data.flags.none(RE::TES_LIGHT_FLAGS::kPulse, RE::TES_LIGHT_FLAGS::kPulseSlow)) {
@@ -350,9 +363,11 @@ void REFR_LIGH::UpdateLight() const
 		auto constAttenSine = RE::NiSinQ(constAttenuation);
 
 		const auto movementAmplitude = light->data.flickerMovementAmplitude;
-		const auto halfIntensityAmplitude = light->data.flickerIntensityAmplitude * 0.5f;
 
-		niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * fade;
+		if (!fadeController) {
+			const auto halfIntensityAmplitude = light->data.flickerIntensityAmplitude * 0.5f;
+			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * fade;
+		}
 
 		niLight->local.translate.x = movementAmplitude * constAttenCosine;
 		niLight->local.translate.y = movementAmplitude * constAttenSine;
@@ -397,7 +412,7 @@ void REFR_LIGH::RemoveLight() const
 void ProcessedREFRLights::emplace(const REFR_LIGH& a_data, RE::RefHandle a_handle)
 {
 	if (a_data.conditions || a_data.colorController || !a_data.light->GetNoFlicker()) {
-		stl::unique_insert(animatedLights, a_handle);		
+		stl::unique_insert(animatedLights, a_handle);
 	}
 
 	if (a_data.isReference && a_data.emittanceForm) {
