@@ -31,25 +31,25 @@ struct Config
 	struct MultiModelSet
 	{
 		FlatSet<std::string> models;
-		LightDataVec         lightData;
+		LightDataVec         lights;
 	};
 
 	struct MultiReferenceSet
 	{
 		FlatSet<std::string> references;
-		LightDataVec         lightData;
+		LightDataVec         lights;
 	};
 
 	struct MultiVisualEffectSet
 	{
 		FlatSet<std::string> visualEffects;
-		LightDataVec         lightData;
+		LightDataVec         lights;
 	};
 
 	struct MultiAddonSet
 	{
 		FlatSet<std::uint32_t> addonNodes;
-		LightDataVec           lightData;
+		LightDataVec           lights;
 	};
 
 	using Format = std::variant<MultiModelSet, MultiReferenceSet, MultiVisualEffectSet, MultiAddonSet>;
