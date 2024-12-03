@@ -56,10 +56,6 @@ T LightController<T>::GetValue(float a_time)
 using ColorKeyframe = Keyframe<RE::NiColor>;
 using FloatKeyframe = Keyframe<float>;
 
-using LightColorController = LightController<RE::NiColor>;
-using LightFadeController = LightController<float>;
-using LightRadiusController = LightController<float>;
-
 template <>
 struct glz::meta<ColorKeyframe>
 {

@@ -84,11 +84,11 @@ struct LightCreateParams
 	LightData                          data;
 	std::string                        lightEDID;
 	std::string                        emittanceFormEDID;
-	std::string                        rawFlags;
-	std::vector<std::string>           rawConditions;
-	std::vector<Keyframe<RE::NiColor>> rawColorController;
-	std::vector<Keyframe<float>>       rawRadiusController;
-	std::vector<Keyframe<float>>       rawFadeController;
+	std::string                        flags;
+	std::vector<std::string>           conditions;
+	std::vector<Keyframe<RE::NiColor>> colorController;
+	std::vector<Keyframe<float>>       radiusController;
+	std::vector<Keyframe<float>>       fadeController;
 };
 
 template <>
@@ -102,11 +102,11 @@ struct glz::meta<LightCreateParams>
 		"fade", [](auto&& self) -> auto& { return self.data.fade; },
 		"offset", [](auto&& self) -> auto& { return self.data.offset; },
 		"externalEmittance", &T::emittanceFormEDID,
-		"flags", &T::rawFlags,
-		"conditions", &T::rawConditions,
-		"colorController", &T::rawColorController,
-		"radiusController", &T::rawRadiusController,
-		"fadeController", &T::rawFadeController);
+		"flags", &T::flags,
+		"conditions", &T::conditions,
+		"colorController", &T::colorController,
+		"radiusController", &T::radiusController,
+		"fadeController", &T::fadeController);
 };
 
 struct REFR_LIGH
@@ -127,14 +127,14 @@ struct REFR_LIGH
 			data.emittanceForm = xData ? xData->source : nullptr;
 		}
 
-		if (!a_lightParams.rawColorController.empty()) {
-			colorController = LightColorController(a_lightParams.rawColorController);
+		if (!a_lightParams.colorController.empty()) {
+			colorController = LightController(a_lightParams.colorController);
 		}
-		if (!a_lightParams.rawRadiusController.empty()) {
-			radiusController = LightRadiusController(a_lightParams.rawRadiusController);
+		if (!a_lightParams.radiusController.empty()) {
+			radiusController = LightController(a_lightParams.radiusController);
 		}
-		if (!a_lightParams.rawFadeController.empty()) {
-			fadeController = LightRadiusController(a_lightParams.rawFadeController);
+		if (!a_lightParams.fadeController.empty()) {
+			fadeController = LightController(a_lightParams.fadeController);
 		}
 	}
 
@@ -157,16 +157,16 @@ struct REFR_LIGH
 	void ReattachLight() const;
 	void RemoveLight() const;
 
-	LightData                            data;
-	RE::NiPointer<RE::BSLight>           bsLight;
-	RE::NiPointer<RE::NiPointLight>      niLight;
-	RE::NiPointer<RE::NiNode>            parentNode;
-	std::optional<LightColorController>  colorController;
-	std::optional<LightRadiusController> radiusController;
-	std::optional<LightRadiusController> fadeController;
-	RE::NiPoint3                         point;
-	std::uint32_t                        index{ 0 };
-	bool                                 isReference{};
+	LightData                                   data;
+	RE::NiPointer<RE::BSLight>                  bsLight;
+	RE::NiPointer<RE::NiPointLight>             niLight;
+	RE::NiPointer<RE::NiNode>                   parentNode;
+	std::optional<LightController<RE::NiColor>> colorController;
+	std::optional<LightController<float>>       radiusController;
+	std::optional<LightController<float>>       fadeController;
+	RE::NiPoint3                                point;
+	std::uint32_t                               index{ 0 };
+	bool                                        isReference{};
 
 private:
 	void UpdateLight() const;

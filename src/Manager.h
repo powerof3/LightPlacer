@@ -80,9 +80,9 @@ public:
 	void ReattachTempEffectLights(RE::ReferenceEffect* a_effect);
 	void DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clear);
 
-	void AddLightsToProcessQueue(RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
-	void UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell);
-	void UpdateEmittance(RE::TESObjectCELL* a_cell);
+	void AddLightsToProcessQueue(const RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
+	void UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell);
+	void UpdateEmittance(const RE::TESObjectCELL* a_cell);
 	void RemoveLightsFromProcessQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
 
 	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);

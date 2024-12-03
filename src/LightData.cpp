@@ -249,10 +249,10 @@ LightCreateParams::LightCreateParams(const RE::NiStringsExtraData* a_data)
 				}
 				break;
 			case "flags"_h:
-				rawFlags = value;
+				flags = value;
 				break;
 			case "condition"_h:
-				rawConditions.push_back(value);
+				conditions.push_back(value);
 				break;
 			default:
 				break;
@@ -269,8 +269,8 @@ LightCreateParams::LightCreateParams(const RE::NiStringsExtraData* a_data)
 void LightCreateParams::ReadFlags()
 {
 	// glaze doesn't reflect flag enums
-	if (!rawFlags.empty()) {
-		const auto flagStrs = string::split(rawFlags, "|");
+	if (!flags.empty()) {
+		const auto flagStrs = string::split(flags, "|");
 
 		for (const auto& flagStr : flagStrs) {
 			switch (string::const_hash(flagStr)) {
@@ -292,8 +292,8 @@ void LightCreateParams::ReadFlags()
 
 void LightCreateParams::ReadConditions()
 {
-	if (!rawConditions.empty()) {
-		ConditionParser::BuildCondition(data.conditions, rawConditions);
+	if (!conditions.empty()) {
+		ConditionParser::BuildCondition(data.conditions, conditions);
 	}
 }
 

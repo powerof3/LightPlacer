@@ -460,7 +460,7 @@ bool LightManager::ReattachLightsImpl(const ObjectREFRParams& a_refParams)
 	return true;
 }
 
-void LightManager::AddLightsToProcessQueue(RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref)
+void LightManager::AddLightsToProcessQueue(const RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref)
 {
 	auto cellFormID = a_cell->GetFormID();
 	auto handle = a_ref->CreateRefHandle().native_handle();
@@ -474,7 +474,7 @@ void LightManager::AddLightsToProcessQueue(RE::TESObjectCELL* a_cell, RE::TESObj
 	});
 }
 
-void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
+void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell)
 {
 	processedGameRefLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {
@@ -510,7 +510,7 @@ void LightManager::UpdateFlickeringAndConditions(RE::TESObjectCELL* a_cell)
 	});
 }
 
-void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
+void LightManager::UpdateEmittance(const RE::TESObjectCELL* a_cell)
 {
 	processedGameRefLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {
