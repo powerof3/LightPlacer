@@ -39,12 +39,17 @@ struct LightDataBase
 		Simple = (1 << 2)
 	};
 
+	bool                                     GetCastsShadows() const;
 	float                                    GetRadius() const;
 	float                                    GetFade() const;
+	float                                    GetFOV() const;
+	float                                    GetFalloff() const;
+	float                                    GetNearDistance() const;
 	std::string                              GetName(std::uint32_t a_index) const;
 	static std::string                       GetNodeName(std::uint32_t a_index);
 	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
+	bool                                     IsDynamicLight(RE::TESObjectREFR* a_ref) const;
 	bool                                     IsValid() const;
 
 	static RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index);

@@ -51,6 +51,29 @@ std::string LightDataBase::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_in
 	return std::format("{} {}{}", a_obj->name.c_str(), LP_NODE, a_index);
 }
 
+bool LightDataBase::IsDynamicLight(RE::TESObjectREFR* a_ref) const
+{
+	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || GetCastsShadows()) {
+		return true;
+	}
+
+	if (a_ref) {
+		if (RE::IsActor(a_ref)) {
+			return true;
+		}
+		if (const auto baseObject = a_ref->GetBaseObject(); baseObject && baseObject->IsInventoryObject()) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool LightDataBase::GetCastsShadows() const
+{
+	return light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow);
+}
+
 float LightDataBase::GetRadius() const
 {
 	return radius > 0.0f ? radius : static_cast<float>(light->data.radius);
@@ -61,18 +84,42 @@ float LightDataBase::GetFade() const
 	return fade > 0.0f ? fade : light->fade;
 }
 
+float LightDataBase::GetFOV() const
+{
+	if (!GetCastsShadows()) {
+		return 1.0;
+	}
+	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
+		return RE::deg_to_rad(light->data.fov);
+	}
+	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kHemiShadow)) {
+		return RE::NI_PI;
+	}
+	return RE::NI_TWO_PI;
+}
+
+float LightDataBase::GetFalloff() const
+{
+	return GetCastsShadows() ? light->data.fallofExponent : 1.0f;
+}
+
+float LightDataBase::GetNearDistance() const
+{
+	return GetCastsShadows() ? light->data.nearDistance : 5.0f;
+}
+
 RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightDataBase::GetParams(RE::TESObjectREFR* a_ref) const
 {
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS params{};
-	params.dynamic = light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || a_ref && RE::IsActor(a_ref) || (a_ref && a_ref->GetBaseObject() ? a_ref->GetBaseObject()->IsInventoryObject() : false);
-	params.shadowLight = false;
+	params.dynamic = IsDynamicLight(a_ref);
+	params.shadowLight = GetCastsShadows();
 	params.portalStrict = light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
 	params.affectLand = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightLandscape) == 0 : true;
 	params.affectWater = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightWater) == 0 : true;
 	params.neverFades = a_ref ? !a_ref->IsHeadingMarker() : true;
-	params.fov = 1.0f;
-	params.falloff = light->data.fallofExponent;
-	params.nearDistance = light->data.nearDistance;
+	params.fov = GetFOV();
+	params.falloff = GetFalloff();
+	params.nearDistance = GetNearDistance();
 	params.depthBias = 1.0;
 	params.sceneGraphIndex = 0;
 	params.restrictedNode = nullptr;
