@@ -56,12 +56,6 @@ namespace RE
 		return formID != 0 ? TESForm::LookupByID<T>(GetFormID(a_str)) : nullptr;
 	}
 
-	inline NiColor GetLightDiffuse(TESObjectLIGH* a_light)
-	{
-		auto diffuse = NiColor(a_light->data.color);
-		return a_light->data.flags.any(TES_LIGHT_FLAGS::kNegative) ? -diffuse : diffuse;
-	}
-
 	inline const char* GetGameVersionImpl()
 	{
 		using func_t = decltype(&GetGameVersionImpl);
@@ -85,11 +79,6 @@ namespace RE
 	inline bool IsActor(const TESObjectREFR* a_ref)
 	{
 		return a_ref->Is(FormType::ActorCharacter);
-	}
-
-	inline bool IsActor(const TESObjectREFRPtr& a_ref)
-	{
-		return a_ref ? a_ref->Is(FormType::ActorCharacter) : false;
 	}
 
 	inline float NiSinQImpl(float a_value)

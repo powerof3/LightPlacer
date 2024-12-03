@@ -6,7 +6,6 @@ struct Timer
 {
 	Timer() = default;
 
-	bool UpdateTimer(float a_interval, float a_delta);
 	bool UpdateTimer(float a_interval);
 
 	// members
@@ -28,7 +27,7 @@ struct ObjectREFRParams
 	RE::RefHandle        handle{};
 };
 
-struct LightDataBase
+struct LightData
 {
 	// CS light flags
 	enum class LightFlags
@@ -40,6 +39,7 @@ struct LightDataBase
 	};
 
 	bool                                     GetCastsShadows() const;
+	RE::NiColor                              GetDiffuse() const;
 	float                                    GetRadius() const;
 	float                                    GetFade() const;
 	float                                    GetFOV() const;
@@ -71,7 +71,7 @@ struct LightDataBase
 	constexpr static auto LP_NODE = "LightPlacerNode"sv;
 };
 
-struct LightCreateParams : LightDataBase
+struct LightCreateParams
 {
 	LightCreateParams() = default;
 	LightCreateParams(const RE::NiStringsExtraData* a_data);
@@ -81,6 +81,7 @@ struct LightCreateParams : LightDataBase
 	bool PostProcess();
 
 	// members
+	LightData                          data;
 	std::string                        lightEDID;
 	std::string                        emittanceFormEDID;
 	std::string                        rawFlags;
@@ -96,10 +97,10 @@ struct glz::meta<LightCreateParams>
 	using T = LightCreateParams;
 	static constexpr auto value = object(
 		"light", &T::lightEDID,
-		"color", &T::color,
-		"radius", &T::radius,
-		"fade", &T::fade,
-		"offset", &T::offset,
+		"color", [](auto&& self) -> auto& { return self.data.color; },
+		"radius", [](auto&& self) -> auto& { return self.data.radius; },
+		"fade", [](auto&& self) -> auto& { return self.data.fade; },
+		"offset", [](auto&& self) -> auto& { return self.data.offset; },
 		"externalEmittance", &T::emittanceFormEDID,
 		"flags", &T::rawFlags,
 		"conditions", &T::rawConditions,
@@ -108,12 +109,12 @@ struct glz::meta<LightCreateParams>
 		"fadeController", &T::rawFadeController);
 };
 
-struct REFR_LIGH : LightDataBase
+struct REFR_LIGH
 {
 	REFR_LIGH() = default;
 
 	REFR_LIGH(const LightCreateParams& a_lightParams, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) :
-		LightDataBase(a_lightParams),
+		data(a_lightParams.data),
 		bsLight(a_bsLight),
 		niLight(a_niLight),
 		parentNode(a_node),
@@ -121,9 +122,9 @@ struct REFR_LIGH : LightDataBase
 		index(a_index),
 		isReference(!RE::IsActor(a_ref))
 	{
-		if (!emittanceForm) {
+		if (!data.emittanceForm) {
 			auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
-			emittanceForm = xData ? xData->source : nullptr;
+			data.emittanceForm = xData ? xData->source : nullptr;
 		}
 
 		if (!a_lightParams.rawColorController.empty()) {
@@ -156,6 +157,7 @@ struct REFR_LIGH : LightDataBase
 	void ReattachLight() const;
 	void RemoveLight() const;
 
+	LightData                            data;
 	RE::NiPointer<RE::BSLight>           bsLight;
 	RE::NiPointer<RE::NiPointLight>      niLight;
 	RE::NiPointer<RE::NiNode>            parentNode;
@@ -174,7 +176,7 @@ struct ProcessedREFRLights : Timer
 {
 	ProcessedREFRLights() = default;
 
-	void emplace(const REFR_LIGH& a_data, RE::RefHandle a_handle);
+	void emplace(const REFR_LIGH& a_lightData, RE::RefHandle a_handle);
 	void erase(RE::RefHandle a_handle);
 
 	// members

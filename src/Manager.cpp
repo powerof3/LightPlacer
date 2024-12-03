@@ -339,7 +339,7 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 
 	std::visit(overload{
 				   [&](const Config::PointData& pointData) {
-					   auto name = LightCreateParams::GetNodeName(a_index);
+					   auto name = LightData::GetNodeName(a_index);
 					   lightPlacerNode = rootNode->GetObjectByName(name);
 					   if (!lightPlacerNode) {
 						   lightPlacerNode = RE::NiNode::Create(0);
@@ -354,7 +354,7 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 				   },
 				   [&](const Config::NodeData& nodeData) {
 					   for (const auto& nodeName : nodeData.nodes) {
-						   lightPlacerNode = LightCreateParams::GetOrCreateNode(rootNode, nodeName, a_index);
+						   lightPlacerNode = LightData::GetOrCreateNode(rootNode, nodeName, a_index);
 						   if (lightPlacerNode) {
 							   AttachLight(nodeData.data, a_refParams, lightPlacerNode->AsNode(), a_type);
 						   }
@@ -380,8 +380,8 @@ void LightManager::AttachMeshLights(const ObjectREFRParams& a_refParams, const s
 				}
 			}
 		} else if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
-			if (auto lightParams = LightCreateParams(xData); lightParams.IsValid()) {
-				if (auto node = LightCreateParams::GetOrCreateNode(a_refParams.root->AsNode(), a_obj, LP_INDEX)) {
+			if (auto lightParams = LightCreateParams(xData); lightParams.data.IsValid()) {
+				if (auto node = LightData::GetOrCreateNode(a_refParams.root->AsNode(), a_obj, LP_INDEX)) {
 					AttachLight(lightParams, a_refParams, node, a_type, LP_INDEX);
 				}
 				LP_INDEX++;
@@ -395,7 +395,7 @@ void LightManager::AttachLight(const LightCreateParams& a_lightParams, const Obj
 {
 	auto& [ref, effect, root, handle] = a_refParams;
 
-	if (auto [bsLight, niLight] = a_lightParams.GenLight(ref, a_node, a_point, a_index); bsLight && niLight) {
+	if (auto [bsLight, niLight] = a_lightParams.data.GenLight(ref, a_node, a_point, a_index); bsLight && niLight) {
 		switch (a_type) {
 		case TYPE::kRef:
 			{
