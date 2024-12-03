@@ -336,6 +336,16 @@ void REFR_LIGH::UpdateAnimation()
 		if (fadeController) {
 			niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta);
 		}
+		if (positionController) {
+			niLight->local.translate = positionController->GetValue(RE::BSTimer::GetSingleton()->delta);
+
+			if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
+				RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(niLight.get());
+			} else {
+				RE::NiUpdateData updateData;
+				niLight->Update(updateData);
+			}
+		}
 	}
 }
 
@@ -373,17 +383,19 @@ void REFR_LIGH::UpdateLight() const
 		niLight->linearAttenuation = linearAttenOffset;
 		niLight->quadraticAttenuation = quadraticAttenOffset;
 
-		const auto constAttenSine = RE::NiSinQ(constAttenOffset + 1.7f);
-		const auto linearAttenSine = RE::NiSinQ(linearAttenOffset + 0.5f);
+		if (!positionController) {
+			const auto constAttenSine = RE::NiSinQ(constAttenOffset + 1.7f);
+			const auto linearAttenSine = RE::NiSinQ(linearAttenOffset + 0.5f);
 
-		auto flickerMovementMult = ((data.light->data.flickerMovementAmplitude * constAttenSine) * linearAttenSine) * 0.5f;
-		if ((flickerMovementMult + data.light->data.flickerMovementAmplitude) <= 0.0f) {
-			flickerMovementMult = 0.0f;
+			auto flickerMovementMult = ((data.light->data.flickerMovementAmplitude * constAttenSine) * linearAttenSine) * 0.5f;
+			if ((flickerMovementMult + data.light->data.flickerMovementAmplitude) <= 0.0f) {
+				flickerMovementMult = 0.0f;
+			}
+
+			niLight->local.translate.x = flickerMovementMult * constAttenSine;
+			niLight->local.translate.y = flickerMovementMult * linearAttenSine;
+			niLight->local.translate.z = flickerMovementMult * RE::NiSinQ(quadraticAttenOffset + 0.3f);			
 		}
-
-		niLight->local.translate.x = flickerMovementMult * constAttenSine;
-		niLight->local.translate.y = flickerMovementMult * linearAttenSine;
-		niLight->local.translate.z = flickerMovementMult * RE::NiSinQ(quadraticAttenOffset + 0.3f);
 
 		if (!fadeController) {
 			const auto halfIntensityAmplitude = data.light->data.flickerIntensityAmplitude * 0.5f;
@@ -407,23 +419,27 @@ void REFR_LIGH::UpdateLight() const
 		auto constAttenCosine = RE::NiCosQ(constAttenuation);
 		auto constAttenSine = RE::NiSinQ(constAttenuation);
 
-		const auto movementAmplitude = data.light->data.flickerMovementAmplitude;
-
 		if (!fadeController) {
 			const auto halfIntensityAmplitude = data.light->data.flickerIntensityAmplitude * 0.5f;
 			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * data.fade;
 		}
 
-		niLight->local.translate.x = movementAmplitude * constAttenCosine;
-		niLight->local.translate.y = movementAmplitude * constAttenSine;
-		niLight->local.translate.z = movementAmplitude * (constAttenSine * constAttenCosine);
+		if (!positionController) {
+			const auto movementAmplitude = data.light->data.flickerMovementAmplitude;
+
+			niLight->local.translate.x = movementAmplitude * constAttenCosine;
+			niLight->local.translate.y = movementAmplitude * constAttenSine;
+			niLight->local.translate.z = movementAmplitude * (constAttenSine * constAttenCosine);			
+		}
 	}
 
-	if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
-		RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(niLight.get());
-	} else {
-		RE::NiUpdateData updateData;
-		niLight->Update(updateData);
+	if (!positionController) {
+		if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
+			RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(niLight.get());
+		} else {
+			RE::NiUpdateData updateData;
+			niLight->Update(updateData);
+		}
 	}
 }
 

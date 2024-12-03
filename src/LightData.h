@@ -89,6 +89,7 @@ struct LightCreateParams
 	ColorKeyframeSequence    colorController;
 	FloatKeyframeSequence    radiusController;
 	FloatKeyframeSequence    fadeController;
+	PosKeyframeSequence      positionController;
 };
 
 template <>
@@ -106,7 +107,8 @@ struct glz::meta<LightCreateParams>
 		"conditions", &T::conditions,
 		"colorController", &T::colorController,
 		"radiusController", &T::radiusController,
-		"fadeController", &T::fadeController);
+		"fadeController", &T::fadeController,
+		"transformController", &T::positionController);
 };
 
 struct REFR_LIGH
@@ -136,6 +138,9 @@ struct REFR_LIGH
 		if (!a_lightParams.fadeController.empty()) {
 			fadeController = Animation::LightController(a_lightParams.fadeController);
 		}
+		if (!a_lightParams.positionController.empty()) {
+			positionController = Animation::LightController(a_lightParams.positionController);
+		}
 	}
 
 	bool operator==(const REFR_LIGH& rhs) const
@@ -164,6 +169,7 @@ struct REFR_LIGH
 	std::optional<ColorController>  colorController;
 	std::optional<FloatController>  radiusController;
 	std::optional<FloatController>  fadeController;
+	std::optional<PosController>    positionController;
 	RE::NiPoint3                    point;
 	std::uint32_t                   index{ 0 };
 	bool                            isReference{};

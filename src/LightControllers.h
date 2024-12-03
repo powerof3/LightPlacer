@@ -103,14 +103,29 @@ namespace Animation
 	};
 }
 
+using PosKeyframe = Animation::Keyframe<RE::NiPoint3>;
 using ColorKeyframe = Animation::Keyframe<RE::NiColor>;
 using FloatKeyframe = Animation::Keyframe<float>;
 
+using PosKeyframeSequence = Animation::KeyframeSequence<RE::NiPoint3>;
 using ColorKeyframeSequence = Animation::KeyframeSequence<RE::NiColor>;
 using FloatKeyframeSequence = Animation::KeyframeSequence<float>;
 
+using PosController = Animation::LightController<RE::NiPoint3>;
 using ColorController = Animation::LightController<RE::NiColor>;
 using FloatController = Animation::LightController<float>;
+
+template <>
+struct glz::meta<PosKeyframe>
+{
+	using T = PosKeyframe;
+
+	static constexpr auto value = object(
+		"time", &T::time,
+		"translation", &T::value,
+		"forward", &T::forward,
+		"backward", &T::backward);
+};
 
 template <>
 struct glz::meta<ColorKeyframe>
