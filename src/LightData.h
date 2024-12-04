@@ -76,6 +76,22 @@ struct LightCreateParams
 	LightCreateParams() = default;
 	LightCreateParams(const RE::NiStringsExtraData* a_data);
 
+	void read_color(RE::NiColor a_value)
+	{
+		for (std::size_t i = 0; i < RE::NiColor::kTotal; ++i) {
+			if (a_value[i] >= 0.0f && a_value[i] <= 1.0f) {
+				continue;
+			}
+			a_value[i] = a_value[i] / 255;
+		}
+		data.color = a_value;
+	}
+
+	RE::NiColor write_color()
+	{
+		return data.color;
+	}
+
 	void ReadFlags();
 	void ReadConditions();
 	bool PostProcess();
@@ -98,7 +114,7 @@ struct glz::meta<LightCreateParams>
 	using T = LightCreateParams;
 	static constexpr auto value = object(
 		"light", &T::lightEDID,
-		"color", [](auto&& self) -> auto& { return self.data.color; },
+		"color", "color", custom<&T::read_color, &T::write_color>,
 		"radius", [](auto&& self) -> auto& { return self.data.radius; },
 		"fade", [](auto&& self) -> auto& { return self.data.fade; },
 		"offset", [](auto&& self) -> auto& { return self.data.offset; },

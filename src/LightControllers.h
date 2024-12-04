@@ -12,6 +12,25 @@ namespace Animation
 	template <class T>
 	struct Keyframe
 	{
+		void read_value(T a_value)
+		{
+			if constexpr (std::is_same_v<T, RE::NiColor>) {
+				for (std::size_t i = 0; i < RE::NiColor::kTotal; ++i) {
+					if (a_value[i] >= 0.0f && a_value[i] <= 1.0f) {
+						continue;
+					}
+					a_value[i] = a_value[i] / 255;
+				}
+			}
+
+			value = a_value;
+		}
+
+		T write_value()
+		{
+			return value;
+		}
+
 		// members
 		float time{};
 		T     value{};
@@ -134,7 +153,7 @@ struct glz::meta<ColorKeyframe>
 
 	static constexpr auto value = object(
 		"time", &T::time,
-		"color", &T::value,
+		"color", custom<&T::read_value, &T::write_value>,
 		"forward", &T::forward,
 		"backward", &T::backward);
 };

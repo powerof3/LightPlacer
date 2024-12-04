@@ -1,5 +1,4 @@
 #pragma once
-#include "PCH.h"
 
 template <>
 struct glz::meta<RE::NiPoint3>
