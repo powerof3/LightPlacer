@@ -49,12 +49,6 @@ namespace Config
 		LightSourceVec       lights;
 	};
 
-	struct MultiReferenceSet
-	{
-		FlatSet<std::string> references;
-		LightSourceVec       lights;
-	};
-
 	struct MultiVisualEffectSet
 	{
 		FlatSet<std::string> visualEffects;
@@ -67,7 +61,7 @@ namespace Config
 		std::vector<FilterData> lights;
 	};
 
-	using Format = std::variant<MultiModelSet, MultiReferenceSet, MultiVisualEffectSet, MultiAddonSet>;
+	using Format = std::variant<MultiModelSet, MultiVisualEffectSet, MultiAddonSet>;
 
 	void PostProcess(LightSourceVec& a_lightDataVec);
 	void PostProcess(AddonLightSourceVec& a_lightDataVec);

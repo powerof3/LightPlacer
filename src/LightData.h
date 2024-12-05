@@ -15,8 +15,8 @@ struct Timer
 struct ObjectREFRParams
 {
 	ObjectREFRParams() = default;
-	ObjectREFRParams(RE::TESObjectREFR* a_ref, const RE::TESModel* a_model);
-	ObjectREFRParams(RE::TESObjectREFR* a_ref, const RE::TESModel* a_model, RE::NiAVObject* a_root);
+	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
+	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
 
 	bool IsValid() const;
 
@@ -27,6 +27,7 @@ struct ObjectREFRParams
 	RE::RefHandle        handle{};
 	std::string          modelPath{};
 
+	RE::FormID baseID{ 0 };
 	RE::FormID cellID{ 0 };
 	RE::FormID worldSpaceID{ 0 };
 	RE::FormID locationID{ 0 };

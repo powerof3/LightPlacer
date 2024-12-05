@@ -74,20 +74,14 @@ public:
 	}
 
 private:
-	void AttachLightsImpl(const ObjectREFRParams& a_refParams, RE::TESBoundObject* a_object, TYPE a_type);
-
-	void AttachReferenceLights(const ObjectREFRParams& a_refParams, RE::FormID a_baseFormID, TYPE a_type);
-	void AttachMeshLights(const ObjectREFRParams& a_refParams, TYPE a_type);
+	void AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_type);
 	void AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type);
-
 	void AttachLight(const LightSourceData& a_lightSource, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index = 0, const RE::NiPoint3& a_point = { 0, 0, 0 });
-
 	bool ReattachLightsImpl(const ObjectREFRParams& a_refParams);
 
 	// members
 	std::vector<Config::Format>                         config;
 	FlatMap<std::string, Config::LightSourceVec>        gameModels;
-	FlatMap<RE::FormID, Config::LightSourceVec>         gameReferences;
 	FlatMap<RE::FormID, Config::LightSourceVec>         gameVisualEffects;
 	FlatMap<std::uint32_t, Config::AddonLightSourceVec> gameAddonNodes;
 

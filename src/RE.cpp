@@ -44,21 +44,17 @@ namespace RE
 		return REL::Version(version);
 	}
 
-	TESModel* GetReferenceEffectModel(const ReferenceEffect* a_referenceEffect)
+	TESBoundObject* GetReferenceEffectBase(const ReferenceEffect* a_referenceEffect)
 	{
 		auto ref = a_referenceEffect->target.get();
 
 		if (IsActor(ref.get())) {
 			if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {
-				if (weapController->lastWeapon) {
-					return weapController->lastWeapon->As<TESModel>();
-				}
+				return weapController->lastWeapon;
 			}
 			// no vfx on equipped armor?
 		} else {
-			if (const auto baseObject = ref->GetBaseObject()) {
-				return baseObject->As<TESModel>();
-			}
+			return ref->GetBaseObject();
 		}
 
 		return nullptr;

@@ -103,3 +103,12 @@ struct NiPointer_Cmp
 
 template <class K, class D>
 using LockedNiPtrMap = MutexGuardShared<FlatMap<RE::NiPointer<K>, D, NiPointer_Hash<K>, NiPointer_Cmp<K>>>;
+
+namespace stl
+{
+	template <typename T, typename... Keys>
+	bool contains(const FlatSet<T>& set, Keys... keys)
+	{
+		return (... || (set.contains(keys)));
+	}
+}

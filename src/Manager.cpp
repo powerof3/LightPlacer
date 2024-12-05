@@ -31,32 +31,23 @@ bool LightManager::ReadConfigs()
 
 void LightManager::OnDataLoad()
 {
-	const auto append_strings = [&](const FlatSet<std::string>& a_filterSet, Config::LightSourceVec& a_lightSourceVec, FlatMap<std::string, Config::LightSourceVec>& a_gameMap) {
-		PostProcess(a_lightSourceVec);
-		for (auto& str : a_filterSet) {
-			a_gameMap[str].append_range(a_lightSourceVec);
-		}
-	};
-
-	const auto append_formIDs = [&](const FlatSet<std::string>& a_filterSet, Config::LightSourceVec& a_lightSourceVec, FlatMap<RE::FormID, Config::LightSourceVec>& a_gameMap) {
-		PostProcess(a_lightSourceVec);
-		for (auto& rawID : a_filterSet) {
-			a_gameMap[RE::GetFormID(rawID)].append_range(a_lightSourceVec);
-		}
-	};
-
 	flickeringDistanceSq = std::powf(RE::GetINISetting("fFlickeringLightDistance:General")->GetFloat(), 2);
 
 	for (auto& multiData : config) {
 		std::visit(overload{
 					   [&](Config::MultiModelSet& models) {
-						   append_strings(models.models, models.lights, gameModels);
-					   },
-					   [&](Config::MultiReferenceSet& references) {
-						   append_formIDs(references.references, references.lights, gameReferences);
+						   PostProcess(models.lights);
+						   for (auto& str : models.models) {
+							   gameModels[str].append_range(models.lights);
+						   }
 					   },
 					   [&](Config::MultiVisualEffectSet& visualEffects) {
-						   append_formIDs(visualEffects.visualEffects, visualEffects.lights, gameVisualEffects);
+						   PostProcess(visualEffects.lights);
+						   for (auto& rawID : visualEffects.visualEffects) {
+							   if (auto formID = RE::GetFormID(rawID); formID != 0) {
+								   gameVisualEffects[formID].append_range(visualEffects.lights);								   
+							   }
+						   }
 					   },
 					   [&](Config::MultiAddonSet& addonNodes) {
 						   PostProcess(addonNodes.lights);
@@ -74,23 +65,22 @@ void LightManager::OnDataLoad()
 	};
 
 	log_size("Models", gameModels);
-	log_size("References", gameReferences);
 	log_size("VisualEffects", gameVisualEffects);
 	log_size("AddonNodes", gameAddonNodes);
 }
 
 void LightManager::AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root)
 {
-	if (!a_ref || !a_base || !a_root) {
+	if (!a_ref || !a_root || !a_base) {
 		return;
 	}
 
-	ObjectREFRParams refParams(a_ref, a_base->As<RE::TESModel>(), a_root);
+	ObjectREFRParams refParams(a_ref, a_root, a_base);
 	if (!refParams.IsValid()) {
 		return;
 	}
 
-	AttachLightsImpl(refParams, a_base, TYPE::kRef);
+	AttachLightsImpl(refParams, TYPE::kRef);
 }
 
 void LightManager::ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base)
@@ -99,7 +89,7 @@ void LightManager::ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* 
 		return;
 	}
 
-	ObjectREFRParams refParams(a_ref, a_base->As<RE::TESModel>());
+	ObjectREFRParams refParams(a_ref, a_base);
 	if (!refParams.IsValid()) {
 		return;
 	}
@@ -150,7 +140,6 @@ void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPoi
 	if (!bipedAnim) {
 		bipedAnim = a_ref->GetBiped();
 	}
-
 	if (!bipedAnim || a_ref->IsPlayerRef() && bipedAnim == a_ref->GetBiped(true)) {
 		return;
 	}
@@ -160,12 +149,12 @@ void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPoi
 		return;
 	}
 
-	ObjectREFRParams refParams(a_ref, bipObject.part, a_root);
+	ObjectREFRParams refParams(a_ref, a_root, bipObject.item->As<RE::TESBoundObject>(), bipObject.part);
 	if (!refParams.IsValid()) {
 		return;
 	}
 
-	AttachLightsImpl(refParams, bipObject.item->As<RE::TESBoundObject>(), TYPE::kActor);
+	AttachLightsImpl(refParams, TYPE::kActor);
 }
 
 void LightManager::ReattachWornLights(const RE::ActorHandle& a_handle)
@@ -215,7 +204,9 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 
 	const auto ref = a_effect->target.get();
 	const auto root = a_effect->GetAttachRoot();
-	if (!ref || !root) {
+	const auto base = RE::GetReferenceEffectBase(a_effect);
+
+	if (!ref || !root || !base) {
 		return;
 	}
 
@@ -223,11 +214,10 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 		return;
 	}
 
-	ObjectREFRParams refParams(ref.get(), GetReferenceEffectModel(a_effect), root);
+	ObjectREFRParams refParams(ref.get(), root, base);
 	if (!refParams.IsValid()) {
 		return;
 	}
-
 	refParams.effect = a_effect;
 
 	if (auto it = gameVisualEffects.find(a_effectID); it != gameVisualEffects.end()) {
@@ -262,32 +252,37 @@ void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_
 	});
 }
 
-void LightManager::AttachLightsImpl(const ObjectREFRParams& a_refParams, RE::TESBoundObject* a_object, TYPE a_type)
+void LightManager::AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_type)
 {
-	AttachReferenceLights(a_refParams, a_object->GetFormID(), a_type);
-	AttachMeshLights(a_refParams, a_type);
-}
-
-void LightManager::AttachReferenceLights(const ObjectREFRParams& a_refParams, RE::FormID a_baseFormID, TYPE a_type)
-{
-	auto refID = a_refParams.ref->GetFormID();
-
-	auto fIt = gameReferences.find(refID);
-	if (fIt == gameReferences.end()) {
-		fIt = gameReferences.find(a_baseFormID);
-	}
-
-	if (fIt != gameReferences.end()) {
-		for (const auto& [index, data] : std::views::enumerate(fIt->second)) {
-			AttachConfigLights(a_refParams, data, static_cast<std::uint32_t>(index), a_type);
-		}
-	}
+	std::int32_t LP_INDEX = 0;
+	std::int32_t LP_ADDON_INDEX = 0;
 
 	if (auto mIt = gameModels.find(a_refParams.modelPath); mIt != gameModels.end()) {
 		for (const auto& [index, data] : std::views::enumerate(mIt->second)) {
 			AttachConfigLights(a_refParams, data, static_cast<std::uint32_t>(index), a_type);
 		}
 	}
+
+	RE::BSVisit::TraverseScenegraphObjects(a_refParams.root, [&](RE::NiAVObject* a_obj) {
+		if (auto addonNode = netimmerse_cast<RE::BSValueNode*>(a_obj)) {
+			if (auto it = gameAddonNodes.find(addonNode->value); it != gameAddonNodes.end()) {
+				for (const auto& filterData : it->second) {
+					if (!filterData.filter.IsInvalid(a_refParams)) {
+						AttachLight(filterData.data, a_refParams, addonNode, a_type, LP_ADDON_INDEX);
+						LP_ADDON_INDEX++;
+					}
+				}
+			}
+		} else if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
+			if (auto lightSource = LightSourceData(xData); lightSource.data.IsValid()) {
+				if (auto node = LightData::GetOrCreateNode(a_refParams.root->AsNode(), a_obj, LP_INDEX)) {
+					AttachLight(lightSource, a_refParams, node, a_type, LP_INDEX);
+				}
+				LP_INDEX++;
+			}
+		}
+		return RE::BSVisit::BSVisitControl::kContinue;
+	});
 }
 
 void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type)
@@ -321,33 +316,6 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 					   }
 				   } },
 		a_lightData);
-}
-
-void LightManager::AttachMeshLights(const ObjectREFRParams& a_refParams, TYPE a_type)
-{
-	std::int32_t LP_INDEX = 0;
-	std::int32_t LP_ADDON_INDEX = 0;
-
-	RE::BSVisit::TraverseScenegraphObjects(a_refParams.root, [&](RE::NiAVObject* a_obj) {
-		if (auto addonNode = netimmerse_cast<RE::BSValueNode*>(a_obj)) {
-			if (auto it = gameAddonNodes.find(addonNode->value); it != gameAddonNodes.end()) {
-				for (const auto& filterData : it->second) {
-					if (!filterData.filter.IsInvalid(a_refParams)) {
-						AttachLight(filterData.data, a_refParams, addonNode, a_type, LP_ADDON_INDEX);
-						LP_ADDON_INDEX++;
-					}
-				}
-			}
-		} else if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
-			if (auto lightSource = LightSourceData(xData); lightSource.data.IsValid()) {
-				if (auto node = LightData::GetOrCreateNode(a_refParams.root->AsNode(), a_obj, LP_INDEX)) {
-					AttachLight(lightSource, a_refParams, node, a_type, LP_INDEX);
-				}
-				LP_INDEX++;
-			}
-		}
-		return RE::BSVisit::BSVisitControl::kContinue;
-	});
 }
 
 void LightManager::AttachLight(const LightSourceData& a_lightSource, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index, const RE::NiPoint3& a_point)

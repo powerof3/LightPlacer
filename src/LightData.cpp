@@ -11,17 +11,22 @@ bool Timer::UpdateTimer(float a_interval)
 	return false;
 }
 
-ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, const RE::TESModel* a_model) :
-	ObjectREFRParams(a_ref, a_model, a_ref->Get3D())
+ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model) :
+	ObjectREFRParams(a_ref, a_ref->Get3D(), a_object, a_model)
 {}
 
-ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, const RE::TESModel* a_model, RE::NiAVObject* a_root) :
+ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model) :
 	ref(a_ref),
 	root(a_root->AsNode()),
-	handle(a_ref->CreateRefHandle().native_handle())
+	handle(a_ref->CreateRefHandle().native_handle()),
+	baseID(a_object->GetFormID())
 {
-	if (a_model) {
-		modelPath = RE::SanitizeModel(a_model->GetModel());
+	RE::TESModel* model = a_model;
+	if (!model) {
+		model = a_object->As<RE::TESModel>();
+	}
+	if (model) {
+		modelPath = RE::SanitizeModel(model->GetModel());
 	}
 
 	if (auto parentCell = a_ref->GetParentCell()) {
