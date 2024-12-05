@@ -96,8 +96,11 @@ namespace Hooks::Attach
 		Clone3D<RE::TESObjectBOOK>::Install();
 		Clone3D<RE::TESObjectWEAP>::Install();
 		Clone3D<RE::TESObjectARMO>::Install();
+		Clone3D<RE::AlchemyItem>::Install();
+
 		BSTempEffect::Init<RE::ShaderReferenceEffect>::Install();
 		BSTempEffect::Init<RE::ModelReferenceEffect>::Install();
+
 		AddAddonNodes::Install();
 
 		AttachLight::Install();
