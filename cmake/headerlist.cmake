@@ -1,6 +1,7 @@
 set(headers ${headers}
 	src/Common.h
 	src/ConditionParser.h
+	src/ConfigData.h
 	src/Debug.h
 	src/Hooks.h
 	src/Hooks/Attach.h

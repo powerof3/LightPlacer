@@ -11,19 +11,33 @@ bool Timer::UpdateTimer(float a_interval)
 	return false;
 }
 
-ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref) :
-	ObjectREFRParams(a_ref, a_ref->Get3D())
+ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, const RE::TESModel* a_model) :
+	ObjectREFRParams(a_ref, a_model, a_ref->Get3D())
 {}
 
-ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root) :
+ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, const RE::TESModel* a_model, RE::NiAVObject* a_root) :
 	ref(a_ref),
-	root(a_root ? a_root->AsNode() : nullptr),
+	root(a_root->AsNode()),
 	handle(a_ref->CreateRefHandle().native_handle())
-{}
+{
+	if (a_model) {
+		modelPath = RE::SanitizeModel(a_model->GetModel());
+	}
+
+	if (auto parentCell = a_ref->GetParentCell()) {
+		cellID = parentCell->GetFormID();
+	}
+	if (auto worldSpace = a_ref->GetWorldspace()) {
+		worldSpaceID = worldSpace->GetFormID();
+	}
+	if (auto location = a_ref->GetCurrentLocation()) {
+		locationID = location->GetFormID();
+	}
+}
 
 bool ObjectREFRParams::IsValid() const
 {
-	return !ref->IsDisabled() && !ref->IsDeleted() && root && ref->GetParentCell();
+	return !ref->IsDisabled() && !ref->IsDeleted() && modelPath.empty() && root && cellID != 0;
 }
 
 bool LightData::IsValid() const
@@ -202,7 +216,7 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 	return { bsLight, niLight };
 }
 
-LightCreateParams::LightCreateParams(const RE::NiStringsExtraData* a_data)
+LightSourceData::LightSourceData(const RE::NiStringsExtraData* a_data)
 {
 	constexpr auto get_pt3 = []<class T>(const std::string& a_value, T& valueOut) {
 		if (const auto pt3 = string::split(a_value, ","sv); pt3.size() == 3) {
@@ -266,7 +280,7 @@ LightCreateParams::LightCreateParams(const RE::NiStringsExtraData* a_data)
 	}
 }
 
-void LightCreateParams::ReadFlags()
+void LightSourceData::ReadFlags()
 {
 	// glaze doesn't reflect flag enums
 	if (!flags.empty()) {
@@ -290,14 +304,14 @@ void LightCreateParams::ReadFlags()
 	}
 }
 
-void LightCreateParams::ReadConditions()
+void LightSourceData::ReadConditions()
 {
 	if (!conditions.empty()) {
 		ConditionParser::BuildCondition(data.conditions, conditions);
 	}
 }
 
-bool LightCreateParams::PostProcess()
+bool LightSourceData::PostProcess()
 {
 	data.light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);
 
@@ -394,7 +408,7 @@ void REFR_LIGH::UpdateLight() const
 
 			niLight->local.translate.x = flickerMovementMult * constAttenSine;
 			niLight->local.translate.y = flickerMovementMult * linearAttenSine;
-			niLight->local.translate.z = flickerMovementMult * RE::NiSinQ(quadraticAttenOffset + 0.3f);			
+			niLight->local.translate.z = flickerMovementMult * RE::NiSinQ(quadraticAttenOffset + 0.3f);
 		}
 
 		if (!fadeController) {
@@ -429,7 +443,7 @@ void REFR_LIGH::UpdateLight() const
 
 			niLight->local.translate.x = movementAmplitude * constAttenCosine;
 			niLight->local.translate.y = movementAmplitude * constAttenSine;
-			niLight->local.translate.z = movementAmplitude * (constAttenSine * constAttenCosine);			
+			niLight->local.translate.z = movementAmplitude * (constAttenSine * constAttenCosine);
 		}
 	}
 

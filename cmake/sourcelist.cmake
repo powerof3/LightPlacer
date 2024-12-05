@@ -1,5 +1,6 @@
 set(sources ${sources}
 	src/ConditionParser.cpp
+	src/ConfigData.cpp
 	src/Debug.cpp
 	src/Hooks.cpp
 	src/Hooks/Attach.cpp
@@ -8,5 +9,6 @@ set(sources ${sources}
 	src/LightData.cpp
 	src/Manager.cpp
 	src/PCH.cpp
+	src/RE.cpp
 	src/main.cpp
 )

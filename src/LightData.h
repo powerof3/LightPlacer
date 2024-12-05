@@ -15,8 +15,8 @@ struct Timer
 struct ObjectREFRParams
 {
 	ObjectREFRParams() = default;
-	ObjectREFRParams(RE::TESObjectREFR* a_ref);
-	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root);
+	ObjectREFRParams(RE::TESObjectREFR* a_ref, const RE::TESModel* a_model);
+	ObjectREFRParams(RE::TESObjectREFR* a_ref, const RE::TESModel* a_model, RE::NiAVObject* a_root);
 
 	bool IsValid() const;
 
@@ -25,6 +25,11 @@ struct ObjectREFRParams
 	RE::ReferenceEffect* effect{};
 	RE::NiNode*          root{};
 	RE::RefHandle        handle{};
+	std::string          modelPath{};
+
+	RE::FormID cellID{ 0 };
+	RE::FormID worldSpaceID{ 0 };
+	RE::FormID locationID{ 0 };
 };
 
 struct LightData
@@ -71,10 +76,10 @@ struct LightData
 	constexpr static auto LP_NODE = "LightPlacerNode"sv;
 };
 
-struct LightCreateParams
+struct LightSourceData
 {
-	LightCreateParams() = default;
-	LightCreateParams(const RE::NiStringsExtraData* a_data);
+	LightSourceData() = default;
+	LightSourceData(const RE::NiStringsExtraData* a_data);
 
 	void read_color(RE::NiColor a_value)
 	{
@@ -87,7 +92,7 @@ struct LightCreateParams
 		data.color = a_value;
 	}
 
-	RE::NiColor write_color()
+	RE::NiColor write_color() const
 	{
 		return data.color;
 	}
@@ -109,9 +114,9 @@ struct LightCreateParams
 };
 
 template <>
-struct glz::meta<LightCreateParams>
+struct glz::meta<LightSourceData>
 {
-	using T = LightCreateParams;
+	using T = LightSourceData;
 	static constexpr auto value = object(
 		"light", &T::lightEDID,
 		"color", "color", custom<&T::read_color, &T::write_color>,
@@ -131,8 +136,8 @@ struct REFR_LIGH
 {
 	REFR_LIGH() = default;
 
-	REFR_LIGH(const LightCreateParams& a_lightParams, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) :
-		data(a_lightParams.data),
+	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) :
+		data(a_lightSource.data),
 		bsLight(a_bsLight),
 		niLight(a_niLight),
 		parentNode(a_node),
@@ -145,17 +150,17 @@ struct REFR_LIGH
 			data.emittanceForm = xData ? xData->source : nullptr;
 		}
 
-		if (!a_lightParams.colorController.empty()) {
-			colorController = Animation::LightController(a_lightParams.colorController);
+		if (!a_lightSource.colorController.empty()) {
+			colorController = Animation::LightController(a_lightSource.colorController);
 		}
-		if (!a_lightParams.radiusController.empty()) {
-			radiusController = Animation::LightController(a_lightParams.radiusController);
+		if (!a_lightSource.radiusController.empty()) {
+			radiusController = Animation::LightController(a_lightSource.radiusController);
 		}
-		if (!a_lightParams.fadeController.empty()) {
-			fadeController = Animation::LightController(a_lightParams.fadeController);
+		if (!a_lightSource.fadeController.empty()) {
+			fadeController = Animation::LightController(a_lightSource.fadeController);
 		}
-		if (!a_lightParams.positionController.empty()) {
-			positionController = Animation::LightController(a_lightParams.positionController);
+		if (!a_lightSource.positionController.empty()) {
+			positionController = Animation::LightController(a_lightSource.positionController);
 		}
 	}
 
