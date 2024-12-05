@@ -185,7 +185,7 @@ target_include_directories(
 		${CLIB_UTIL_INCLUDE_DIRS}
 		${MERGEMAPPER_INCLUDE_DIRS}
 		${SRELL_INCLUDE_DIRS}
-
+		${BOOST_UNORDERED_INCLUDE_DIRS}
 )
 
 target_link_libraries(

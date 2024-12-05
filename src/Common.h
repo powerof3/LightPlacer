@@ -65,12 +65,6 @@ template <class K, class H = boost::hash<K>>
 using FlatSet = boost::unordered_flat_set<K, H>;
 
 template <class K, class D, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
-using NodeMap = boost::unordered_node_map<K, D, H, KEqual>;
-
-template <class K, class H = boost::hash<K>>
-using NodeSet = boost::unordered_node_set<K, H>;
-
-template <class K, class D, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
 using LockedMap = MutexGuardShared<FlatMap<K, D, H, KEqual>>;
 
 template <class T>
