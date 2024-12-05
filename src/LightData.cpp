@@ -37,7 +37,7 @@ ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, const RE::TESModel*
 
 bool ObjectREFRParams::IsValid() const
 {
-	return !ref->IsDisabled() && !ref->IsDeleted() && modelPath.empty() && root && cellID != 0;
+	return !ref->IsDisabled() && !ref->IsDeleted() && !modelPath.empty() && root && cellID != 0;
 }
 
 bool LightData::IsValid() const
