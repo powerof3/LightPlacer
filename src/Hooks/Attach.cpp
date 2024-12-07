@@ -98,6 +98,7 @@ namespace Hooks::Attach
 		Clone3D<RE::TESObjectARMO>::Install();
 		Clone3D<RE::AlchemyItem>::Install();
 		Clone3D<RE::IngredientItem>::Install();
+		Clone3D<RE::TESFlora>::Install();
 
 		BSTempEffect::Init<RE::ShaderReferenceEffect>::Install();
 		BSTempEffect::Init<RE::ModelReferenceEffect>::Install();
