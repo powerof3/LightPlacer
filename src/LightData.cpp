@@ -85,7 +85,7 @@ bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
 
 bool LightData::GetCastsShadows() const
 {
-	return flags.any(LightFlags::Shadow) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow);
+	return flags.any(LightFlags::Shadow) /*|| light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow)*/;
 }
 
 RE::NiColor LightData::GetDiffuse() const
