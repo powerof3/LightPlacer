@@ -204,9 +204,13 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 
 	const auto ref = a_effect->target.get();
 	const auto root = a_effect->GetAttachRoot();
-	const auto base = RE::GetReferenceEffectBase(a_effect);
 
-	if (!ref || !root || !base) {
+	if (!ref || !root) {
+		return;
+	}
+
+	const auto base = RE::GetReferenceEffectBase(a_effect);
+	if (!base) {
 		return;
 	}
 
