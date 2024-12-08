@@ -41,7 +41,9 @@ struct LightData
 		None = 0,
 		PortalStrict = (1 << 0),
 		Shadow = (1 << 1),
-		Simple = (1 << 2)
+		Simple = (1 << 2),
+
+		NoExternalEmittance = (1 << 30)
 	};
 
 	bool                                     GetCastsShadows() const;
@@ -146,7 +148,7 @@ struct REFR_LIGH
 		index(a_index),
 		isReference(!RE::IsActor(a_ref))
 	{
-		if (!data.emittanceForm) {
+		if (!data.emittanceForm && data.flags.none(LightData::LightFlags::NoExternalEmittance)) {
 			auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
 			data.emittanceForm = xData ? xData->source : nullptr;
 		}
