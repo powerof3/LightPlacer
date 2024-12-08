@@ -45,7 +45,7 @@ void LightManager::OnDataLoad()
 						   PostProcess(visualEffects.lights);
 						   for (auto& rawID : visualEffects.visualEffects) {
 							   if (auto formID = RE::GetFormID(rawID); formID != 0) {
-								   gameVisualEffects[formID].append_range(visualEffects.lights);								   
+								   gameVisualEffects[formID].append_range(visualEffects.lights);
 							   }
 						   }
 					   },
@@ -221,7 +221,7 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 	refParams.effect = a_effect;
 
 	if (auto it = gameVisualEffects.find(a_effectID); it != gameVisualEffects.end()) {
-		for (const auto& [index, data] : std::views::enumerate(it->second)) {
+		for (const auto [index, data] : std::views::enumerate(it->second)) {
 			AttachConfigLights(refParams, data, static_cast<std::uint32_t>(index), TYPE::kEffect);
 		}
 	}
@@ -254,11 +254,11 @@ void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_
 
 void LightManager::AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_type)
 {
-	std::int32_t LP_INDEX = 0;
-	std::int32_t LP_ADDON_INDEX = 0;
+	[[maybe_unused]] std::int32_t LP_INDEX = 0;
+	std::int32_t                  LP_ADDON_INDEX = 0;
 
 	if (auto mIt = gameModels.find(a_refParams.modelPath); mIt != gameModels.end()) {
-		for (const auto& [index, data] : std::views::enumerate(mIt->second)) {
+		for (const auto [index, data] : std::views::enumerate(mIt->second)) {
 			AttachConfigLights(a_refParams, data, static_cast<std::uint32_t>(index), a_type);
 		}
 	}
@@ -266,21 +266,21 @@ void LightManager::AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_
 	RE::BSVisit::TraverseScenegraphObjects(a_refParams.root, [&](RE::NiAVObject* a_obj) {
 		if (auto addonNode = netimmerse_cast<RE::BSValueNode*>(a_obj)) {
 			if (auto it = gameAddonNodes.find(addonNode->value); it != gameAddonNodes.end()) {
-				for (const auto& filterData : it->second) {
-					if (!filterData.filter.IsInvalid(a_refParams)) {
-						AttachLight(filterData.data, a_refParams, addonNode, a_type, LP_ADDON_INDEX);
+				for (const auto& [filter, data] : it->second) {
+					if (!filter.IsInvalid(a_refParams)) {
+						AttachLight(data, a_refParams, addonNode, a_type, LP_ADDON_INDEX);
 						LP_ADDON_INDEX++;
 					}
 				}
 			}
-		} else if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
+		} /* else if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
 			if (auto lightSource = LightSourceData(xData); lightSource.data.IsValid()) {
 				if (auto node = LightData::GetOrCreateNode(a_refParams.root->AsNode(), a_obj, LP_INDEX)) {
 					AttachLight(lightSource, a_refParams, node, a_type, LP_INDEX);
 				}
 				LP_INDEX++;
 			}
-		}
+		}*/
 		return RE::BSVisit::BSVisitControl::kContinue;
 	});
 }
@@ -300,7 +300,7 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 						   RE::AttachNode(rootNode, lightPlacerNode);
 					   }
 					   if (lightPlacerNode) {
-						   for (const auto& [pointIdx, point] : std::views::enumerate(pointData.points)) {
+						   for (const auto [pointIdx, point] : std::views::enumerate(pointData.points)) {
 							   if (!pointData.filter.IsInvalid(a_refParams)) {
 								   AttachLight(pointData.data, a_refParams, lightPlacerNode->AsNode(), a_type, static_cast<std::uint32_t>(pointIdx), point);
 							   }
