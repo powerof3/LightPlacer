@@ -5,15 +5,6 @@
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {
 	switch (a_message->type) {
-	case SKSE::MessagingInterface::kPostLoad:
-		{
-			if (LightManager::GetSingleton()->ReadConfigs()) {
-				Hooks::Install();
-			} else {
-				logger::warn("No Light Placer configs found...");
-			}
-		}
-		break;
 	case SKSE::MessagingInterface::kPostPostLoad:
 		{
 			logger::info("{:*^50}", "MERGES");
@@ -95,12 +86,17 @@ void InitializeLog()
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
 	InitializeLog();
-
 	logger::info("Game version : {}", a_skse->RuntimeVersion().string());
 
 	SKSE::Init(a_skse, false);
-
 	SKSE::AllocTrampoline(275);
+
+	if (LightManager::GetSingleton()->ReadConfigs()) {
+		Hooks::Install();
+	} else {
+		logger::warn("No Light Placer configs found...");
+		return true;
+	}
 
 	const auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(MessageHandler);

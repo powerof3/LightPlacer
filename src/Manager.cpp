@@ -5,8 +5,10 @@ bool LightManager::ReadConfigs()
 	logger::info("{:*^50}", "CONFIG FILES");
 
 	std::filesystem::path dir{ "Data\\LightPlacer" };
-	if (!std::filesystem::exists(dir)) {
-		logger::info("Data\\LightPlacer folder not found");
+
+	std::error_code ec;
+	if (!std::filesystem::exists(dir, ec)) {
+		logger::info("Data\\LightPlacer folder not found ({})", ec.message());
 		return false;
 	}
 
