@@ -57,6 +57,7 @@ struct LightData
 	static std::string                       GetNodeName(std::uint32_t a_index);
 	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
+	bool                                     GetPortalStrict() const;
 	bool                                     IsDynamicLight(RE::TESObjectREFR* a_ref) const;
 	bool                                     IsValid() const;
 

@@ -133,7 +133,7 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR*
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS params{};
 	params.dynamic = IsDynamicLight(a_ref);
 	params.shadowLight = GetCastsShadows();
-	params.portalStrict = light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
+	params.portalStrict = GetPortalStrict();
 	params.affectLand = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightLandscape) == 0 : true;
 	params.affectWater = a_ref ? (a_ref->GetFormFlags() & RE::TESObjectREFR::RecordFlags::kDoesntLightWater) == 0 : true;
 	params.neverFades = a_ref ? !a_ref->IsHeadingMarker() : true;
@@ -145,6 +145,11 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR*
 	params.restrictedNode = nullptr;
 	params.lensFlareData = light->lensFlare;
 	return params;
+}
+
+bool LightData::GetPortalStrict() const
+{
+	return flags.any(LightFlags::PortalStrict) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
 }
 
 RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index)
