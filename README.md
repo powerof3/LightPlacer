@@ -1,6 +1,6 @@
 # Light Placer
 
-SKSE plugin and framework for adding lights to objects, using configurable JSON files or through extradata in nif.
+SKSE plugin and framework for adding lights to objects, using configurable JSON files.
 
 ## Requirements
 * [CMake](https://cmake.org/)
