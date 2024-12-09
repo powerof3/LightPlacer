@@ -137,7 +137,7 @@ float LightData::GetFOV() const
 		return 1.0;
 	}
 	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
-		return RE::deg_to_rad(light->data.fov);
+		return RE::deg_to_rad(fov > 0.0f ? fov : light->data.fov);
 	}
 	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kHemiShadow)) {
 		return RE::NI_PI;
