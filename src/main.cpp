@@ -8,7 +8,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 	case SKSE::MessagingInterface::kPostLoad:
 		{
 			if (LightManager::GetSingleton()->ReadConfigs()) {
-				Hooks::Install();				
+				Hooks::Install();
 			} else {
 				logger::warn("No Light Placer configs found...");
 			}
@@ -27,8 +27,10 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 		}
 		break;
 	case SKSE::MessagingInterface::kDataLoaded:
-		LightManager::GetSingleton()->OnDataLoad();
-		Debug::Install();
+		{
+			LightManager::GetSingleton()->OnDataLoad();
+			Debug::Install();
+		}
 		break;
 	default:
 		break;
