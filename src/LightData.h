@@ -70,6 +70,7 @@ struct LightData
 	RE::NiColor                             color{ RE::COLOR_BLACK };
 	float                                   radius{ 0.0f };
 	float                                   fade{ 0.0f };
+	float                                   shadowDepthBias{ 1.0f };
 	RE::NiPoint3                            offset;
 	REX::EnumSet<LightFlags, std::uint32_t> flags{ LightFlags::None };
 	RE::TESForm*                            emittanceForm{ nullptr };
@@ -125,6 +126,7 @@ struct glz::meta<LightSourceData>
 		"color", "color", custom<&T::read_color, &T::write_color>,
 		"radius", [](auto&& self) -> auto& { return self.data.radius; },
 		"fade", [](auto&& self) -> auto& { return self.data.fade; },
+		"shadowDepthBias", [](auto&& self) -> auto& { return self.data.shadowDepthBias; },
 		"offset", [](auto&& self) -> auto& { return self.data.offset; },
 		"externalEmittance", &T::emittanceFormEDID,
 		"flags", &T::flags,

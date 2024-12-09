@@ -140,7 +140,7 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR*
 	params.fov = GetFOV();
 	params.falloff = GetFalloff();
 	params.nearDistance = GetNearDistance();
-	params.depthBias = 1.0;
+	params.depthBias = shadowDepthBias;
 	params.sceneGraphIndex = 0;
 	params.restrictedNode = nullptr;
 	params.lensFlareData = light->lensFlare;
