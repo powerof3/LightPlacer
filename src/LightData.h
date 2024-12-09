@@ -46,6 +46,8 @@ struct LightData
 		NoExternalEmittance = (1 << 30)
 	};
 
+	void AttachDebugMarker(RE::NiNode* a_node) const;
+
 	bool                                     GetCastsShadows() const;
 	RE::NiColor                              GetDiffuse() const;
 	float                                    GetRadius() const;

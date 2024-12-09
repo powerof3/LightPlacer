@@ -83,6 +83,33 @@ bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
 	return false;
 }
 
+void LightData::AttachDebugMarker(RE::NiNode* a_node) const
+{
+	const auto get_marker = [this] {
+		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotlight)) {
+			return "marker_spotlight.nif";
+		}
+		if (GetCastsShadows()) {
+			if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
+				return "marker_lightshadow.nif";
+			}
+			return "marker_lightshadow.nif";
+		}
+		return "marker_light.nif";
+	};
+
+	RE::NiPointer<RE::NiNode>                   loadedModel;
+	constexpr RE::BSModelDB::DBTraits::ArgsType args{};
+
+	if (const auto error = Demand(get_marker(), loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
+		if (auto clonedModel = loadedModel->Clone()) {
+			clonedModel->name = "LP_DebugMarker";
+			clonedModel->local.scale = 0.5f;
+			RE::AttachNode(a_node, clonedModel);
+		}
+	}
+}
+
 bool LightData::GetCastsShadows() const
 {
 	return flags.any(LightFlags::Shadow) /*|| light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow)*/;
@@ -193,15 +220,7 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 		niLight->name = name;
 		RE::AttachNode(a_node, niLight);
 
-		/*RE::NiPointer<RE::NiNode>                   loadedModel;
-		constexpr RE::BSModelDB::DBTraits::ArgsType args{};
-
-		if (const auto error = Demand("MarkerX.nif", loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
-			if (auto modelHolder = loadedModel->Clone()) {
-				modelHolder->local.scale = 0.5f;
-				RE::AttachNode(a_node, modelHolder);
-			}
-		}*/
+		//AttachDebugMarker();
 	}
 
 	if (niLight) {
