@@ -55,7 +55,7 @@ namespace Debug
 				function->executeFunction = &Execute;
 				function->conditionFunction = nullptr;
 
-				logger::debug("Installed {} console command", LONG_NAME);
+				logger::info("Installed {} console command", LONG_NAME);
 			}
 		}
 	}

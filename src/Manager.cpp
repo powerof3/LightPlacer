@@ -31,6 +31,10 @@ bool LightManager::ReadConfigs()
 
 void LightManager::OnDataLoad()
 {
+	if (config.empty()) {
+		return;
+	}
+
 	flickeringDistanceSq = std::powf(RE::GetINISetting("fFlickeringLightDistance:General")->GetFloat(), 2);
 
 	for (auto& multiData : config) {
@@ -60,13 +64,9 @@ void LightManager::OnDataLoad()
 
 	logger::info("{:*^50}", "RESULTS");
 
-	constexpr auto log_size = []<typename K, typename D>(std::string_view ID, const FlatMap<K, D>& a_map) {
-		logger::info("{} : {} entries", ID, a_map.size());
-	};
-
-	log_size("Models", gameModels);
-	log_size("VisualEffects", gameVisualEffects);
-	log_size("AddonNodes", gameAddonNodes);
+	logger::info("Models : {} entries", gameModels.size());
+	logger::info("VisualEffects : {} entries", gameVisualEffects.size());
+	logger::info("AddonNodes : {} entries", gameAddonNodes.size());
 }
 
 void LightManager::AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root)
@@ -209,12 +209,12 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 		return;
 	}
 
-	const auto base = RE::GetReferenceEffectBase(a_effect);
-	if (!base) {
+	if (auto invMgr = RE::Inventory3DManager::GetSingleton(); invMgr && invMgr->tempRef == ref.get()) {
 		return;
 	}
 
-	if (auto invMgr = RE::Inventory3DManager::GetSingleton(); invMgr && invMgr->tempRef == ref.get()) {
+	const auto base = RE::GetReferenceEffectBase(a_effect);
+	if (!base) {
 		return;
 	}
 

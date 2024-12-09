@@ -1115,21 +1115,10 @@ namespace RE
 		return NiCosQImpl((512.0f / NI_TWO_PI) * a_radians);
 	}
 
-	std::string SanitizeModel(const std::string& a_path)
-	{
-		auto path = string::tolower(a_path);
-
-		path = srell::regex_replace(path, srell::regex(R"(/+|\\+)"), "\\");
-		path = srell::regex_replace(path, srell::regex(R"(^\\+)"), "");
-		path = srell::regex_replace(path, srell::regex(R"(.*?[^\s]meshes\\|^meshes\\)", srell::regex::icase), "");
-
-		return path;
-	}
-
 	void UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer)
 	{
 		using func_t = decltype(&UpdateLight);
 		static REL::Relocation<func_t> func{ RELOCATION_ID(17212, 17614) };
-		return func(a_light, a_ptLight, a_ref, a_wantDimmer);
+		func(a_light, a_ptLight, a_ref, a_wantDimmer);
 	}
 }

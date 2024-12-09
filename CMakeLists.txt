@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 set(NAME "po3_LightPlacer" CACHE STRING "")
-set(VERSION 1.0.1 CACHE STRING "")
+set(VERSION 1.0.2 CACHE STRING "")
 set(AE_VERSION 1)
 set(VR_VERSION 1)
 
@@ -135,8 +135,9 @@ endif()
 
 find_package(glaze CONFIG REQUIRED)
 find_package(frozen CONFIG REQUIRED)
+find_package(boost_unordered CONFIG REQUIRED)
 
-find_path(BOOST_UNORDERED_INCLUDE_DIRS ".editorconfig")
+#find_path(BOOST_UNORDERED_INCLUDE_DIRS ".editorconfig")
 find_path(CLIB_UTIL_INCLUDE_DIRS "ClibUtil/detail/SimpleIni.h")
 find_path(MERGEMAPPER_INCLUDE_DIRS "MergeMapperPluginAPI.h")
 find_path(SRELL_INCLUDE_DIRS "srell.hpp")
@@ -195,7 +196,7 @@ target_include_directories(
 		${CLIB_UTIL_INCLUDE_DIRS}
 		${MERGEMAPPER_INCLUDE_DIRS}
 		${SRELL_INCLUDE_DIRS}
-		${BOOST_UNORDERED_INCLUDE_DIRS}
+		#${BOOST_UNORDERED_INCLUDE_DIRS}
 )
 
 target_link_libraries(
@@ -204,6 +205,7 @@ target_link_libraries(
 		${CommonLibName}::${CommonLibName}
 		glaze::glaze
 		frozen::frozen
+		Boost::unordered
 )
 
 target_precompile_headers(
