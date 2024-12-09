@@ -49,7 +49,5 @@ namespace RE
 	float NiSinQ(float a_radians);
 	float NiCosQ(float a_radians);
 
-	std::string SanitizeModel(const std::string& a_path);
-
 	void UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer);
 }

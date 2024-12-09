@@ -26,7 +26,7 @@ ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_r
 		model = a_object->As<RE::TESModel>();
 	}
 	if (model) {
-		modelPath = RE::SanitizeModel(model->GetModel());
+		modelPath = model->GetModel();
 	}
 
 	if (auto parentCell = a_ref->GetParentCell()) {

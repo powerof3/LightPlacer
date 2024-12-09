@@ -25,7 +25,7 @@ struct ObjectREFRParams
 	RE::ReferenceEffect* effect{};
 	RE::NiNode*          root{};
 	RE::RefHandle        handle{};
-	std::string          modelPath{};
+	std::string_view     modelPath;
 
 	RE::FormID baseID{ 0 };
 	RE::FormID cellID{ 0 };

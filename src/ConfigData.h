@@ -12,8 +12,8 @@ namespace Config
 		bool IsBlacklisted(const ObjectREFRParams& a_refParams) const;
 		bool IsWhitelisted(const ObjectREFRParams& a_refParams) const;
 
-		FlatSet<std::string> whiteList;
-		FlatSet<std::string> blackList;
+		StringSet whiteList;
+		StringSet blackList;
 
 		FlatSet<RE::FormID> whiteListForms;
 		FlatSet<RE::FormID> blackListForms;
@@ -45,14 +45,14 @@ namespace Config
 
 	struct MultiModelSet
 	{
-		FlatSet<std::string> models;
-		LightSourceVec       lights;
+		StringSet      models;
+		LightSourceVec lights;
 	};
 
 	struct MultiVisualEffectSet
 	{
-		FlatSet<std::string> visualEffects;
-		LightSourceVec       lights;
+		StringSet      visualEffects;
+		LightSourceVec lights;
 	};
 
 	struct MultiAddonSet

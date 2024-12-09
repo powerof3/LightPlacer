@@ -81,7 +81,7 @@ private:
 
 	// members
 	std::vector<Config::Format>                         config;
-	FlatMap<std::string, Config::LightSourceVec>        gameModels;
+	StringMap<Config::LightSourceVec>                   gameModels;
 	FlatMap<RE::FormID, Config::LightSourceVec>         gameVisualEffects;
 	FlatMap<std::uint32_t, Config::AddonLightSourceVec> gameAddonNodes;
 
