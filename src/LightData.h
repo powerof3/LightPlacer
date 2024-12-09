@@ -135,6 +135,7 @@ struct glz::meta<LightSourceData>
 		"fov", [](auto&& self) -> auto& { return self.data.fov; },
 		"shadowDepthBias", [](auto&& self) -> auto& { return self.data.shadowDepthBias; },
 		"offset", [](auto&& self) -> auto& { return self.data.offset; },
+		"rotation", [](auto&& self) -> auto& { return self.data.rotation; },
 		"externalEmittance", &T::emittanceFormEDID,
 		"flags", &T::flags,
 		"conditions", &T::conditions,
