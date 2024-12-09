@@ -192,6 +192,16 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 		niLight = RE::NiPointLight::Create();
 		niLight->name = name;
 		RE::AttachNode(a_node, niLight);
+
+		/*RE::NiPointer<RE::NiNode>                   loadedModel;
+		constexpr RE::BSModelDB::DBTraits::ArgsType args{};
+
+		if (const auto error = Demand("MarkerX.nif", loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
+			if (auto modelHolder = loadedModel->Clone()) {
+				modelHolder->local.scale = 0.5f;
+				RE::AttachNode(a_node, modelHolder);
+			}
+		}*/
 	}
 
 	if (niLight) {
