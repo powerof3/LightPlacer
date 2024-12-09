@@ -179,31 +179,43 @@ bool LightData::GetPortalStrict() const
 	return flags.any(LightFlags::PortalStrict) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
 }
 
-RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index)
+RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const
+{
+	const auto name = GetNodeName(a_point, a_index);
+	auto       lightPlacerNode = a_root->GetObjectByName(name);
+	if (!lightPlacerNode) {
+		lightPlacerNode = RE::NiNode::Create(0);
+		lightPlacerNode->name = name;
+		lightPlacerNode->local.translate = a_point + offset;
+		lightPlacerNode->local.rotate = rotation;
+		RE::AttachNode(a_root, lightPlacerNode);
+	}
+	return lightPlacerNode->AsNode();
+}
+
+RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
 {
 	auto obj = a_root->GetObjectByName(a_nodeName);
 	return obj ? GetOrCreateNode(a_root, obj, a_index) : nullptr;
 }
 
-RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index)
+RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
 {
-	if (auto node = a_obj->AsNode()) {
-		return node;
-	}
-
-	if (auto geometry = a_obj->AsGeometry()) {
-		auto name = GetNodeName(a_obj, a_index);
-		if (auto node = a_root->GetObjectByName(name); node && node->AsNode()) {
+	const auto name = GetNodeName(a_obj, a_index);
+	if (auto node = a_root->GetObjectByName(name)) {
 			return node->AsNode();
 		}
+	auto geometry = a_obj->AsGeometry();
 		if (auto newNode = RE::NiNode::Create(0); newNode) {
 			newNode->name = name;
+		if (geometry) {
 			newNode->local.translate = geometry->modelBound.center;
-			RE::AttachNode(a_root, newNode);
+		}
+		newNode->local.translate += offset;
+		newNode->local.rotate = rotation;
+		RE::AttachNode(geometry ? a_root : a_obj->AsNode(), newNode);
 			return newNode;
 		}
-	}
-
 	return nullptr;
 }
 

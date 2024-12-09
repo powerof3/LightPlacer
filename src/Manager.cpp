@@ -272,9 +272,11 @@ void LightManager::AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_
 	RE::BSVisit::TraverseScenegraphObjects(a_refParams.root, [&](RE::NiAVObject* a_obj) {
 		if (auto addonNode = netimmerse_cast<RE::BSValueNode*>(a_obj)) {
 			if (auto it = gameAddonNodes.find(addonNode->value); it != gameAddonNodes.end()) {
-				for (const auto& [filter, data] : it->second) {
+				for (const auto& [filter, lightData] : it->second) {
 					if (!filter.IsInvalid(a_refParams)) {
-						AttachLight(data, a_refParams, addonNode, a_type, LP_ADDON_INDEX);
+						if (auto lightPlacerNode = lightData.data.GetOrCreateNode(a_refParams.root, addonNode, LP_ADDON_INDEX)) {
+							AttachLight(lightData, a_refParams, lightPlacerNode, a_type, LP_ADDON_INDEX);
+						}
 						LP_ADDON_INDEX++;
 					}
 				}
@@ -293,7 +295,7 @@ void LightManager::AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_
 
 void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type)
 {
-	RE::NiAVObject* lightPlacerNode = nullptr;
+	RE::NiNode* lightPlacerNode = nullptr;
 	const auto&     rootNode = a_refParams.root;
 
 	std::visit(overload{
@@ -301,14 +303,7 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 					   auto& [filter, points, lightData] = pointData;
 					   if (!filter.IsInvalid(a_refParams)) {
 						   for (const auto [pointIdx, point] : std::views::enumerate(points)) {
-							   auto name = LightData::GetNodeName(point, a_index);
-							   lightPlacerNode = rootNode->GetObjectByName(name);
-							   if (!lightPlacerNode) {
-								   lightPlacerNode = RE::NiNode::Create(0);
-								   lightPlacerNode->name = name;
-								   lightPlacerNode->local.translate = point + lightData.data.offset;
-								   RE::AttachNode(rootNode, lightPlacerNode);
-							   }
+							   lightPlacerNode = lightData.data.GetOrCreateNode(rootNode, point, a_index);
 							   if (lightPlacerNode) {
 								   AttachLight(lightData, a_refParams, lightPlacerNode->AsNode(), a_type, static_cast<std::uint32_t>(pointIdx));
 							   }
@@ -319,9 +314,9 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 					   auto& [filter, nodes, lightData] = nodeData;
 					   if (!filter.IsInvalid(a_refParams)) {
 						   for (const auto& nodeName : nodes) {
-							   lightPlacerNode = LightData::GetOrCreateNode(rootNode, nodeName, a_index);
+							   lightPlacerNode = lightData.data.GetOrCreateNode(rootNode, nodeName, a_index);
 							   if (lightPlacerNode) {
-								   AttachLight(lightData, a_refParams, lightPlacerNode->AsNode(), a_type);
+								   AttachLight(lightData, a_refParams, lightPlacerNode, a_type);
 							   }
 						   }
 					   }
