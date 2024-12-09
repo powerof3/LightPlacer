@@ -76,6 +76,7 @@ struct LightData
 	float                                   fov{ 0.0f };
 	float                                   shadowDepthBias{ 1.0f };
 	RE::NiPoint3                            offset;
+	RE::NiMatrix3                           rotation;
 	REX::EnumSet<LightFlags, std::uint32_t> flags{ LightFlags::None };
 	RE::TESForm*                            emittanceForm{ nullptr };
 	std::shared_ptr<RE::TESCondition>       conditions;
