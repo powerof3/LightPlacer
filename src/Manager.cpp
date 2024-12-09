@@ -296,42 +296,45 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 
 	std::visit(overload{
 				   [&](const Config::PointData& pointData) {
-					   auto name = LightData::GetNodeName(a_index);
-					   lightPlacerNode = rootNode->GetObjectByName(name);
-					   if (!lightPlacerNode) {
-						   lightPlacerNode = RE::NiNode::Create(0);
-						   lightPlacerNode->name = name;
-						   RE::AttachNode(rootNode, lightPlacerNode);
-					   }
-					   if (lightPlacerNode) {
+					   if (!pointData.filter.IsInvalid(a_refParams)) {
 						   for (const auto [pointIdx, point] : std::views::enumerate(pointData.points)) {
-							   if (!pointData.filter.IsInvalid(a_refParams)) {
-								   AttachLight(pointData.data, a_refParams, lightPlacerNode->AsNode(), a_type, static_cast<std::uint32_t>(pointIdx), point);
+							   auto name = LightData::GetNodeName(point, a_index);
+							   lightPlacerNode = rootNode->GetObjectByName(name);
+							   if (!lightPlacerNode) {
+								   lightPlacerNode = RE::NiNode::Create(0);
+								   lightPlacerNode->name = name;
+								   lightPlacerNode->local.translate = point;
+								   RE::AttachNode(rootNode, lightPlacerNode);
+							   }
+							   if (lightPlacerNode) {
+								   AttachLight(pointData.data, a_refParams, lightPlacerNode->AsNode(), a_type, static_cast<std::uint32_t>(pointIdx));
 							   }
 						   }
 					   }
 				   },
 				   [&](const Config::NodeData& nodeData) {
-					   for (const auto& nodeName : nodeData.nodes) {
-						   lightPlacerNode = LightData::GetOrCreateNode(rootNode, nodeName, a_index);
-						   if (lightPlacerNode && !nodeData.filter.IsInvalid(a_refParams)) {
-							   AttachLight(nodeData.data, a_refParams, lightPlacerNode->AsNode(), a_type);
+					   if (!nodeData.filter.IsInvalid(a_refParams)) {
+						   for (const auto& nodeName : nodeData.nodes) {
+							   lightPlacerNode = LightData::GetOrCreateNode(rootNode, nodeName, a_index);
+							   if (lightPlacerNode) {
+								   AttachLight(nodeData.data, a_refParams, lightPlacerNode->AsNode(), a_type);
+							   }
 						   }
 					   }
 				   } },
 		a_lightData);
 }
 
-void LightManager::AttachLight(const LightSourceData& a_lightSource, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index, const RE::NiPoint3& a_point)
+void LightManager::AttachLight(const LightSourceData& a_lightSource, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index)
 {
-	if (auto [bsLight, niLight] = a_lightSource.data.GenLight(a_refParams.ref, a_node, a_point, a_index); bsLight && niLight) {
+	if (auto [bsLight, niLight] = a_lightSource.data.GenLight(a_refParams.ref, a_node, a_index); bsLight && niLight) {
 		switch (a_type) {
 		case TYPE::kRef:
 			{
 				gameRefLights.write([&](auto& map) {
 					auto& lightDataVec = map[a_refParams.handle];
 					if (std::find(lightDataVec.begin(), lightDataVec.end(), niLight) == lightDataVec.end()) {
-						lightDataVec.emplace_back(a_lightSource, bsLight, niLight, a_refParams.ref, a_node, a_point, a_index);
+						lightDataVec.emplace_back(a_lightSource, bsLight, niLight, a_refParams.ref, a_node, a_index);
 					}
 				});
 			}
@@ -342,7 +345,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Objec
 					map[a_refParams.handle].write([&](auto& nodeMap) {
 						auto& lightDataVec = nodeMap[a_refParams.root];
 						if (std::find(lightDataVec.begin(), lightDataVec.end(), niLight) == lightDataVec.end()) {
-							REFR_LIGH lightData(a_lightSource, bsLight, niLight, a_refParams.ref, a_node, a_point, a_index);
+							REFR_LIGH lightData(a_lightSource, bsLight, niLight, a_refParams.ref, a_node, a_index);
 							lightDataVec.push_back(lightData);
 							processedGameRefLights.write([&](auto& cellMap) {
 								cellMap[a_refParams.ref->GetParentCell()->GetFormID()].write([&](auto& innerMap) {
@@ -359,7 +362,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Objec
 				gameVisualEffectLights.write([&](auto& map) {
 					auto& effectLights = map[a_refParams.effect];
 					if (std::find(effectLights.lights.begin(), effectLights.lights.end(), niLight) == effectLights.lights.end()) {
-						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_refParams.ref, a_node, a_point, a_index);
+						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_refParams.ref, a_node, a_index);
 					}
 				});
 			}

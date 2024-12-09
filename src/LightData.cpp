@@ -55,9 +55,9 @@ std::string LightData::GetName(std::uint32_t a_index) const
 	return std::format("{} [{:X}|{}|{}] #{}", LP_ID, light->GetFormID(), radius, fade, a_index);
 }
 
-std::string LightData::GetNodeName(std::uint32_t a_index)
+std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index)
 {
-	return std::format("{} #{}", LP_NODE, a_index);
+	return std::format("{} [{}{}{}] #{}", LP_NODE, a_point.x, a_point.y, a_point.z, a_index);
 }
 
 std::string LightData::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index)
@@ -180,7 +180,7 @@ RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj
 	return nullptr;
 }
 
-std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) const
+std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::uint32_t a_index) const
 {
 	RE::BSLight*      bsLight = nullptr;
 	RE::NiPointLight* niLight = nullptr;
@@ -190,11 +190,6 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 	niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(name));
 	if (!niLight) {
 		niLight = RE::NiPointLight::Create();
-		RE::NiPoint3 point = a_point;
-		if (point == RE::NiPoint3::Zero()) {
-			point += offset;
-		}
-		niLight->local.translate = point;
 		niLight->name = name;
 		RE::AttachNode(a_node, niLight);
 	}
@@ -342,7 +337,7 @@ bool LightSourceData::PostProcess()
 
 void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 {
-	auto lights = data.GenLight(a_ref, parentNode.get(), point, index);
+	auto lights = data.GenLight(a_ref, parentNode.get(), index);
 
 	bsLight.reset(lights.first);
 	niLight.reset(lights.second);

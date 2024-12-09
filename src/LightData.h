@@ -54,7 +54,7 @@ struct LightData
 	float                                    GetFalloff() const;
 	float                                    GetNearDistance() const;
 	std::string                              GetName(std::uint32_t a_index) const;
-	static std::string                       GetNodeName(std::uint32_t a_index);
+	static std::string                       GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
 	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
 	bool                                     GetPortalStrict() const;
@@ -64,7 +64,7 @@ struct LightData
 	static RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index);
 	static RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index);
 
-	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point = { 0, 0, 0 }, std::uint32_t a_index = 0) const;
+	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::uint32_t a_index = 0) const;
 
 	// members
 	RE::TESObjectLIGH*                      light{ nullptr };
@@ -142,12 +142,11 @@ struct REFR_LIGH
 {
 	REFR_LIGH() = default;
 
-	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) :
+	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::uint32_t a_index) :
 		data(a_lightSource.data),
 		bsLight(a_bsLight),
 		niLight(a_niLight),
 		parentNode(a_node),
-		point(a_point),
 		index(a_index),
 		isReference(!RE::IsActor(a_ref))
 	{
@@ -197,7 +196,6 @@ struct REFR_LIGH
 	std::optional<FloatController>  radiusController;
 	std::optional<FloatController>  fadeController;
 	std::optional<PosController>    positionController;
-	RE::NiPoint3                    point;
 	std::uint32_t                   index{ 0 };
 	bool                            isReference{};
 

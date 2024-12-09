@@ -76,7 +76,7 @@ public:
 private:
 	void AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_type);
 	void AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type);
-	void AttachLight(const LightSourceData& a_lightSource, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index = 0, const RE::NiPoint3& a_point = { 0, 0, 0 });
+	void AttachLight(const LightSourceData& a_lightSource, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index = 0);
 	bool ReattachLightsImpl(const ObjectREFRParams& a_refParams);
 
 	// members
