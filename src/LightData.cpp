@@ -87,24 +87,28 @@ void LightData::AttachDebugMarker(RE::NiNode* a_node) const
 {
 	const auto get_marker = [this] {
 		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotlight)) {
-			return "marker_spotlight.nif";
+			return std::make_tuple("marker_spotlightnoshadow.nif", 1.0f, true);
 		}
 		if (GetCastsShadows()) {
 			if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
-				return "marker_lightshadow.nif";
+				return std::make_tuple("marker_spotlight.nif", 1.0f, true);
 			}
-			return "marker_lightshadow.nif";
+			return std::make_tuple("marker_lightshadow.nif", 0.5f, false);
 		}
-		return "marker_light.nif";
+		return std::make_tuple("marker_light.nif", 0.5f, false);
 	};
 
 	RE::NiPointer<RE::NiNode>                   loadedModel;
 	constexpr RE::BSModelDB::DBTraits::ArgsType args{};
 
-	if (const auto error = Demand(get_marker(), loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
+	auto [model, scale, flip] = get_marker();
+	if (const auto error = Demand(model, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
 		if (auto clonedModel = loadedModel->Clone()) {
 			clonedModel->name = "LP_DebugMarker";
-			clonedModel->local.scale = 0.5f;
+			clonedModel->local.scale = scale;
+			if (flip) {
+				clonedModel->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(-180), 0, RE::deg_to_rad(-180));
+			}
 			RE::AttachNode(a_node, clonedModel);
 		}
 	}
