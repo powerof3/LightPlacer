@@ -138,6 +138,9 @@ float LightData::GetFade() const
 float LightData::GetFOV() const
 {
 	if (!GetCastsShadows()) {
+		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotlight)) {
+			return RE::deg_to_rad(fov > 0.0f ? fov : light->data.fov);
+		}
 		return 1.0;
 	}
 	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
