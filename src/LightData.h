@@ -120,6 +120,7 @@ struct LightSourceData
 	FloatKeyframeSequence    radiusController;
 	FloatKeyframeSequence    fadeController;
 	PosKeyframeSequence      positionController;
+	RotKeyframeSequence      rotationController;
 };
 
 template <>
@@ -141,18 +142,18 @@ struct glz::meta<LightSourceData>
 		"colorController", &T::colorController,
 		"radiusController", &T::radiusController,
 		"fadeController", &T::fadeController,
-		"positionController", &T::positionController);
+		"positionController", &T::positionController,
+		"rotationController", &T::rotationController);
 };
 
 struct REFR_LIGH
 {
 	REFR_LIGH() = default;
 
-	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::uint32_t a_index) :
+	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, std::uint32_t a_index) :
 		data(a_lightSource.data),
 		bsLight(a_bsLight),
 		niLight(a_niLight),
-		parentNode(a_node),
 		index(a_index),
 		isReference(!RE::IsActor(a_ref))
 	{
@@ -172,6 +173,9 @@ struct REFR_LIGH
 		}
 		if (!a_lightSource.positionController.empty()) {
 			positionController = Animation::LightController(a_lightSource.positionController);
+		}
+		if (!a_lightSource.rotationController.empty()) {
+			rotationController = Animation::LightController(a_lightSource.rotationController);
 		}
 	}
 
@@ -197,11 +201,11 @@ struct REFR_LIGH
 	LightData                       data;
 	RE::NiPointer<RE::BSLight>      bsLight;
 	RE::NiPointer<RE::NiPointLight> niLight;
-	RE::NiPointer<RE::NiNode>       parentNode;
 	std::optional<ColorController>  colorController;
 	std::optional<FloatController>  radiusController;
 	std::optional<FloatController>  fadeController;
 	std::optional<PosController>    positionController;
+	std::optional<RotController>    rotationController;
 	std::uint32_t                   index{ 0 };
 	bool                            isReference{};
 

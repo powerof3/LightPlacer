@@ -371,7 +371,7 @@ bool LightSourceData::PostProcess()
 
 void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 {
-	auto lights = data.GenLight(a_ref, parentNode.get(), index);
+	auto lights = data.GenLight(a_ref, niLight->parent, index);
 
 	bsLight.reset(lights.first);
 	niLight.reset(lights.second);
@@ -392,14 +392,21 @@ void REFR_LIGH::UpdateAnimation()
 		if (fadeController) {
 			niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta);
 		}
+		if (auto parentNode = niLight->parent) {
 		if (positionController) {
-			niLight->local.translate = positionController->GetValue(RE::BSTimer::GetSingleton()->delta);
-
+				parentNode->local.translate = positionController->GetValue(RE::BSTimer::GetSingleton()->delta);
+			}
+			if (rotationController) {
+				auto rotation = rotationController->GetValue(RE::BSTimer::GetSingleton()->delta);
+				parentNode->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(rotation[0]), RE::deg_to_rad(rotation[1]), RE::deg_to_rad(rotation[2]));
+			}
+			if (positionController || rotationController) {
 			if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
-				RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(niLight.get());
+					RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(parentNode);
 			} else {
 				RE::NiUpdateData updateData;
-				niLight->Update(updateData);
+					parentNode->Update(updateData);
+				}
 			}
 		}
 	}

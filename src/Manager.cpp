@@ -341,7 +341,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Objec
 				gameRefLights.write([&](auto& map) {
 					auto& lightDataVec = map[a_refParams.handle];
 					if (std::find(lightDataVec.begin(), lightDataVec.end(), niLight) == lightDataVec.end()) {
-						lightDataVec.emplace_back(a_lightSource, bsLight, niLight, a_refParams.ref, a_node, a_index);
+						lightDataVec.emplace_back(a_lightSource, bsLight, niLight, a_refParams.ref, a_index);
 					}
 				});
 			}
@@ -352,7 +352,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Objec
 					map[a_refParams.handle].write([&](auto& nodeMap) {
 						auto& lightDataVec = nodeMap[a_refParams.root];
 						if (std::find(lightDataVec.begin(), lightDataVec.end(), niLight) == lightDataVec.end()) {
-							REFR_LIGH lightData(a_lightSource, bsLight, niLight, a_refParams.ref, a_node, a_index);
+							REFR_LIGH lightData(a_lightSource, bsLight, niLight, a_refParams.ref, a_index);
 							lightDataVec.push_back(lightData);
 							processedGameRefLights.write([&](auto& cellMap) {
 								cellMap[a_refParams.ref->GetParentCell()->GetFormID()].write([&](auto& innerMap) {
@@ -369,7 +369,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Objec
 				gameVisualEffectLights.write([&](auto& map) {
 					auto& effectLights = map[a_refParams.effect];
 					if (std::find(effectLights.lights.begin(), effectLights.lights.end(), niLight) == effectLights.lights.end()) {
-						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_refParams.ref, a_node, a_index);
+						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_refParams.ref, a_index);
 					}
 				});
 			}
