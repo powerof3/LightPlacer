@@ -86,16 +86,13 @@ bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
 void LightData::AttachDebugMarker(RE::NiNode* a_node) const
 {
 	const auto get_marker = [this] {
-		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotlight)) {
-			return std::make_tuple("marker_spotlightnoshadow.nif", 1.0f, true);
-		}
 		if (GetCastsShadows()) {
 			if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
 				return std::make_tuple("marker_spotlight.nif", 1.0f, true);
 			}
-			return std::make_tuple("marker_lightshadow.nif", 0.5f, false);
+			return std::make_tuple("marker_lightshadow.nif", 0.3f, false);
 		}
-		return std::make_tuple("marker_light.nif", 0.5f, false);
+		return std::make_tuple("marker_light.nif", 0.3f, false);
 	};
 
 	RE::NiPointer<RE::NiNode>                   loadedModel;
@@ -138,9 +135,6 @@ float LightData::GetFade() const
 float LightData::GetFOV() const
 {
 	if (!GetCastsShadows()) {
-		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotlight)) {
-			return RE::deg_to_rad(fov > 0.0f ? fov : light->data.fov);
-		}
 		return 1.0;
 	}
 	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
@@ -225,7 +219,7 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 		niLight->name = name;
 		RE::AttachNode(a_node, niLight);
 
-		//AttachDebugMarker();
+		//AttachDebugMarker(a_node);
 	}
 
 	if (niLight) {
@@ -393,7 +387,7 @@ void REFR_LIGH::UpdateAnimation()
 			niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta);
 		}
 		if (auto parentNode = niLight->parent) {
-		if (positionController) {
+			if (positionController) {
 				parentNode->local.translate = positionController->GetValue(RE::BSTimer::GetSingleton()->delta);
 			}
 			if (rotationController) {
@@ -401,13 +395,13 @@ void REFR_LIGH::UpdateAnimation()
 				parentNode->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(rotation[0]), RE::deg_to_rad(rotation[1]), RE::deg_to_rad(rotation[2]));
 			}
 			if (positionController || rotationController) {
-			if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
+				if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
 					RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(parentNode);
-			} else {
-				RE::NiUpdateData updateData;
+				} else {
+					RE::NiUpdateData updateData;
 					parentNode->Update(updateData);
 				}
-			}
+			}			
 		}
 	}
 }
