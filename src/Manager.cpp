@@ -295,7 +295,7 @@ void LightManager::AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_
 
 void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type)
 {
-	RE::NiNode* lightPlacerNode = nullptr;
+	RE::NiAVObject* lightPlacerNode = nullptr;
 	const auto&     rootNode = a_refParams.root;
 
 	std::visit(overload{
@@ -303,7 +303,15 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 					   auto& [filter, points, lightData] = pointData;
 					   if (!filter.IsInvalid(a_refParams)) {
 						   for (const auto [pointIdx, point] : std::views::enumerate(points)) {
-							   lightPlacerNode = lightData.data.GetOrCreateNode(rootNode, point, a_index);
+							   auto name = LightData::GetNodeName(point, a_index);
+							   lightPlacerNode = rootNode->GetObjectByName(name);
+							   if (!lightPlacerNode) {
+								   lightPlacerNode = RE::NiNode::Create(0);
+								   lightPlacerNode->name = name;
+								   lightPlacerNode->local.translate = point + lightData.data.offset;
+								   lightPlacerNode->local.rotate = lightData.data.rotation;
+								   RE::AttachNode(rootNode, lightPlacerNode);
+							   }
 							   if (lightPlacerNode) {
 								   AttachLight(lightData, a_refParams, lightPlacerNode->AsNode(), a_type, static_cast<std::uint32_t>(pointIdx));
 							   }
@@ -316,7 +324,7 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 						   for (const auto& nodeName : nodes) {
 							   lightPlacerNode = lightData.data.GetOrCreateNode(rootNode, nodeName, a_index);
 							   if (lightPlacerNode) {
-								   AttachLight(lightData, a_refParams, lightPlacerNode, a_type);
+								   AttachLight(lightData, a_refParams, lightPlacerNode->AsNode(), a_type);
 							   }
 						   }
 					   }
