@@ -141,7 +141,7 @@ struct glz::meta<LightSourceData>
 		"colorController", &T::colorController,
 		"radiusController", &T::radiusController,
 		"fadeController", &T::fadeController,
-		"transformController", &T::positionController);
+		"positionController", &T::positionController);
 };
 
 struct REFR_LIGH
