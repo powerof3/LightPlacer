@@ -1,5 +1,6 @@
 #include "LightData.h"
 #include "ConditionParser.h"
+#include "Debug.h"
 
 bool Timer::UpdateTimer(float a_interval)
 {
@@ -83,7 +84,7 @@ bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
 	return false;
 }
 
-void LightData::AttachDebugMarker(RE::NiNode* a_node) const
+void LightData::AttachDebugMarker(RE::NiNode* a_node, bool a_hideMarker) const
 {
 	const auto get_marker = [this] {
 		if (GetCastsShadows()) {
@@ -100,11 +101,14 @@ void LightData::AttachDebugMarker(RE::NiNode* a_node) const
 
 	auto [model, scale, flip] = get_marker();
 	if (const auto error = Demand(model, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
-		if (auto clonedModel = loadedModel->Clone()) {
-			clonedModel->name = "LP_DebugMarker";
+		if (const auto clonedModel = loadedModel->Clone()) {
+			clonedModel->name = LP_DEBUG;
 			clonedModel->local.scale = scale;
 			if (flip) {
 				clonedModel->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(-180), 0, RE::deg_to_rad(-180));
+			}
+			if (a_hideMarker) {
+				clonedModel->SetAppCulled(true);
 			}
 			RE::AttachNode(a_node, clonedModel);
 		}
@@ -219,7 +223,7 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 		niLight->name = name;
 		RE::AttachNode(a_node, niLight);
 
-		//AttachDebugMarker(a_node);
+		AttachDebugMarker(a_node, !Debug::showDebugMarker);
 	}
 
 	if (niLight) {
@@ -243,6 +247,11 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
 			niLight->SetAppCulled(true);
+		}
+		if (Debug::showDebugMarker) {
+			if (const auto debugMarker = a_node->GetObjectByName(LP_DEBUG)) {
+				debugMarker->SetAppCulled(false);
+			}
 		}
 	}
 
@@ -371,6 +380,33 @@ void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 	niLight.reset(lights.second);
 }
 
+void REFR_LIGH::ReattachLight() const
+{
+	if (bsLight) {
+		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->AddLight(bsLight.get());
+	}
+	if (niLight && Debug::showDebugMarker) {
+		ShowDebugMarker(true);
+	}
+}
+
+void REFR_LIGH::RemoveLight() const
+{
+	if (niLight && Debug::showDebugMarker) {
+		ShowDebugMarker(false);
+	}
+	if (bsLight) {
+		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->RemoveLight(bsLight);
+	}
+}
+
+void REFR_LIGH::ShowDebugMarker(bool a_show) const
+{
+	if (debugMarker) {
+		debugMarker->SetAppCulled(!a_show);
+	}
+}
+
 void REFR_LIGH::UpdateAnimation()
 {
 	if (niLight) {
@@ -401,7 +437,7 @@ void REFR_LIGH::UpdateAnimation()
 					RE::NiUpdateData updateData;
 					parentNode->Update(updateData);
 				}
-			}			
+			}
 		}
 	}
 }
@@ -409,7 +445,11 @@ void REFR_LIGH::UpdateAnimation()
 void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref) const
 {
 	if (data.conditions && niLight) {
-		niLight->SetAppCulled(!data.conditions->IsTrue(a_ref, a_ref));
+		const bool hideLight = !data.conditions->IsTrue(a_ref, a_ref);
+		niLight->SetAppCulled(hideLight);
+		if (Debug::showDebugMarker) {
+			ShowDebugMarker(!hideLight);
+		}
 	}
 }
 
@@ -513,23 +553,9 @@ void REFR_LIGH::UpdateEmittance() const
 	}
 }
 
-void REFR_LIGH::ReattachLight() const
-{
-	if (bsLight) {
-		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->AddLight(bsLight.get());
-	}
-}
-
-void REFR_LIGH::RemoveLight() const
-{
-	if (bsLight) {
-		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->RemoveLight(bsLight);
-	}
-}
-
 void ProcessedREFRLights::emplace(const REFR_LIGH& a_lightData, RE::RefHandle a_handle)
 {
-	if (a_lightData.colorController || a_lightData.fadeController || a_lightData.radiusController || !a_lightData.data.light->GetNoFlicker() || a_lightData.data.conditions) {
+	if (!a_lightData.data.light->GetNoFlicker() || a_lightData.data.conditions || a_lightData.colorController || a_lightData.fadeController || a_lightData.radiusController || a_lightData.positionController || a_lightData.rotationController) {
 		stl::unique_insert(animatedLights, a_handle);
 	}
 

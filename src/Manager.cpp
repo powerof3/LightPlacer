@@ -1,5 +1,7 @@
 #include "Manager.h"
 
+#include "Debug.h"
+
 bool LightManager::ReadConfigs()
 {
 	logger::info("{:*^50}", "CONFIG FILES");

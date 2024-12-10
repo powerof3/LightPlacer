@@ -36,6 +36,36 @@ public:
 	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);
 
 	template <class F>
+	void ForAllLights(F&& func)
+	{
+		gameRefLights.read_unsafe([&](auto& map) {
+			for (auto& [handle, lightDataVec] : map) {
+				for (auto& lightData : lightDataVec) {
+					func(lightData);
+				}
+			}
+		});
+		gameActorLights.read_unsafe([&](auto& map) {
+			for (auto& [handle, nodes] : map) {
+				nodes.read_unsafe([&](auto& nodeMap) {
+					for (auto& [node, lightDataVec] : nodeMap) {
+						for (auto& lightData : lightDataVec) {
+							func(lightData);
+						}
+					}
+				});
+			}
+		});
+		gameVisualEffectLights.read_unsafe([&](auto& map) {
+			for (auto& [effect, processedLights] : map) {
+				for (auto& lightData : processedLights.lights) {
+					func(lightData);
+				}
+			}
+		});
+	}
+
+	template <class F>
 	void ForEachLight(RE::RefHandle a_handle, F&& func)
 	{
 		gameRefLights.read_unsafe([&](auto& map) {

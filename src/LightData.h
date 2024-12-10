@@ -46,7 +46,7 @@ struct LightData
 		NoExternalEmittance = (1 << 30)
 	};
 
-	void AttachDebugMarker(RE::NiNode* a_node) const;
+	void AttachDebugMarker(RE::NiNode* a_node, bool a_hideMarker) const;
 
 	bool                                     GetCastsShadows() const;
 	RE::NiColor                              GetDiffuse() const;
@@ -83,6 +83,7 @@ struct LightData
 
 	constexpr static auto LP_ID = "LightPlacer"sv;
 	constexpr static auto LP_NODE = "LightPlacerNode"sv;
+	constexpr static auto LP_DEBUG = "LP_DebugMarker"sv;
 };
 
 struct LightSourceData
@@ -177,6 +178,10 @@ struct REFR_LIGH
 		if (!a_lightSource.rotationController.empty()) {
 			rotationController = Animation::LightController(a_lightSource.rotationController);
 		}
+
+		if (a_niLight && a_niLight->parent) {
+			debugMarker.reset(niLight->parent->GetObjectByName(LightData::LP_DEBUG));
+		}
 	}
 
 	bool operator==(const REFR_LIGH& rhs) const
@@ -190,17 +195,18 @@ struct REFR_LIGH
 	}
 
 	void ReattachLight(RE::TESObjectREFR* a_ref);
-
+	void ReattachLight() const;
+	void RemoveLight() const;
+	void ShowDebugMarker(bool a_show) const;
 	void UpdateAnimation();
 	void UpdateConditions(RE::TESObjectREFR* a_ref) const;
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;
-	void ReattachLight() const;
-	void RemoveLight() const;
 
 	LightData                       data;
 	RE::NiPointer<RE::BSLight>      bsLight;
 	RE::NiPointer<RE::NiPointLight> niLight;
+	RE::NiPointer<RE::NiAVObject>   debugMarker;
 	std::optional<ColorController>  colorController;
 	std::optional<FloatController>  radiusController;
 	std::optional<FloatController>  fadeController;
