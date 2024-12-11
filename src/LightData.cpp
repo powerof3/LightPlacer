@@ -91,9 +91,9 @@ void LightData::AttachDebugMarker(RE::NiNode* a_node, bool a_hideMarker) const
 			if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
 				return std::make_tuple("marker_spotlight.nif", 1.0f, true);
 			}
-			return std::make_tuple("marker_lightshadow.nif", 0.3f, false);
+			return std::make_tuple("marker_lightshadow.nif", 0.25f, false);
 		}
-		return std::make_tuple("marker_light.nif", 0.3f, false);
+		return std::make_tuple("marker_light.nif", 0.25f, false);
 	};
 
 	RE::NiPointer<RE::NiNode>                   loadedModel;
