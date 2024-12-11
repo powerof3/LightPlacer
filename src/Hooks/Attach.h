@@ -39,10 +39,15 @@ namespace Hooks::Attach
 
 				RE::FormID effectID = 0;
 				if constexpr (std::is_same_v<RE::ShaderReferenceEffect, T>) {
-					effectID = a_this->effectData ? a_this->effectData->GetFormID() : 0;
+					if (a_this->effectData) {
+						effectID = a_this->effectData->GetFormID();
+					}
 				} else if constexpr (std::is_same_v<RE::ModelReferenceEffect, T>) {
-					effectID = a_this->artObject ? a_this->artObject->GetFormID() : 0;
+					if (a_this->artObject) {
+						effectID = a_this->artObject->GetFormID();
+					}
 				}
+
 				LightManager::GetSingleton()->AddTempEffectLights(a_this, effectID);
 			}
 			static inline REL::Relocation<decltype(thunk)> func;

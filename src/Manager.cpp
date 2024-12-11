@@ -244,6 +244,14 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 			AttachConfigLights(refParams, data, static_cast<std::uint32_t>(index), TYPE::kEffect);
 		}
 	}
+
+	if (base->Is(RE::FormType::ArtObject)) {
+		if (auto it = gameModels.find(refParams.modelPath); it != gameModels.end()) {
+			for (const auto [index, data] : std::views::enumerate(it->second)) {
+				AttachConfigLights(refParams, data, static_cast<std::uint32_t>(index), TYPE::kEffect);
+			}
+		}		
+	}
 }
 
 void LightManager::ReattachTempEffectLights(RE::ReferenceEffect* a_effect)

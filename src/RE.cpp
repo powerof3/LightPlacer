@@ -52,12 +52,15 @@ namespace RE
 			if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {
 				return weapController->lastWeapon;
 			}
-			// no vfx on equipped armor?
-		} else {
-			return ref->GetBaseObject();
+			if (auto modelEffect = a_referenceEffect->As<ModelReferenceEffect>()) {
+				return modelEffect->artObject;
+			}
+			if (auto shaderReferenceEffect = a_referenceEffect->As<ShaderReferenceEffect>()) {
+				return shaderReferenceEffect->wornObject;
+			}
 		}
 
-		return nullptr;
+		return ref->GetBaseObject();
 	}
 
 	bool IsActor(const TESObjectREFR* a_ref)
