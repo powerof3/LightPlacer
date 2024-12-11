@@ -70,14 +70,20 @@ namespace Debug
 			const auto refs = LightManager::GetSingleton()->GetLightAttachedRefs();
 
 			for (auto& ref : refs) {
-				ref->Disable();
+				if (ref) {
+					ref->Disable();					
+				}
 			}
 
 			LightManager::GetSingleton()->ReloadConfigs();
 
 			for (auto& ref : refs) {
-				ref->Enable(false);
+				if (ref) {
+					ref->Enable(false);
+				}
 			}
+
+			RE::TES::GetSingleton()->PurgeBufferedCells();
 
 			RE::ConsoleLog::GetSingleton()->Print("%u refs reloaded", refs.size());
 
