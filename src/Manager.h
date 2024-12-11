@@ -13,8 +13,11 @@ public:
 		kEffect
 	};
 
-	bool ReadConfigs();
+	bool ReadConfigs(bool a_reload = false);
 	void OnDataLoad();
+	void ReloadConfigs();
+
+	std::vector<RE::TESObjectREFRPtr> GetLightAttachedRefs();
 
 	void AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root);
 	void ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
@@ -104,13 +107,15 @@ public:
 	}
 
 private:
+	void ProcessConfigs();
+
 	void AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_type);
 	void AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type);
 	void AttachLight(const LightSourceData& a_lightSource, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index = 0);
 	bool ReattachLightsImpl(const ObjectREFRParams& a_refParams);
 
 	// members
-	std::vector<Config::Format>                         config;
+	std::vector<Config::Format>                         configs;
 	StringMap<Config::LightSourceVec>                   gameModels;
 	FlatMap<RE::FormID, Config::LightSourceVec>         gameVisualEffects;
 	FlatMap<std::uint32_t, Config::AddonLightSourceVec> gameAddonNodes;

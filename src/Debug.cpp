@@ -7,8 +7,8 @@ namespace Debug
 	{
 		constexpr static auto OG_COMMAND = "ToggleHeapTracking"sv;
 
-		constexpr static auto LONG_NAME = "LogLights"sv;
-		constexpr static auto SHORT_NAME = "loglp"sv;
+		constexpr static auto LONG_NAME = "LogLP"sv;
+		constexpr static auto SHORT_NAME = "LogLP"sv;
 		constexpr static auto HELP = "Log all Light Placer lights on an object\n"sv;
 
 		constexpr static RE::SCRIPT_PARAMETER SCRIPT_PARAMS = { "ObjectRef", RE::SCRIPT_PARAM_TYPE::kObjectRef, true };
@@ -40,7 +40,7 @@ namespace Debug
 	{
 		constexpr static auto OG_COMMAND = "TogglePoolTracking"sv;
 
-		constexpr static auto LONG_NAME = "ToggleLightMarkers"sv;
+		constexpr static auto LONG_NAME = "ToggleLPMarkers"sv;
 		constexpr static auto SHORT_NAME = "tlpm"sv;
 		constexpr static auto HELP = "Toggle Light Markers\n"sv;
 
@@ -57,9 +57,40 @@ namespace Debug
 		}
 	};
 
+	struct ReloadConfig
+	{
+		constexpr static auto OG_COMMAND = "ToggleBoundVisGeom"sv;
+
+		constexpr static auto LONG_NAME = "ReloadLP"sv;
+		constexpr static auto SHORT_NAME = "ReloadLP"sv;
+		constexpr static auto HELP = "Reload Light Placer configs from disk\n"sv;
+
+		static bool Execute(const RE::SCRIPT_PARAMETER*, RE::SCRIPT_FUNCTION::ScriptData*, RE::TESObjectREFR*, RE::TESObjectREFR*, RE::Script*, RE::ScriptLocals*, double&, std::uint32_t&)
+		{
+			const auto refs = LightManager::GetSingleton()->GetLightAttachedRefs();
+
+			for (auto& ref : refs) {
+				ref->Disable();
+			}
+
+			LightManager::GetSingleton()->ReloadConfigs();
+
+			for (auto& ref : refs) {
+				ref->Enable(false);
+			}
+
+			RE::ConsoleLog::GetSingleton()->Print("%u refs reloaded", refs.size());
+
+			return false;
+		}
+	};
+
 	void Install()
 	{
+		logger::info("{:*^50}", "DEBUG");
+
 		ConsoleCommandHandler<LogLights>::Install();
 		ConsoleCommandHandler<ToggleLightMarkers>::Install();
+		ConsoleCommandHandler<ReloadConfig>::Install();
 	}
 }

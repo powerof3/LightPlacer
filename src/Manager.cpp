@@ -1,10 +1,8 @@
 #include "Manager.h"
 
-#include "Debug.h"
-
-bool LightManager::ReadConfigs()
+bool LightManager::ReadConfigs(bool a_reload)
 {
-	logger::info("{:*^50}", "CONFIG FILES");
+	logger::info("{:*^50}", a_reload ? "RELOAD" : "CONFIG FILES");
 
 	std::filesystem::path dir{ "Data\\LightPlacer" };
 
@@ -14,11 +12,15 @@ bool LightManager::ReadConfigs()
 		return false;
 	}
 
+	if (a_reload) {
+		configs.clear();
+	}
+
 	for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(dir)) {
 		if (dirEntry.is_directory() || dirEntry.path().extension() != ".json"sv) {
 			continue;
 		}
-		logger::info("Reading {}...", dirEntry.path().string());
+		logger::info("{} {}...", a_reload ? "Reloading" : "Reading", dirEntry.path().string());
 		std::string                 buffer;
 		std::vector<Config::Format> tmpConfig;
 		auto                        err = glz::read_file_json(tmpConfig, dirEntry.path().string(), buffer);
@@ -26,51 +28,60 @@ bool LightManager::ReadConfigs()
 			logger::error("\terror:{}", glz::format_error(err, buffer));
 		} else {
 			logger::info("\t{} entries", tmpConfig.size());
-			config.append_range(std::move(tmpConfig));
+			configs.append_range(std::move(tmpConfig));
 		}
 	}
 
-	return !config.empty();
+	return !configs.empty();
 }
 
 void LightManager::OnDataLoad()
 {
-	if (config.empty()) {
+	if (configs.empty()) {
 		return;
 	}
 
-	flickeringDistanceSq = std::powf(RE::GetINISetting("fFlickeringLightDistance:General")->GetFloat(), 2);
+	ProcessConfigs();
 
-	for (auto& multiData : config) {
-		std::visit(overload{
-					   [&](Config::MultiModelSet& models) {
-						   PostProcess(models.lights);
-						   for (auto& str : models.models) {
-							   gameModels[str].append_range(models.lights);
-						   }
-					   },
-					   [&](Config::MultiVisualEffectSet& visualEffects) {
-						   PostProcess(visualEffects.lights);
-						   for (auto& rawID : visualEffects.visualEffects) {
-							   if (auto formID = RE::GetFormID(rawID); formID != 0) {
-								   gameVisualEffects[formID].append_range(visualEffects.lights);
-							   }
-						   }
-					   },
-					   [&](Config::MultiAddonSet& addonNodes) {
-						   PostProcess(addonNodes.lights);
-						   for (auto& idx : addonNodes.addonNodes) {
-							   gameAddonNodes[idx].append_range(addonNodes.lights);
-						   }
-					   } },
-			multiData);
-	}
+	flickeringDistanceSq = std::powf(RE::GetINISetting("fFlickeringLightDistance:General")->GetFloat(), 2);
 
 	logger::info("{:*^50}", "RESULTS");
 
 	logger::info("Models : {} entries", gameModels.size());
 	logger::info("VisualEffects : {} entries", gameVisualEffects.size());
 	logger::info("AddonNodes : {} entries", gameAddonNodes.size());
+}
+
+void LightManager::ReloadConfigs()
+{
+	ReadConfigs(true);
+
+	if (configs.empty()) {
+		return;
+	}
+
+	gameModels.clear();
+	gameAddonNodes.clear();
+	gameVisualEffects.clear();
+
+	ProcessConfigs();
+}
+
+std::vector<RE::TESObjectREFRPtr> LightManager::GetLightAttachedRefs()
+{
+	std::vector<RE::TESObjectREFRPtr> refs;
+
+	gameRefLights.read_unsafe([&](auto& map) {
+		for (auto& [handle, lightDataVec] : map) {
+			RE::TESObjectREFRPtr ref{};
+			RE::LookupReferenceByHandle(handle, ref);
+			if (ref) {
+				refs.push_back(ref);
+			}
+		}
+	});
+
+	return refs;
 }
 
 void LightManager::AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root)
@@ -258,6 +269,34 @@ void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_
 			}
 		}
 	});
+}
+
+void LightManager::ProcessConfigs()
+{
+	for (auto& multiData : configs) {
+		std::visit(overload{
+					   [&](Config::MultiModelSet& models) {
+						   PostProcess(models.lights);
+						   for (auto& str : models.models) {
+							   gameModels[str].append_range(models.lights);
+						   }
+					   },
+					   [&](Config::MultiVisualEffectSet& visualEffects) {
+						   PostProcess(visualEffects.lights);
+						   for (auto& rawID : visualEffects.visualEffects) {
+							   if (auto formID = RE::GetFormID(rawID); formID != 0) {
+								   gameVisualEffects[formID].append_range(visualEffects.lights);
+							   }
+						   }
+					   },
+					   [&](Config::MultiAddonSet& addonNodes) {
+						   PostProcess(addonNodes.lights);
+						   for (auto& idx : addonNodes.addonNodes) {
+							   gameAddonNodes[idx].append_range(addonNodes.lights);
+						   }
+					   } },
+			multiData);
+	}
 }
 
 void LightManager::AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_type)
