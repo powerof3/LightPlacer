@@ -10,6 +10,7 @@ namespace Hooks::Update::BSTempEffect
 		static void thunk(T* a_this)
 		{
 			func(a_this);
+
 			LightManager::GetSingleton()->UpdateTempEffectLights(a_this);
 		}
 		static inline REL::Relocation<decltype(thunk)> func;

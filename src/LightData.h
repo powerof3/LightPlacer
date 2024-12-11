@@ -55,7 +55,7 @@ struct LightData
 	float                                    GetFOV() const;
 	float                                    GetFalloff() const;
 	float                                    GetNearDistance() const;
-	std::string                              GetName(std::uint32_t a_index) const;
+	std::string                              GetName(RE::ReferenceEffect* a_effect, std::uint32_t a_index) const;
 	static std::string                       GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
 	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
@@ -66,7 +66,7 @@ struct LightData
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
 
-	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::uint32_t a_index = 0) const;
+	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::ReferenceEffect* a_effect, RE::NiNode* a_node, std::uint32_t a_index = 0) const;
 
 	// members
 	RE::TESObjectLIGH*                      light{ nullptr };
@@ -194,9 +194,10 @@ struct REFR_LIGH
 		return niLight->name == rhs->name;
 	}
 
+	bool DimLight(float a_dimmer) const;
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	void ReattachLight() const;
-	void RemoveLight() const;
+	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker(bool a_show) const;
 	void UpdateAnimation(bool a_withinRange);
 	void UpdateConditions(RE::TESObjectREFR* a_ref) const;

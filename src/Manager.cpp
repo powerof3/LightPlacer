@@ -122,7 +122,7 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 				it->second.write([&](auto& nodeMap) {
 					for (auto& [node, lightRefrDataVec] : nodeMap) {
 						for (auto& lightRefrData : lightRefrDataVec) {
-							lightRefrData.RemoveLight();
+							lightRefrData.RemoveLight(a_clearData);
 						}
 					}
 				});
@@ -135,7 +135,7 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 		gameRefLights.write([&](auto& map) {
 			if (auto it = map.find(handle); it != map.end()) {
 				for (const auto& lightRefrData : it->second) {
-					lightRefrData.RemoveLight();
+					lightRefrData.RemoveLight(a_clearData);
 				}
 				if (a_clearData) {
 					map.erase(it);
@@ -202,7 +202,7 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 			it->second.write([&](auto& nodeMap) {
 				if (auto nIt = nodeMap.find(a_root->AsNode()); nIt != nodeMap.end()) {
 					for (auto& lightData : nIt->second) {
-						lightData.RemoveLight();
+						lightData.RemoveLight(true);
 					}
 					nodeMap.erase(nIt);
 				}
@@ -250,7 +250,7 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 			for (const auto [index, data] : std::views::enumerate(it->second)) {
 				AttachConfigLights(refParams, data, static_cast<std::uint32_t>(index), TYPE::kEffect);
 			}
-		}		
+		}
 	}
 }
 
@@ -270,7 +270,7 @@ void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_
 	gameVisualEffectLights.write([&](auto& map) {
 		if (auto it = map.find(a_effect); it != map.end()) {
 			for (auto& lightData : it->second.lights) {
-				lightData.RemoveLight();
+				lightData.RemoveLight(a_clear);
 			}
 			if (a_clear) {
 				map.erase(it);
@@ -383,7 +383,7 @@ void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const
 
 void LightManager::AttachLight(const LightSourceData& a_lightSource, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index)
 {
-	if (auto [bsLight, niLight] = a_lightSource.data.GenLight(a_refParams.ref, a_node, a_index); bsLight && niLight) {
+	if (auto [bsLight, niLight] = a_lightSource.data.GenLight(a_refParams.ref, a_refParams.effect, a_node, a_index); bsLight && niLight) {
 		switch (a_type) {
 		case TYPE::kRef:
 			{
@@ -533,10 +533,15 @@ void LightManager::RemoveLightsFromProcessQueue(const RE::TESObjectCELL* a_cell,
 
 void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 {
-	const auto ref = a_effect->target.get();
-
 	gameVisualEffectLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_effect); it != map.end()) {
+			const auto ref = a_effect->target.get();
+
+			constexpr auto MAX_WAIT_TIME = 3.0f;
+			const float    dimFactor = a_effect->finished ?
+			                               (a_effect->lifetime + MAX_WAIT_TIME - a_effect->age) / MAX_WAIT_TIME :
+			                               std::numeric_limits<float>::max();
+
 			auto& [flickerTimer, conditionTimer, lightDataVec] = it->second;
 
 			const bool updateFlicker = flickerTimer.UpdateTimer(RE::BSTimer::GetSingleton()->delta * 2.0f);
@@ -544,12 +549,17 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 			const bool withinFlickerDistance = ref->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < flickeringDistanceSq;
 
 			for (auto& lightData : lightDataVec) {
+				if (lightData.DimLight(dimFactor)) {
+					continue;
+				}
 				if (updateConditions) {
 					lightData.UpdateConditions(ref.get());
 				}
 				lightData.UpdateAnimation(withinFlickerDistance);
-				if (withinFlickerDistance && updateFlicker) {
-					lightData.UpdateFlickering();
+				if (updateFlicker) {
+					if (withinFlickerDistance) {
+						lightData.UpdateFlickering();
+					}
 				}
 			}
 		}

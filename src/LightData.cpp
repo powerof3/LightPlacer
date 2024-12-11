@@ -51,9 +51,9 @@ bool LightData::IsValid() const
 	return light != nullptr;
 }
 
-std::string LightData::GetName(std::uint32_t a_index) const
+std::string LightData::GetName(RE::ReferenceEffect* a_effect, std::uint32_t a_index) const
 {
-	return std::format("{} [{:X}|{}|{}] #{}", LP_ID, light->GetFormID(), radius, fade, a_index);
+	return std::format("{} {:p} [{:X}|{}|{}] #{}", LP_ID, a_effect? fmt::ptr(a_effect) : nullptr, light->GetFormID(), radius, fade, a_index);
 }
 
 std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index)
@@ -210,12 +210,12 @@ RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj
 	return nullptr;
 }
 
-std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::uint32_t a_index) const
+std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::ReferenceEffect* a_effect, RE::NiNode* a_node, std::uint32_t a_index) const
 {
 	RE::BSLight*      bsLight = nullptr;
 	RE::NiPointLight* niLight = nullptr;
 
-	auto name = GetName(a_index);
+	auto name = GetName(a_effect, a_index);
 
 	niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(name));
 	if (!niLight) {
@@ -372,9 +372,18 @@ bool LightSourceData::PostProcess()
 	return true;
 }
 
+bool REFR_LIGH::DimLight(const float a_dimmer) const
+{
+	if (niLight && a_dimmer <= 1.0f) {
+		niLight->fade *= a_dimmer;
+		return true;
+	}
+	return false;
+}
+
 void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 {
-	auto lights = data.GenLight(a_ref, niLight->parent, index);
+	auto lights = data.GenLight(a_ref, nullptr, niLight->parent, index);
 
 	bsLight.reset(lights.first);
 	niLight.reset(lights.second);
@@ -390,13 +399,18 @@ void REFR_LIGH::ReattachLight() const
 	}
 }
 
-void REFR_LIGH::RemoveLight() const
+void REFR_LIGH::RemoveLight(bool a_clearData) const
 {
 	if (niLight && Debug::showDebugMarker) {
 		ShowDebugMarker(false);
 	}
 	if (bsLight) {
 		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->RemoveLight(bsLight);
+	}
+	if (a_clearData) {
+		if (niLight && niLight->parent) {
+			niLight->parent->DetachChild(niLight.get());
+		}		
 	}
 }
 
