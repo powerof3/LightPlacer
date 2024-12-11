@@ -103,10 +103,14 @@ namespace Animation
 	{
 	public:
 		LightController() = default;
-		explicit LightController(const KeyframeSequence<T, index>& a_sequence) :
+		explicit LightController(const KeyframeSequence<T, index>& a_sequence, bool a_randomAnimStart) :
 			sequence(a_sequence),
 			cycleDuration(a_sequence.GetDuration())
-		{}
+		{
+			if (a_randomAnimStart) {
+				currentTime = clib_util::RNG().generate(0.0f, cycleDuration);
+			}
+		}
 
 		T GetValue(const float a_time)
 		{

@@ -47,6 +47,7 @@ struct LightData
 		Shadow = (1 << 1),
 		Simple = (1 << 2),
 
+		RandomAnimStart = (1 << 29),
 		NoExternalEmittance = (1 << 30)
 	};
 
@@ -167,20 +168,22 @@ struct REFR_LIGH
 			data.emittanceForm = xData ? xData->source : nullptr;
 		}
 
+		const bool randomAnimStart = data.flags.any(LightData::LightFlags::RandomAnimStart);
+
 		if (!a_lightSource.colorController.empty()) {
-			colorController = Animation::LightController(a_lightSource.colorController);
+			colorController = Animation::LightController(a_lightSource.colorController, randomAnimStart);
 		}
 		if (!a_lightSource.radiusController.empty()) {
-			radiusController = Animation::LightController(a_lightSource.radiusController);
+			radiusController = Animation::LightController(a_lightSource.radiusController, randomAnimStart);
 		}
 		if (!a_lightSource.fadeController.empty()) {
-			fadeController = Animation::LightController(a_lightSource.fadeController);
+			fadeController = Animation::LightController(a_lightSource.fadeController, randomAnimStart);
 		}
 		if (!a_lightSource.positionController.empty()) {
-			positionController = Animation::LightController(a_lightSource.positionController);
+			positionController = Animation::LightController(a_lightSource.positionController, randomAnimStart);
 		}
 		if (!a_lightSource.rotationController.empty()) {
-			rotationController = Animation::LightController(a_lightSource.rotationController);
+			rotationController = Animation::LightController(a_lightSource.rotationController, randomAnimStart);
 		}
 
 		if (a_niLight && a_niLight->parent) {

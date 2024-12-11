@@ -364,6 +364,9 @@ void LightSourceData::ReadFlags()
 			case "Simple"_h:
 				data.flags.set(LightData::LightFlags::Simple);
 				break;
+			case "RandomAnimStart"_h:
+				data.flags.set(LightData::LightFlags::RandomAnimStart);
+				break;
 			case "NoExternalEmittance"_h:
 				data.flags.set(LightData::LightFlags::NoExternalEmittance);
 				break;
