@@ -198,7 +198,7 @@ struct REFR_LIGH
 	void ReattachLight() const;
 	void RemoveLight() const;
 	void ShowDebugMarker(bool a_show) const;
-	void UpdateAnimation();
+	void UpdateAnimation(bool a_withinRange);
 	void UpdateConditions(RE::TESObjectREFR* a_ref) const;
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;

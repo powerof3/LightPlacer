@@ -407,36 +407,45 @@ void REFR_LIGH::ShowDebugMarker(bool a_show) const
 	}
 }
 
-void REFR_LIGH::UpdateAnimation()
+void REFR_LIGH::UpdateAnimation(bool a_withinRange)
 {
-	if (niLight) {
-		if (colorController) {
-			niLight->diffuse = colorController->GetValue(RE::BSTimer::GetSingleton()->delta);
+	if (!niLight) {
+		return;
+	}
+
+	// update color but not transforms when out of vanilla flicker distance
+
+	if (colorController) {
+		niLight->diffuse = colorController->GetValue(RE::BSTimer::GetSingleton()->delta);
+	}
+
+	if (!a_withinRange) {
+		return;
+	}
+
+	if (radiusController) {
+		const auto newRadius = radiusController->GetValue(RE::BSTimer::GetSingleton()->delta);
+		niLight->radius.x = newRadius;
+		niLight->radius.y = newRadius;
+		niLight->radius.z = newRadius;
+	}
+	if (fadeController) {
+		niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta);
+	}
+	if (auto parentNode = niLight->parent) {
+		if (positionController) {
+			parentNode->local.translate = positionController->GetValue(RE::BSTimer::GetSingleton()->delta);
 		}
-		if (radiusController) {
-			auto newRadius = radiusController->GetValue(RE::BSTimer::GetSingleton()->delta);
-			niLight->radius.x = newRadius;
-			niLight->radius.y = newRadius;
-			niLight->radius.z = newRadius;
+		if (rotationController) {
+			auto rotation = rotationController->GetValue(RE::BSTimer::GetSingleton()->delta);
+			parentNode->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(rotation[0]), RE::deg_to_rad(rotation[1]), RE::deg_to_rad(rotation[2]));
 		}
-		if (fadeController) {
-			niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta);
-		}
-		if (auto parentNode = niLight->parent) {
-			if (positionController) {
-				parentNode->local.translate = positionController->GetValue(RE::BSTimer::GetSingleton()->delta);
-			}
-			if (rotationController) {
-				auto rotation = rotationController->GetValue(RE::BSTimer::GetSingleton()->delta);
-				parentNode->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(rotation[0]), RE::deg_to_rad(rotation[1]), RE::deg_to_rad(rotation[2]));
-			}
-			if (positionController || rotationController) {
-				if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
-					RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(parentNode);
-				} else {
-					RE::NiUpdateData updateData;
-					parentNode->Update(updateData);
-				}
+		if (positionController || rotationController) {
+			if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
+				RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(parentNode);
+			} else {
+				RE::NiUpdateData updateData;
+				parentNode->Update(updateData);
 			}
 		}
 	}

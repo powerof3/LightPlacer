@@ -475,7 +475,7 @@ void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell
 						if (updateConditions) {
 							lightREFRData.UpdateConditions(ref.get());
 						}
-						lightREFRData.UpdateAnimation();
+						lightREFRData.UpdateAnimation(withinFlickerDistance);
 						if (withinFlickerDistance) {
 							lightREFRData.UpdateFlickering();
 						}
@@ -539,7 +539,7 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 				if (updateConditions) {
 					lightData.UpdateConditions(ref.get());
 				}
-				lightData.UpdateAnimation();
+				lightData.UpdateAnimation(withinFlickerDistance);
 				if (withinFlickerDistance && updateFlicker) {
 					lightData.UpdateFlickering();
 				}
