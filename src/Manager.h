@@ -120,10 +120,10 @@ private:
 	FlatMap<RE::FormID, Config::LightSourceVec>         gameVisualEffects;
 	FlatMap<std::uint32_t, Config::AddonLightSourceVec> gameAddonNodes;
 
-	LockedMap<RE::RefHandle, std::vector<REFR_LIGH>>                             gameRefLights;
-	LockedMap<RE::RefHandle, LockedNiPtrMap<RE::NiNode, std::vector<REFR_LIGH>>> gameActorLights;
-	LockedNiPtrMap<RE::ReferenceEffect, ProcessedEffectLights>                   gameVisualEffectLights;
-	LockedMap<RE::FormID, MutexGuard<ProcessedREFRLights>>                       processedGameRefLights;
+	LockedMap<RE::RefHandle, std::vector<REFR_LIGH>>                         gameRefLights;
+	LockedMap<RE::RefHandle, LockedMap<std::string, std::vector<REFR_LIGH>>> gameActorLights;
+	LockedNiPtrMap<RE::ReferenceEffect, ProcessedEffectLights>               gameVisualEffectLights;
+	LockedMap<RE::FormID, MutexGuard<ProcessedREFRLights>>                   processedGameRefLights;
 
 	float flickeringDistanceSq{ 0.0f };
 };

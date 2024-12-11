@@ -17,17 +17,21 @@ struct ObjectREFRParams
 	ObjectREFRParams() = default;
 	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
 	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
+	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject);
 
-	bool IsValid() const;
+	bool        IsValid() const;
+	RE::NiNode* GetWornItemAttachNode() const;
+	std::string GetWornItemNodeName() const;
 
 	// members
 	RE::TESObjectREFR*   ref{};
+	RE::TESBoundObject*  base{};
+	RE::TESObjectARMA*   armorAddon{};
 	RE::ReferenceEffect* effect{};
 	RE::NiNode*          root{};
 	RE::RefHandle        handle{};
 	std::string_view     modelPath;
 
-	RE::FormID baseID{ 0 };
 	RE::FormID cellID{ 0 };
 	RE::FormID worldSpaceID{ 0 };
 	RE::FormID locationID{ 0 };

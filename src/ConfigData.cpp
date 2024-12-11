@@ -38,18 +38,21 @@ bool Config::Filter::IsInvalid(const ObjectREFRParams& a_refParams) const
 bool Config::Filter::IsBlacklisted(const ObjectREFRParams& a_refParams) const
 {
 	const auto refID = a_refParams.ref->GetFormID();
-	return blackList.contains(a_refParams.modelPath.data()) || stl::contains(blackListForms, refID, a_refParams.baseID, a_refParams.cellID, a_refParams.worldSpaceID, a_refParams.locationID);
+	const auto baseID = a_refParams.base->GetFormID();
+
+	return blackList.contains(a_refParams.modelPath.data()) || stl::contains(blackListForms, refID, baseID, a_refParams.cellID, a_refParams.worldSpaceID, a_refParams.locationID);
 }
 
 bool Config::Filter::IsWhitelisted(const ObjectREFRParams& a_refParams) const
 {
 	const auto refID = a_refParams.ref->GetFormID();
+	const auto baseID = a_refParams.base->GetFormID();
 
 	if (!whiteList.empty() && !whiteListForms.empty()) {
-		return whiteList.contains(a_refParams.modelPath.data()) && stl::contains(whiteListForms, refID, a_refParams.baseID, a_refParams.cellID, a_refParams.worldSpaceID, a_refParams.locationID);
+		return whiteList.contains(a_refParams.modelPath.data()) && stl::contains(whiteListForms, refID, baseID, a_refParams.cellID, a_refParams.worldSpaceID, a_refParams.locationID);
 	}
 
-	return whiteList.contains(a_refParams.modelPath.data()) || stl::contains(whiteListForms, refID, a_refParams.baseID, a_refParams.cellID, a_refParams.worldSpaceID, a_refParams.locationID);
+	return whiteList.contains(a_refParams.modelPath.data()) || stl::contains(whiteListForms, refID, baseID, a_refParams.cellID, a_refParams.worldSpaceID, a_refParams.locationID);
 }
 
 void Config::PostProcess(Config::LightSourceVec& a_lightDataVec)

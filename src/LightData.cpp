@@ -18,9 +18,9 @@ ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::TESBoundObject*
 
 ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model) :
 	ref(a_ref),
+	base(a_object),
 	root(a_root->AsNode()),
-	handle(a_ref->CreateRefHandle().native_handle()),
-	baseID(a_object->GetFormID())
+	handle(a_ref->CreateRefHandle().native_handle())
 {
 	RE::TESModel* model = a_model;
 	if (!model) {
@@ -41,9 +41,34 @@ ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_r
 	}
 }
 
+ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject) :
+	ObjectREFRParams(a_ref, a_root, a_bipObject.item->As<RE::TESBoundObject>(), a_bipObject.part)
+{
+	armorAddon = a_bipObject.addon;
+}
+
 bool ObjectREFRParams::IsValid() const
 {
 	return !ref->IsDisabled() && !ref->IsDeleted() && !modelPath.empty() && root && cellID != 0;
+}
+
+RE::NiNode* ObjectREFRParams::GetWornItemAttachNode() const
+{
+	if (base->Is(RE::FormType::Armor)) {
+		return ref->Get3D()->AsNode();
+	}
+	return root;
+}
+
+std::string ObjectREFRParams::GetWornItemNodeName() const
+{
+	if (auto armo = base->As<RE::TESObjectARMO>()) {
+		return RE::GetNodeName(armorAddon, ref, armo, -1.0f);
+	}
+	if (const auto weap = base->As<RE::TESObjectWEAP>()) {
+		return RE::GetNodeName(weap);
+	}
+	return {};
 }
 
 bool LightData::IsValid() const
@@ -53,7 +78,7 @@ bool LightData::IsValid() const
 
 std::string LightData::GetName(RE::ReferenceEffect* a_effect, std::uint32_t a_index) const
 {
-	return std::format("{} {:p} [{:X}|{}|{}] #{}", LP_ID, a_effect? fmt::ptr(a_effect) : nullptr, light->GetFormID(), radius, fade, a_index);
+	return std::format("{} {:p} [{:X}|{}|{}] #{}", LP_ID, a_effect ? fmt::ptr(a_effect) : nullptr, light->GetFormID(), radius, fade, a_index);
 }
 
 std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index)
@@ -410,7 +435,7 @@ void REFR_LIGH::RemoveLight(bool a_clearData) const
 	if (a_clearData) {
 		if (niLight && niLight->parent) {
 			niLight->parent->DetachChild(niLight.get());
-		}		
+		}
 	}
 }
 

@@ -44,6 +44,32 @@ namespace RE
 		return REL::Version(version);
 	}
 
+	std::string GetNodeName(TESObjectARMA* a_arma, const TESObjectREFR* a_refr, const TESObjectARMO* a_armor, float a_weightOverride)
+	{
+		float weight = 100.0F;
+		auto  baseObj = a_refr->GetBaseObject();
+		auto  npc = baseObj ? baseObj->As<TESNPC>() : nullptr;
+		if (npc) {
+			npc = npc->GetRootFaceNPC();
+			weight = npc->weight;
+		} else {
+			weight = a_refr->GetWeight();
+		}
+
+		// Determines whether to factor weight into the name, -1 true, 1 false
+		if (a_weightOverride >= 0.0F) {
+			weight = a_weightOverride * 100.0F;
+		}
+
+		std::uint32_t sex = npc ? static_cast<std::uint32_t>(npc->GetSex()) : 0;
+		return std::format("{} ({:08X})[{:d}]/{} ({:08X}) [{:2.0f}%]", a_arma->GetFormEditorID(), a_arma->GetFormID(), sex, a_armor->GetFormEditorID(), a_armor->GetFormID(), weight);
+	}
+
+	std::string GetNodeName(TESObjectWEAP* a_weap)
+	{
+		return std::format("{}  ({:08X})", "Weapon", a_weap->GetFormID());
+	}
+
 	TESBoundObject* GetReferenceEffectBase(const ReferenceEffect* a_referenceEffect)
 	{
 		auto ref = a_referenceEffect->target.get();

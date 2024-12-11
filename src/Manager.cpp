@@ -164,7 +164,7 @@ void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPoi
 		return;
 	}
 
-	ObjectREFRParams refParams(a_ref, a_root, bipObject.item->As<RE::TESBoundObject>(), bipObject.part);
+	ObjectREFRParams refParams(a_ref, a_root, bipObject);
 	if (!refParams.IsValid()) {
 		return;
 	}
@@ -200,7 +200,7 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 	gameActorLights.write([&](auto& map) {
 		if (auto it = map.find(handle); it != map.end()) {
 			it->second.write([&](auto& nodeMap) {
-				if (auto nIt = nodeMap.find(a_root->AsNode()); nIt != nodeMap.end()) {
+				if (auto nIt = nodeMap.find(a_root->name.c_str()); nIt != nodeMap.end()) {
 					for (auto& lightData : nIt->second) {
 						lightData.RemoveLight(true);
 					}
@@ -345,7 +345,9 @@ void LightManager::AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_
 void LightManager::AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type)
 {
 	RE::NiAVObject* lightPlacerNode = nullptr;
-	const auto&     rootNode = a_refParams.root;
+	const auto&     rootNode = (a_type == TYPE::kActor) ?
+	                               a_refParams.GetWornItemAttachNode() :
+	                               a_refParams.root;
 
 	std::visit(overload{
 				   [&](const Config::PointData& pointData) {
@@ -389,6 +391,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Objec
 			{
 				gameRefLights.write([&](auto& map) {
 					auto& lightDataVec = map[a_refParams.handle];
+
 					if (std::find(lightDataVec.begin(), lightDataVec.end(), niLight) == lightDataVec.end()) {
 						lightDataVec.emplace_back(a_lightSource, bsLight, niLight, a_refParams.ref, a_index);
 					}
@@ -398,8 +401,9 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Objec
 		case TYPE::kActor:
 			{
 				gameActorLights.write([&](auto& map) {
-					map[a_refParams.handle].write([&](auto& nodeMap) {
-						auto& lightDataVec = nodeMap[a_refParams.root];
+					map[a_refParams.handle].write([&](auto& nodeNameMap) {
+						auto& lightDataVec = nodeNameMap[a_refParams.GetWornItemNodeName()];
+
 						if (std::find(lightDataVec.begin(), lightDataVec.end(), niLight) == lightDataVec.end()) {
 							REFR_LIGH lightData(a_lightSource, bsLight, niLight, a_refParams.ref, a_index);
 							lightDataVec.push_back(lightData);
@@ -417,6 +421,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Objec
 			{
 				gameVisualEffectLights.write([&](auto& map) {
 					auto& effectLights = map[a_refParams.effect];
+
 					if (std::find(effectLights.lights.begin(), effectLights.lights.end(), niLight) == effectLights.lights.end()) {
 						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_refParams.ref, a_index);
 					}
