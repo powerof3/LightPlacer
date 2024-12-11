@@ -44,7 +44,7 @@ ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_r
 ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject) :
 	ObjectREFRParams(a_ref, a_root, a_bipObject.item->As<RE::TESBoundObject>(), a_bipObject.part)
 {
-	armorAddon = a_bipObject.addon;
+	arma = a_bipObject.addon;
 }
 
 bool ObjectREFRParams::IsValid() const
@@ -60,15 +60,13 @@ RE::NiNode* ObjectREFRParams::GetWornItemAttachNode() const
 	return root;
 }
 
-std::string ObjectREFRParams::GetWornItemNodeName() const
+void ObjectREFRParams::GetWornItemNodeName(char* a_dstBuffer) const
 {
 	if (auto armo = base->As<RE::TESObjectARMO>()) {
-		return RE::GetNodeName(armorAddon, ref, armo, -1.0f);
+		arma->GetNodeName(a_dstBuffer, ref, armo, -1);
+	} else if (const auto weap = base->As<RE::TESObjectWEAP>()) {
+		weap->GetNodeName(a_dstBuffer);
 	}
-	if (const auto weap = base->As<RE::TESObjectWEAP>()) {
-		return RE::GetNodeName(weap);
-	}
-	return {};
 }
 
 bool LightData::IsValid() const
@@ -76,9 +74,18 @@ bool LightData::IsValid() const
 	return light != nullptr;
 }
 
-std::string LightData::GetName(RE::ReferenceEffect* a_effect, std::uint32_t a_index) const
+std::string LightData::GetName(const ObjectREFRParams& a_refParams, std::uint32_t a_index) const
 {
-	return std::format("{} {:p} [{:X}|{}|{}] #{}", LP_ID, a_effect ? fmt::ptr(a_effect) : nullptr, light->GetFormID(), radius, fade, a_index);
+	std::size_t seed = 0;
+	boost::hash_combine(seed, light->GetFormID());
+	boost::hash_combine(seed, radius);
+	boost::hash_combine(seed, fade);
+
+	if (a_refParams.effect) {
+		return std::format("{} [{:p}|{}] #{}", LP_ID, fmt::ptr(a_refParams.effect), seed, a_index);
+	}
+
+	return std::format("{} [{}] #{}", LP_ID, seed, a_index);
 }
 
 std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index)
@@ -235,17 +242,15 @@ RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj
 	return nullptr;
 }
 
-std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::ReferenceEffect* a_effect, RE::NiNode* a_node, std::uint32_t a_index) const
+std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName) const
 {
 	RE::BSLight*      bsLight = nullptr;
 	RE::NiPointLight* niLight = nullptr;
 
-	auto name = GetName(a_effect, a_index);
-
-	niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(name));
+	niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(a_lightName));
 	if (!niLight) {
 		niLight = RE::NiPointLight::Create();
-		niLight->name = name;
+		niLight->name = a_lightName;
 		RE::AttachNode(a_node, niLight);
 
 		AttachDebugMarker(a_node, !Debug::showDebugMarker);
@@ -411,7 +416,7 @@ bool REFR_LIGH::DimLight(const float a_dimmer) const
 
 void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 {
-	auto lights = data.GenLight(a_ref, nullptr, niLight->parent, index);
+	auto lights = data.GenLight(a_ref, niLight->parent, niLight->name);
 
 	bsLight.reset(lights.first);
 	niLight.reset(lights.second);

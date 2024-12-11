@@ -21,12 +21,12 @@ struct ObjectREFRParams
 
 	bool        IsValid() const;
 	RE::NiNode* GetWornItemAttachNode() const;
-	std::string GetWornItemNodeName() const;
+	void       GetWornItemNodeName(char* a_dstBuffer) const;
 
 	// members
 	RE::TESObjectREFR*   ref{};
 	RE::TESBoundObject*  base{};
-	RE::TESObjectARMA*   armorAddon{};
+	RE::TESObjectARMA*   arma{};
 	RE::ReferenceEffect* effect{};
 	RE::NiNode*          root{};
 	RE::RefHandle        handle{};
@@ -60,7 +60,7 @@ struct LightData
 	float                                    GetFOV() const;
 	float                                    GetFalloff() const;
 	float                                    GetNearDistance() const;
-	std::string                              GetName(RE::ReferenceEffect* a_effect, std::uint32_t a_index) const;
+	std::string                              GetName(const ObjectREFRParams& a_refParams, std::uint32_t a_index) const;
 	static std::string                       GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
 	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
@@ -71,7 +71,7 @@ struct LightData
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
 	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
 
-	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::ReferenceEffect* a_effect, RE::NiNode* a_node, std::uint32_t a_index = 0) const;
+	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName) const;
 
 	// members
 	RE::TESObjectLIGH*                      light{ nullptr };
@@ -156,11 +156,10 @@ struct REFR_LIGH
 {
 	REFR_LIGH() = default;
 
-	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, std::uint32_t a_index) :
+	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref) :
 		data(a_lightSource.data),
 		bsLight(a_bsLight),
 		niLight(a_niLight),
-		index(a_index),
 		isReference(!RE::IsActor(a_ref))
 	{
 		if (!data.emittanceForm && data.flags.none(LightData::LightFlags::NoExternalEmittance)) {
@@ -220,7 +219,6 @@ struct REFR_LIGH
 	std::optional<FloatController>  fadeController;
 	std::optional<PosController>    positionController;
 	std::optional<RotController>    rotationController;
-	std::uint32_t                   index{ 0 };
 	bool                            isReference{};
 
 private:

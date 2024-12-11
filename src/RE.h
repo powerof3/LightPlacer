@@ -57,9 +57,6 @@ namespace RE
 	const char*  GetGameVersionImpl();
 	REL::Version GetGameVersion();
 
-	std::string GetNodeName(TESObjectARMA* a_arma, const TESObjectREFR* a_refr, const TESObjectARMO* a_armor, float a_weightOverride);
-	std::string GetNodeName(TESObjectWEAP* a_weap);
-
 	TESBoundObject* GetReferenceEffectBase(const ReferenceEffect* a_referenceEffect);
 
 	bool IsActor(const TESObjectREFR* a_ref);
