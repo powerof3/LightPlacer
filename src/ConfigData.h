@@ -8,9 +8,9 @@ namespace Config
 	{
 		void PostProcess();
 
-		bool IsInvalid(const ObjectREFRParams& a_refParams) const;
-		bool IsBlacklisted(const ObjectREFRParams& a_refParams) const;
-		bool IsWhitelisted(const ObjectREFRParams& a_refParams) const;
+		bool IsInvalid(const SourceData& a_srcData) const;
+		bool IsBlacklisted(const SourceData& a_srcData) const;
+		bool IsWhitelisted(const SourceData& a_srcData) const;
 
 		StringSet whiteList;
 		StringSet blackList;

@@ -109,10 +109,10 @@ public:
 private:
 	void ProcessConfigs();
 
-	void AttachLightsImpl(const ObjectREFRParams& a_refParams, TYPE a_type);
-	void AttachConfigLights(const ObjectREFRParams& a_refParams, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type);
-	void AttachLight(const LightSourceData& a_lightSource, const ObjectREFRParams& a_refParams, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index = 0);
-	bool ReattachLightsImpl(const ObjectREFRParams& a_refParams);
+	void AttachLightsImpl(const SourceData& a_srcData, TYPE a_type);
+	void AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type);
+	void AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index = 0);
+	bool ReattachLightsImpl(const SourceData& a_srcData);
 
 	// members
 	std::vector<Config::Format>                         configs;

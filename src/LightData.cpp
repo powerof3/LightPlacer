@@ -12,11 +12,11 @@ bool Timer::UpdateTimer(float a_interval)
 	return false;
 }
 
-ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model) :
-	ObjectREFRParams(a_ref, a_ref->Get3D(), a_object, a_model)
+SourceData::SourceData(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model) :
+	SourceData(a_ref, a_ref->Get3D(), a_object, a_model)
 {}
 
-ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model) :
+SourceData::SourceData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model) :
 	ref(a_ref),
 	base(a_object),
 	root(a_root->AsNode()),
@@ -41,18 +41,18 @@ ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_r
 	}
 }
 
-ObjectREFRParams::ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject) :
-	ObjectREFRParams(a_ref, a_root, a_bipObject.item->As<RE::TESBoundObject>(), a_bipObject.part)
+SourceData::SourceData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject) :
+	SourceData(a_ref, a_root, a_bipObject.item->As<RE::TESBoundObject>(), a_bipObject.part)
 {
 	arma = a_bipObject.addon;
 }
 
-bool ObjectREFRParams::IsValid() const
+bool SourceData::IsValid() const
 {
 	return !ref->IsDisabled() && !ref->IsDeleted() && !modelPath.empty() && root && cellID != 0;
 }
 
-RE::NiNode* ObjectREFRParams::GetWornItemAttachNode() const
+RE::NiNode* SourceData::GetWornItemAttachNode() const
 {
 	if (base->Is(RE::FormType::Armor)) {
 		return ref->Get3D()->AsNode();
@@ -60,7 +60,7 @@ RE::NiNode* ObjectREFRParams::GetWornItemAttachNode() const
 	return root;
 }
 
-void ObjectREFRParams::GetWornItemNodeName(char* a_dstBuffer) const
+void SourceData::GetWornItemNodeName(char* a_dstBuffer) const
 {
 	if (auto armo = base->As<RE::TESObjectARMO>()) {
 		arma->GetNodeName(a_dstBuffer, ref, armo, -1);
@@ -74,15 +74,15 @@ bool LightData::IsValid() const
 	return light != nullptr;
 }
 
-std::string LightData::GetName(const ObjectREFRParams& a_refParams, std::uint32_t a_index) const
+std::string LightData::GetName(const SourceData& a_srcData, std::uint32_t a_index) const
 {
 	std::size_t seed = 0;
 	boost::hash_combine(seed, light->GetFormID());
 	boost::hash_combine(seed, radius);
 	boost::hash_combine(seed, fade);
 
-	if (a_refParams.effect) {
-		return std::format("{} [{:p}|{}] #{}", LP_ID, fmt::ptr(a_refParams.effect), seed, a_index);
+	if (a_srcData.effect) {
+		return std::format("{} [{:p}|{}] #{}", LP_ID, fmt::ptr(a_srcData.effect), seed, a_index);
 	}
 
 	return std::format("{} [{}] #{}", LP_ID, seed, a_index);

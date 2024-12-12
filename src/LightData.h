@@ -12,12 +12,12 @@ struct Timer
 	float lastUpdateTime{ 0.0f };
 };
 
-struct ObjectREFRParams
+struct SourceData
 {
-	ObjectREFRParams() = default;
-	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
-	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
-	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject);
+	SourceData() = default;
+	SourceData(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
+	SourceData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
+	SourceData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject);
 
 	bool        IsValid() const;
 	RE::NiNode* GetWornItemAttachNode() const;
@@ -60,7 +60,7 @@ struct LightData
 	float                                    GetFOV() const;
 	float                                    GetFalloff() const;
 	float                                    GetNearDistance() const;
-	std::string                              GetName(const ObjectREFRParams& a_refParams, std::uint32_t a_index) const;
+	std::string                              GetName(const SourceData& a_srcData, std::uint32_t a_index) const;
 	static std::string                       GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
 	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
