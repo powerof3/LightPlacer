@@ -1,5 +1,7 @@
 #include "Debug.h"
+
 #include "Manager.h"
+#include <algorithm>
 
 namespace Debug
 {
@@ -9,30 +11,101 @@ namespace Debug
 
 		constexpr static auto LONG_NAME = "LogLP"sv;
 		constexpr static auto SHORT_NAME = "LogLP"sv;
-		constexpr static auto HELP = "Log all Light Placer lights on an object\n"sv;
+		constexpr static auto HELP = "List all Light Placer lights attached to the reference\n"sv;
 
 		constexpr static RE::SCRIPT_PARAMETER SCRIPT_PARAMS = { "ObjectRef", RE::SCRIPT_PARAM_TYPE::kObjectRef, true };
 
 		static bool Execute(const RE::SCRIPT_PARAMETER*, RE::SCRIPT_FUNCTION::ScriptData*, RE::TESObjectREFR* a_obj, RE::TESObjectREFR*, RE::Script*, RE::ScriptLocals*, double&, std::uint32_t&)
 		{
-			if (a_obj) {
-				if (auto root = a_obj->Get3D()) {
-					RE::ConsoleLog::GetSingleton()->Print("%08X\n\tMesh", a_obj->GetFormID());
+			if (!a_obj) {
+				return false;
+			}
 
-					RE::BSVisit::TraverseScenegraphLights(root, [&](RE::NiPointLight* ptLight) {
-						RE::ConsoleLog::GetSingleton()->Print("\t\t%s", ptLight->name.c_str());
-						return RE::BSVisit::BSVisitControl::kContinue;
-					});
+			const auto root = a_obj->Get3D();
 
-					RE::ConsoleLog::GetSingleton()->Print("\tLightData");
+			if (!root) {
+				return false;
+			}
 
-					LightManager::GetSingleton()->ForEachLight(a_obj->CreateRefHandle().native_handle(), [](const auto& lightData) {
-						RE::ConsoleLog::GetSingleton()->Print("\t\t%s", lightData.bsLight->light->name.c_str());
-					});
+			std::vector<std::vector<RE::NiAVObject*>> lightSceneGraph;
+			RE::BSVisit::TraverseScenegraphLights(root, [&](RE::NiPointLight* ptLight) {
+				std::vector<RE::NiAVObject*> hierarchy;
+				GetNodeHierarchy(ptLight, hierarchy);
+				lightSceneGraph.push_back(hierarchy);
+
+				return RE::BSVisit::BSVisitControl::kContinue;
+			});
+
+			RE::ConsoleLog::GetSingleton()->Print("%08X (%u lights)", a_obj->GetFormID(), lightSceneGraph.size());
+
+			if (lightSceneGraph.empty()) {
+				return false;
+			}
+
+			if (lightSceneGraph.size() == 1) {
+				RE::ConsoleLog::GetSingleton()->Print("\t%s", OutputSceneGraph(lightSceneGraph[0]).c_str());
+				return false;
+			}
+
+			SceneGraphMap mergedSceneGraph;
+
+			for (const auto& nodeHierarchy : lightSceneGraph) {
+				for (std::size_t i = 0; i + 1 < nodeHierarchy.size(); ++i) {
+					auto& children = mergedSceneGraph[nodeHierarchy[i]];
+					if (std::ranges::find(children, nodeHierarchy[i + 1]) == children.end()) {
+						children.push_back(nodeHierarchy[i + 1]);
+					}
 				}
 			}
 
+			std::vector<std::string> output;
+			OutputSceneGraph(mergedSceneGraph, root, output, "", true);
+			for (auto& line : output) {
+				RE::ConsoleLog::GetSingleton()->Print("%s", line.c_str());
+			}
+
 			return false;
+		}
+
+	private:
+		using SceneGraphMap = std::unordered_map<RE::NiAVObject*, std::vector<RE::NiAVObject*>>;
+
+		static void GetNodeHierarchy(RE::NiAVObject* a_obj, std::vector<RE::NiAVObject*>& hierarchy)
+		{
+			while (a_obj && !a_obj->name.empty()) { // object root is attached to nameless BSMultiBoundNode
+				hierarchy.emplace_back(a_obj);
+				a_obj = a_obj->parent;
+			}
+			std::ranges::reverse(hierarchy);  // root -> lights
+		}
+
+		static std::string OutputSceneGraph(const std::vector<RE::NiAVObject*>& nodeHierarchy)
+		{
+			std::string output;
+			for (std::size_t i = 0; i < nodeHierarchy.size(); ++i) {
+				output += nodeHierarchy[i]->name.c_str();
+				if (i < nodeHierarchy.size() - 1) {
+					output += " -> ";
+				}
+			}
+			return output;
+		}
+
+		static void OutputSceneGraph(const SceneGraphMap& a_mergedSceneGraph, RE::NiAVObject* a_currentNode, std::vector<std::string>& a_output, std::string a_indent, bool a_isLastChild)
+		{
+			if (!a_currentNode) {
+				return;
+			}
+
+			a_output.emplace_back(a_indent + "> " + a_currentNode->name.c_str());
+
+			if (auto it = a_mergedSceneGraph.find(a_currentNode); it != a_mergedSceneGraph.end()) {
+				const auto& children = it->second;
+				for (std::size_t i = 0; i < children.size(); ++i) {
+					std::string childIndent = a_indent + (a_isLastChild ? "    " : "|   ");
+					OutputSceneGraph(a_mergedSceneGraph, children[i], a_output, childIndent, i == children.size() - 1);
+				}
+			}
 		}
 	};
 
@@ -71,7 +144,7 @@ namespace Debug
 
 			for (auto& ref : refs) {
 				if (ref) {
-					ref->Disable();					
+					ref->Disable();
 				}
 			}
 
