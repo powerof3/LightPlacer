@@ -24,12 +24,7 @@ std::string LightData::GetName(const SourceData& a_srcData, std::uint32_t a_inde
 
 std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index)
 {
-	std::size_t seed = 0;
-	boost::hash_combine(seed, a_point.x);
-	boost::hash_combine(seed, a_point.y);
-	boost::hash_combine(seed, a_point.z);
-
-	return std::format("{} [{}] #{}", LP_NODE, seed, a_index);
+	return std::format("{} [{},{},{}] #{}", LP_NODE, a_point.x, a_point.y, a_point.z, a_index);
 }
 
 std::string LightData::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index)
