@@ -57,7 +57,7 @@ namespace RE
 	const char*  GetGameVersionImpl();
 	REL::Version GetGameVersion();
 
-	TESBoundObject* GetReferenceEffectBase(const ReferenceEffect* a_referenceEffect);
+	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
 
 	bool IsActor(const TESObjectREFR* a_ref);
 

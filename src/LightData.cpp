@@ -1,73 +1,7 @@
 #include "LightData.h"
 #include "ConditionParser.h"
 #include "Debug.h"
-
-bool Timer::UpdateTimer(float a_interval)
-{
-	lastUpdateTime += RE::BSTimer::GetSingleton()->delta;
-	if (lastUpdateTime >= a_interval) {
-		lastUpdateTime = 0.0f;
-		return true;
-	}
-	return false;
-}
-
-SourceData::SourceData(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model) :
-	SourceData(a_ref, a_ref->Get3D(), a_object, a_model)
-{}
-
-SourceData::SourceData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model) :
-	ref(a_ref),
-	base(a_object),
-	root(a_root->AsNode()),
-	handle(a_ref->CreateRefHandle().native_handle())
-{
-	RE::TESModel* model = a_model;
-	if (!model) {
-		model = a_object->As<RE::TESModel>();
-	}
-	if (model) {
-		modelPath = model->GetModel();
-	}
-
-	if (auto parentCell = a_ref->GetParentCell()) {
-		cellID = parentCell->GetFormID();
-	}
-	if (auto worldSpace = a_ref->GetWorldspace()) {
-		worldSpaceID = worldSpace->GetFormID();
-	}
-	if (auto location = a_ref->GetCurrentLocation()) {
-		locationID = location->GetFormID();
-	}
-}
-
-SourceData::SourceData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject) :
-	SourceData(a_ref, a_root, a_bipObject.item->As<RE::TESBoundObject>(), a_bipObject.part)
-{
-	arma = a_bipObject.addon;
-}
-
-bool SourceData::IsValid() const
-{
-	return !ref->IsDisabled() && !ref->IsDeleted() && !modelPath.empty() && root && cellID != 0;
-}
-
-RE::NiNode* SourceData::GetWornItemAttachNode() const
-{
-	if (base->Is(RE::FormType::Armor)) {
-		return ref->Get3D()->AsNode();
-	}
-	return root;
-}
-
-void SourceData::GetWornItemNodeName(char* a_dstBuffer) const
-{
-	if (auto armo = base->As<RE::TESObjectARMO>()) {
-		arma->GetNodeName(a_dstBuffer, ref, armo, -1);
-	} else if (const auto weap = base->As<RE::TESObjectWEAP>()) {
-		weap->GetNodeName(a_dstBuffer);
-	}
-}
+#include "SourceData.h"
 
 bool LightData::IsValid() const
 {
@@ -81,21 +15,26 @@ std::string LightData::GetName(const SourceData& a_srcData, std::uint32_t a_inde
 	boost::hash_combine(seed, radius);
 	boost::hash_combine(seed, fade);
 
-	if (a_srcData.effect) {
-		return std::format("{} [{:p}|{}] #{}", LP_ID, fmt::ptr(a_srcData.effect), seed, a_index);
+	if (a_srcData.effectID != std::numeric_limits<std::uint32_t>::max()) {
+		return std::format("{} [{}|{}] #{}", LP_LIGHT, a_srcData.effectID, seed, a_index);
 	}
 
-	return std::format("{} [{}] #{}", LP_ID, seed, a_index);
+	return std::format("{} [{}] #{}", LP_LIGHT, seed, a_index);
 }
 
 std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index)
 {
-	return std::format("{} [{}{}{}] #{}", LP_NODE, a_point.x, a_point.y, a_point.z, a_index);
+	std::size_t seed = 0;
+	boost::hash_combine(seed, a_point.x);
+	boost::hash_combine(seed, a_point.y);
+	boost::hash_combine(seed, a_point.z);
+
+	return std::format("{} [{}] #{}", LP_NODE, seed, a_index);
 }
 
 std::string LightData::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index)
 {
-	return std::format("{} {}{}", a_obj->name.c_str(), LP_NODE, a_index);
+	return std::format("{} [{}] #{}", LP_NODE, a_obj->name.c_str(), a_index);
 }
 
 bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
@@ -607,6 +546,16 @@ void REFR_LIGH::UpdateEmittance() const
 		}
 		niLight->diffuse = data.GetDiffuse() * emittanceColor;
 	}
+}
+
+bool Timer::UpdateTimer(float a_interval)
+{
+	lastUpdateTime += RE::BSTimer::GetSingleton()->delta;
+	if (lastUpdateTime >= a_interval) {
+		lastUpdateTime = 0.0f;
+		return true;
+	}
+	return false;
 }
 
 void ProcessedREFRLights::emplace(const REFR_LIGH& a_lightData, RE::RefHandle a_handle)

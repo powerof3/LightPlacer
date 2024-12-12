@@ -10,5 +10,6 @@ set(sources ${sources}
 	src/Manager.cpp
 	src/PCH.cpp
 	src/RE.cpp
+	src/SourceData.cpp
 	src/main.cpp
 )

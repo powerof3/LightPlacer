@@ -2,6 +2,8 @@
 
 #include "LightData.h"
 
+struct SourceData;
+
 namespace Config
 {
 	struct Filter

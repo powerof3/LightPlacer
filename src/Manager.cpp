@@ -90,12 +90,12 @@ void LightManager::AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_bas
 		return;
 	}
 
-	SourceData srcData(a_ref, a_root, a_base);
+	SourceData srcData(SOURCE_TYPE::kRef, a_ref, a_root, a_base);
 	if (!srcData.IsValid()) {
 		return;
 	}
 
-	AttachLightsImpl(srcData, TYPE::kRef);
+	AttachLightsImpl(srcData);
 }
 
 void LightManager::ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base)
@@ -104,7 +104,7 @@ void LightManager::ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* 
 		return;
 	}
 
-	SourceData srcData(a_ref, a_base);
+	SourceData srcData(SOURCE_TYPE::kRef, a_ref, a_base);
 	if (!srcData.IsValid()) {
 		return;
 	}
@@ -151,7 +151,7 @@ void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPoi
 		return;
 	}
 
-	RE::BSTSmartPointer<RE::BipedAnim> bipedAnim = a_bipedAnim;
+	auto bipedAnim = a_bipedAnim;
 	if (!bipedAnim) {
 		bipedAnim = a_ref->GetBiped();
 	}
@@ -159,17 +159,17 @@ void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPoi
 		return;
 	}
 
-	const auto& bipObject = a_bipedAnim->objects[a_slot];
+	const auto& bipObject = bipedAnim->objects[a_slot];
 	if (!bipObject.item || bipObject.item->Is(RE::FormType::Light)) {
 		return;
 	}
 
-	SourceData srcData(a_ref, a_root, bipObject);
+	SourceData srcData(SOURCE_TYPE::kActor, a_ref, a_root, bipObject);
 	if (!srcData.IsValid()) {
 		return;
 	}
 
-	AttachLightsImpl(srcData, TYPE::kActor);
+	AttachLightsImpl(srcData);
 }
 
 void LightManager::ReattachWornLights(const RE::ActorHandle& a_handle)
@@ -211,9 +211,9 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 	});
 }
 
-void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectID)
+void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectFormID)
 {
-	if (!a_effect || a_effectID == 0) {
+	if (!a_effect || a_effectFormID == 0) {
 		return;
 	}
 
@@ -228,27 +228,27 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 		return;
 	}
 
-	const auto base = RE::GetReferenceEffectBase(a_effect);
+	const auto base = RE::GetReferenceEffectBase(ref, a_effect);
 	if (!base) {
 		return;
 	}
 
-	SourceData srcData(ref.get(), root, base);
+	SourceData srcData(SOURCE_TYPE::kEffect, ref.get(), root, base);
 	if (!srcData.IsValid()) {
 		return;
 	}
-	srcData.effect = a_effect;
+	srcData.effectID = a_effect->effectID;
 
-	if (auto it = gameVisualEffects.find(a_effectID); it != gameVisualEffects.end()) {
+	if (auto it = gameVisualEffects.find(a_effectFormID); it != gameVisualEffects.end()) {
 		for (const auto [index, data] : std::views::enumerate(it->second)) {
-			AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index), TYPE::kEffect);
+			AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index));
 		}
 	}
 
 	if (base->Is(RE::FormType::ArtObject)) {
 		if (auto it = gameModels.find(srcData.modelPath); it != gameModels.end()) {
 			for (const auto [index, data] : std::views::enumerate(it->second)) {
-				AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index), TYPE::kEffect);
+				AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index));
 			}
 		}
 	}
@@ -257,7 +257,7 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 void LightManager::ReattachTempEffectLights(RE::ReferenceEffect* a_effect)
 {
 	gameVisualEffectLights.read([&](auto& map) {
-		if (auto it = map.find(a_effect); it != map.end()) {
+		if (auto it = map.find(a_effect->effectID); it != map.end()) {
 			for (auto& lightData : it->second.lights) {
 				lightData.ReattachLight();
 			}
@@ -268,7 +268,7 @@ void LightManager::ReattachTempEffectLights(RE::ReferenceEffect* a_effect)
 void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clear)
 {
 	gameVisualEffectLights.write([&](auto& map) {
-		if (auto it = map.find(a_effect); it != map.end()) {
+		if (auto it = map.find(a_effect->effectID); it != map.end()) {
 			for (auto& lightData : it->second.lights) {
 				lightData.RemoveLight(a_clear);
 			}
@@ -307,14 +307,14 @@ void LightManager::ProcessConfigs()
 	}
 }
 
-void LightManager::AttachLightsImpl(const SourceData& a_srcData, TYPE a_type)
+void LightManager::AttachLightsImpl(const SourceData& a_srcData)
 {
 	[[maybe_unused]] std::int32_t LP_INDEX = 0;
 	std::int32_t                  LP_ADDON_INDEX = 0;
 
 	if (auto mIt = gameModels.find(a_srcData.modelPath); mIt != gameModels.end()) {
 		for (const auto [index, data] : std::views::enumerate(mIt->second)) {
-			AttachConfigLights(a_srcData, data, static_cast<std::uint32_t>(index), a_type);
+			AttachConfigLights(a_srcData, data, static_cast<std::uint32_t>(index));
 		}
 	}
 
@@ -324,7 +324,7 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData, TYPE a_type)
 				for (const auto& [filter, lightData] : it->second) {
 					if (!filter.IsInvalid(a_srcData)) {
 						if (auto lightPlacerNode = lightData.data.GetOrCreateNode(a_srcData.root, addonNode, LP_ADDON_INDEX)) {
-							AttachLight(lightData, a_srcData, lightPlacerNode, a_type, LP_ADDON_INDEX);
+							AttachLight(lightData, a_srcData, lightPlacerNode, LP_ADDON_INDEX);
 						}
 						LP_ADDON_INDEX++;
 					}
@@ -342,12 +342,10 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData, TYPE a_type)
 	});
 }
 
-void LightManager::AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type)
+void LightManager::AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index)
 {
 	RE::NiAVObject* lightPlacerNode = nullptr;
-	const auto&     rootNode = (a_type == TYPE::kActor) ?
-	                               a_srcData.GetWornItemAttachNode() :
-	                               a_srcData.root;
+	const auto&     rootNode = a_srcData.GetRootNode();
 
 	std::visit(overload{
 				   [&](const Config::PointData& pointData) {
@@ -364,7 +362,7 @@ void LightManager::AttachConfigLights(const SourceData& a_srcData, const Config:
 								   RE::AttachNode(rootNode, lightPlacerNode);
 							   }
 							   if (lightPlacerNode) {
-								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), a_type, static_cast<std::uint32_t>(pointIdx));
+								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), static_cast<std::uint32_t>(pointIdx));
 							   }
 						   }
 					   }
@@ -375,7 +373,7 @@ void LightManager::AttachConfigLights(const SourceData& a_srcData, const Config:
 						   for (const auto& nodeName : nodes) {
 							   lightPlacerNode = lightData.data.GetOrCreateNode(rootNode, nodeName, a_index);
 							   if (lightPlacerNode) {
-								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), a_type);
+								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode());
 							   }
 						   }
 					   }
@@ -383,13 +381,13 @@ void LightManager::AttachConfigLights(const SourceData& a_srcData, const Config:
 		a_lightData);
 }
 
-void LightManager::AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index)
+void LightManager::AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, std::uint32_t a_index)
 {
 	const auto name = a_lightSource.data.GetName(a_srcData, a_index);
 
 	if (auto [bsLight, niLight] = a_lightSource.data.GenLight(a_srcData.ref, a_node, name); bsLight && niLight) {
-		switch (a_type) {
-		case TYPE::kRef:
+		switch (a_srcData.type) {
+		case SOURCE_TYPE::kRef:
 			{
 				gameRefLights.write([&](auto& map) {
 					auto& lightDataVec = map[a_srcData.handle];
@@ -400,7 +398,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 				});
 			}
 			break;
-		case TYPE::kActor:
+		case SOURCE_TYPE::kActor:
 			{
 				gameActorLights.write([&](auto& map) {
 					map[a_srcData.handle].write([&](auto& nodeNameMap) {
@@ -422,16 +420,18 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 				});
 			}
 			break;
-		case TYPE::kEffect:
+		case SOURCE_TYPE::kEffect:
 			{
 				gameVisualEffectLights.write([&](auto& map) {
-					auto& effectLights = map[a_srcData.effect];
+					auto& effectLights = map[a_srcData.effectID];
 
 					if (std::find(effectLights.lights.begin(), effectLights.lights.end(), niLight) == effectLights.lights.end()) {
 						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_srcData.ref);
 					}
 				});
 			}
+			break;
+		default:
 			break;
 		}
 	}
@@ -544,7 +544,7 @@ void LightManager::RemoveLightsFromProcessQueue(const RE::TESObjectCELL* a_cell,
 void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 {
 	gameVisualEffectLights.read_unsafe([&](auto& map) {
-		if (auto it = map.find(a_effect); it != map.end()) {
+		if (auto it = map.find(a_effect->effectID); it != map.end()) {
 			const auto ref = a_effect->target.get();
 
 			constexpr auto MAX_WAIT_TIME = 3.0f;

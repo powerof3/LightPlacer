@@ -44,23 +44,22 @@ namespace RE
 		return REL::Version(version);
 	}
 
-	TESBoundObject* GetReferenceEffectBase(const ReferenceEffect* a_referenceEffect)
+	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect)
 	{
-		auto ref = a_referenceEffect->target.get();
-
-		if (IsActor(ref.get())) {
+		if (IsActor(a_ref.get())) {
 			if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {
 				return weapController->lastWeapon;
 			}
-			if (auto modelEffect = a_referenceEffect->As<ModelReferenceEffect>()) {
-				return modelEffect->artObject;
-			}
-			if (auto shaderReferenceEffect = a_referenceEffect->As<ShaderReferenceEffect>()) {
-				return shaderReferenceEffect->wornObject;
-			}
 		}
 
-		return ref->GetBaseObject();
+		if (auto modelEffect = a_referenceEffect->As<ModelReferenceEffect>()) {
+			return modelEffect->artObject;
+		}
+		if (auto shaderReferenceEffect = a_referenceEffect->As<ShaderReferenceEffect>(); shaderReferenceEffect && shaderReferenceEffect->wornObject) {
+			return shaderReferenceEffect->wornObject;
+		}
+
+		return a_ref->GetBaseObject();
 	}
 
 	bool IsActor(const TESObjectREFR* a_ref)

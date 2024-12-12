@@ -2,17 +2,11 @@
 
 #include "ConfigData.h"
 #include "LightData.h"
+#include "SourceData.h"
 
 class LightManager : public ISingleton<LightManager>
 {
 public:
-	enum class TYPE
-	{
-		kRef = 0,
-		kActor,
-		kEffect
-	};
-
 	bool ReadConfigs(bool a_reload = false);
 	void OnDataLoad();
 	void ReloadConfigs();
@@ -27,7 +21,7 @@ public:
 	void ReattachWornLights(const RE::ActorHandle& a_handle);
 	void DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObject* a_root);
 
-	void AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectID);
+	void AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectFormID);
 	void ReattachTempEffectLights(RE::ReferenceEffect* a_effect);
 	void DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clear);
 
@@ -109,9 +103,9 @@ public:
 private:
 	void ProcessConfigs();
 
-	void AttachLightsImpl(const SourceData& a_srcData, TYPE a_type);
-	void AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index, TYPE a_type);
-	void AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, TYPE a_type, std::uint32_t a_index = 0);
+	void AttachLightsImpl(const SourceData& a_srcData);
+	void AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index);
+	void AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, std::uint32_t a_index = 0);
 	bool ReattachLightsImpl(const SourceData& a_srcData);
 
 	// members
@@ -121,8 +115,8 @@ private:
 	FlatMap<std::uint32_t, Config::AddonLightSourceVec> gameAddonNodes;
 
 	LockedMap<RE::RefHandle, std::vector<REFR_LIGH>>                         gameRefLights;
-	LockedMap<RE::RefHandle, LockedMap<std::string, std::vector<REFR_LIGH>>> gameActorLights;
-	LockedNiPtrMap<RE::ReferenceEffect, ProcessedEffectLights>               gameVisualEffectLights;
+	LockedMap<RE::RefHandle, LockedMap<std::string, std::vector<REFR_LIGH>>> gameActorLights;         // nodeName
+	LockedMap<std::uint32_t, ProcessedEffectLights>                          gameVisualEffectLights;  // effectID
 	LockedMap<RE::FormID, MutexGuard<ProcessedREFRLights>>                   processedGameRefLights;
 
 	float flickeringDistanceSq{ 0.0f };

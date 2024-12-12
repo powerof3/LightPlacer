@@ -2,40 +2,7 @@
 
 #include "LightControllers.h"
 
-struct Timer
-{
-	Timer() = default;
-
-	bool UpdateTimer(float a_interval);
-
-	// members
-	float lastUpdateTime{ 0.0f };
-};
-
-struct SourceData
-{
-	SourceData() = default;
-	SourceData(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
-	SourceData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
-	SourceData(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject);
-
-	bool        IsValid() const;
-	RE::NiNode* GetWornItemAttachNode() const;
-	void       GetWornItemNodeName(char* a_dstBuffer) const;
-
-	// members
-	RE::TESObjectREFR*   ref{};
-	RE::TESBoundObject*  base{};
-	RE::TESObjectARMA*   arma{};
-	RE::ReferenceEffect* effect{};
-	RE::NiNode*          root{};
-	RE::RefHandle        handle{};
-	std::string_view     modelPath;
-
-	RE::FormID cellID{ 0 };
-	RE::FormID worldSpaceID{ 0 };
-	RE::FormID locationID{ 0 };
-};
+struct SourceData;
 
 struct LightData
 {
@@ -86,8 +53,8 @@ struct LightData
 	RE::TESForm*                            emittanceForm{ nullptr };
 	std::shared_ptr<RE::TESCondition>       conditions;
 
-	constexpr static auto LP_ID = "LightPlacer"sv;
-	constexpr static auto LP_NODE = "LightPlacerNode"sv;
+	constexpr static auto LP_LIGHT = "LP_Light"sv;
+	constexpr static auto LP_NODE = "LP_Node"sv;
 	constexpr static auto LP_DEBUG = "LP_DebugMarker"sv;
 };
 
@@ -223,6 +190,16 @@ struct REFR_LIGH
 
 private:
 	void UpdateLight() const;
+};
+
+struct Timer
+{
+	Timer() = default;
+
+	bool UpdateTimer(float a_interval);
+
+	// members
+	float lastUpdateTime{ 0.0f };
 };
 
 struct ProcessedREFRLights : Timer
