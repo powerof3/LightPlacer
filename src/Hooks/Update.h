@@ -23,7 +23,7 @@ namespace Hooks::Update
 				stl::write_vfunc<T, UpdatePosition>();
 				logger::info("Hooked {}::UpdatePosition"sv, typeid(T).name());
 			}
-		};		
+		};
 	}
 
 	void Install();

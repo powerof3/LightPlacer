@@ -28,7 +28,7 @@ void Settings::LoadSettings()
 void Settings::OnDataLoad()
 {
 	erase_if(blackListedLights, [this](const auto& str) {
-		if (!str.starts_with("0x")) { // assume formid
+		if (!str.starts_with("0x")) {  // assume formid
 			return false;
 		}
 		if (auto formID = RE::GetFormID(str); formID != 0) {

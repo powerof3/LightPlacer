@@ -22,7 +22,7 @@ namespace Hooks::Detach
 				stl::write_vfunc<T, DetachImpl>();
 				logger::info("Hooked {}::DetachImpl"sv, typeid(T).name());
 			}
-		};		
+		};
 	}
 
 	void Install();

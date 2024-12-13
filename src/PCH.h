@@ -9,8 +9,8 @@
 
 #include <ClibUtil/RNG.hpp>
 #include <ClibUtil/distribution.hpp>
-#include <ClibUtil/singleton.hpp>
 #include <ClibUtil/simpleINI.hpp>
+#include <ClibUtil/singleton.hpp>
 #include <MergeMapperPluginAPI.h>
 //#include <boost_unordered.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>

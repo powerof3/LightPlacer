@@ -86,7 +86,7 @@ namespace RE
 		}
 
 		if (auto actor = a_actorMagicCaster->GetCasterAsActor()) {
-			return GetCastingArt(actor->selectedSpells[std::to_underlying(a_actorMagicCaster->castingSource)]);			
+			return GetCastingArt(actor->selectedSpells[std::to_underlying(a_actorMagicCaster->castingSource)]);
 		}
 
 		return nullptr;

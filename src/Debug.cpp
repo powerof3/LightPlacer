@@ -72,7 +72,7 @@ namespace Debug
 
 		static void GetNodeHierarchy(RE::NiAVObject* a_obj, std::vector<RE::NiAVObject*>& hierarchy)
 		{
-			while (a_obj && !a_obj->name.empty()) { // object root is attached to nameless BSMultiBoundNode
+			while (a_obj && !a_obj->name.empty()) {  // object root is attached to nameless BSMultiBoundNode
 				hierarchy.emplace_back(a_obj);
 				a_obj = a_obj->parent;
 			}

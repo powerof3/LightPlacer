@@ -48,7 +48,7 @@ namespace Hooks::Attach
 							effectID = a_this->artObject->GetFormID();
 						}
 					}
-					LightManager::GetSingleton()->AddTempEffectLights(a_this, effectID);					
+					LightManager::GetSingleton()->AddTempEffectLights(a_this, effectID);
 				}
 
 				return result;
