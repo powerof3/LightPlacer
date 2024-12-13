@@ -19,7 +19,8 @@ void Settings::LoadSettings()
 	}
 
 	logger::info("");
-	logger::info("bShowMarkers is {}", showDebugMarkers);
+	logger::info("bShowMarkers : {}", showDebugMarkers);
+	logger::info("bDisableAllGameLights : {}", disableAllGameLights);
 	logger::info("LightBlackList : {} entries", blackListedLights.size());
 
 	loadDebugMarkers = showDebugMarkers;
@@ -60,6 +61,10 @@ bool Settings::ShouldDisableLights() const
 
 bool Settings::GetGameLightDisabled(const RE::TESObjectREFR* a_ref) const
 {
+	if (disableAllGameLights) {
+		return true;
+	}
+
 	return blackListedLights.contains(a_ref->GetFile(0)->fileName) || blackListedLightsRefs.contains(a_ref->GetFormID());
 }
 
@@ -75,6 +80,9 @@ void Settings::ReadSettings(std::string_view a_path)
 
 	if (!showDebugMarkers) {
 		showDebugMarkers = ini.GetBoolValue("Settings", "bShowMarkers", false);
+	}
+	if (!disableAllGameLights) {
+		disableAllGameLights = ini.GetBoolValue("Settings", "bDisableAllGameLights", false);		
 	}
 
 	CSimpleIniA::TNamesDepend keys;
