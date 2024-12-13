@@ -62,6 +62,36 @@ namespace RE
 		return a_ref->GetBaseObject();
 	}
 
+	BGSArtObject* GetCastingArt(const MagicItem* a_magicItem)
+	{
+		if (!a_magicItem) {
+			return nullptr;
+		}
+
+		if (const auto avEffect = a_magicItem->GetAVEffect()) {
+			return avEffect->data.castingArt;
+		}
+
+		return nullptr;
+	}
+
+	BGSArtObject* GetCastingArt(const ActorMagicCaster* a_actorMagicCaster)
+	{
+		if (a_actorMagicCaster->castingArt) {
+			return a_actorMagicCaster->castingArt;
+		}
+
+		if (auto art = GetCastingArt(a_actorMagicCaster->currentSpell)) {
+			return art;
+		}
+
+		if (auto actor = a_actorMagicCaster->GetCasterAsActor()) {
+			return GetCastingArt(actor->selectedSpells[std::to_underlying(a_actorMagicCaster->castingSource)]);			
+		}
+
+		return nullptr;
+	}
+
 	bool IsActor(const TESObjectREFR* a_ref)
 	{
 		return a_ref->Is(FormType::ActorCharacter);

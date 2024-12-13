@@ -71,6 +71,33 @@ namespace Hooks::Detach
 		}
 	};
 
+	// casting art
+	struct BGSAttachTechniques__DetachItem
+	{
+		static bool thunk(RE::RefAttachTechniqueInput& a_this)
+		{
+			LightManager::GetSingleton()->DetachCastingLights(a_this);
+
+			return func(a_this);
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		static void Install()
+		{
+			std::array targets{
+				std::make_pair(RELOCATION_ID(33371, 34152), OFFSET(0x26, 0xA7)),  // ActorMagicCaster::DetachCastingArt
+#ifndef SKYRIM_AE
+				std::make_pair(RELOCATION_ID(33375, 0), OFFSET(0x52, 0)),
+#endif
+			};
+
+			for (const auto& [address, offset] : targets) {
+				REL::Relocation<std::uintptr_t> target{ address, offset };
+				stl::write_thunk_call<BGSAttachTechniques__DetachItem>(target.address());
+			}
+		}
+	};
+
 	struct Suspend
 	{
 		static void thunk(RE::ShaderReferenceEffect* a_this)
@@ -96,6 +123,7 @@ namespace Hooks::Detach
 		RemoveLight::Install();
 		GetLightData::Install();
 		RunBiped3DDetach::Install();
+		BGSAttachTechniques__DetachItem::Install();
 		BSTempEffect::DetachImpl<RE::ShaderReferenceEffect>::Install();
 		BSTempEffect::DetachImpl<RE::ModelReferenceEffect>::Install();
 		Suspend::Install();

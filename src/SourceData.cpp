@@ -38,16 +38,24 @@ SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObj
 
 bool SourceData::IsValid() const
 {
-	if (type == SOURCE_TYPE::kRef || type == SOURCE_TYPE::kActor) {
-		return !ref->IsDisabled() && !ref->IsDeleted() && root && cellID != 0 && !modelPath.empty();		
+	if (type == SOURCE_TYPE::kRef || type == SOURCE_TYPE::kActorWorn) {
+		return !ref->IsDisabled() && !ref->IsDeleted() && root && cellID != 0 && !modelPath.empty();
 	}
 	return !ref->IsDisabled() && !ref->IsDeleted() && root && cellID != 0;
 }
 
 RE::NiNode* SourceData::GetRootNode() const
 {
-	if (type == SOURCE_TYPE::kActor && base->Is(RE::FormType::Armor)) {
+	if (type == SOURCE_TYPE::kActorWorn && base->Is(RE::FormType::Armor)) {
 		return ref->Get3D()->AsNode();
+	}
+	if (type == SOURCE_TYPE::kActorMagic && ref->IsPlayerRef()) { // light doesn't get show in first person (possibly culled when switching nodes)?
+		if (const auto fPRoot = ref->Get3D(true)) {
+			const auto tpRoot = ref->Get3D(false);
+			if (const auto node = tpRoot->GetObjectByName(root->parent->name)) {
+				return node->AsNode();
+			}
+		}
 	}
 	return root;
 }

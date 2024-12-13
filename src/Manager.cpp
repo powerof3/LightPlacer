@@ -117,7 +117,7 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 	auto handle = a_ref->CreateRefHandle().native_handle();
 
 	if (RE::IsActor(a_ref)) {
-		gameActorLights.write([&](auto& map) {
+		gameActorWornLights.write([&](auto& map) {
 			if (auto it = map.find(handle); it != map.end()) {
 				it->second.write([&](auto& nodeMap) {
 					for (auto& [node, lightRefrDataVec] : nodeMap) {
@@ -164,7 +164,7 @@ void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPoi
 		return;
 	}
 
-	SourceData srcData(SOURCE_TYPE::kActor, a_ref, a_root, bipObject);
+	SourceData srcData(SOURCE_TYPE::kActorWorn, a_ref, a_root, bipObject);
 	if (!srcData.IsValid()) {
 		return;
 	}
@@ -176,7 +176,7 @@ void LightManager::ReattachWornLights(const RE::ActorHandle& a_handle)
 {
 	auto handle = a_handle.native_handle();
 
-	gameActorLights.read([&](auto& map) {
+	gameActorWornLights.read([&](auto& map) {
 		if (auto it = map.find(handle); it != map.end()) {
 			it->second.read([&](auto& nodeMap) {
 				for (auto& [node, lightDataVec] : nodeMap) {
@@ -197,7 +197,7 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 
 	auto handle = a_handle.native_handle();
 
-	gameActorLights.write([&](auto& map) {
+	gameActorWornLights.write([&](auto& map) {
 		if (auto it = map.find(handle); it != map.end()) {
 			it->second.write([&](auto& nodeMap) {
 				if (auto nIt = nodeMap.find(a_root->name.c_str()); nIt != nodeMap.end()) {
@@ -233,7 +233,7 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 		return;
 	}
 
-	SourceData srcData(SOURCE_TYPE::kEffect, ref.get(), root, base);
+	SourceData srcData(SOURCE_TYPE::kTempEffect, ref.get(), root, base);
 	if (!srcData.IsValid()) {
 		return;
 	}
@@ -275,6 +275,62 @@ void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_
 			if (a_clear) {
 				map.erase(it);
 			}
+		}
+	});
+}
+
+void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
+{
+	if (!a_actorMagicCaster) {
+		return;
+	}
+
+	const auto& root = a_actorMagicCaster->castingArtData.attachedArt;
+
+	if (!root) {
+		return;
+	}
+
+	if (gameActorMagicLights.read([&](const auto& map) { return map.contains(root); })) {
+		return;
+	}
+
+	const auto ref = a_actorMagicCaster->GetCasterAsActor();
+	const auto art = RE::GetCastingArt(a_actorMagicCaster);
+	if (!ref || !art) {
+		return;
+	}
+
+	SourceData srcData(SOURCE_TYPE::kActorMagic, ref, root.get(), ref->GetActorBase(), art->GetAsModelTextureSwap());
+	if (!srcData.IsValid()) {
+		return;
+	}
+
+	if (auto it = gameVisualEffects.find(art->GetFormID()); it != gameVisualEffects.end()) {
+		for (const auto [index, data] : std::views::enumerate(it->second)) {
+			AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index));
+		}
+	}
+
+	if (auto it = gameModels.find(srcData.modelPath); it != gameModels.end()) {
+		for (const auto [index, data] : std::views::enumerate(it->second)) {
+			AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index));
+		}
+	}
+}
+
+void LightManager::DetachCastingLights(RE::RefAttachTechniqueInput& a_refAttachInput)
+{
+	if (!a_refAttachInput.attachedArt) {
+		return;
+	}
+
+	gameActorMagicLights.write([&](auto& map) {
+		if (auto it = map.find(a_refAttachInput.attachedArt); it != map.end()) {
+			for (auto& lightData : it->second.lights) {
+				lightData.RemoveLight(true);
+			}
+			map.erase(it);
 		}
 	});
 }
@@ -398,9 +454,9 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 				});
 			}
 			break;
-		case SOURCE_TYPE::kActor:
+		case SOURCE_TYPE::kActorWorn:
 			{
-				gameActorLights.write([&](auto& map) {
+				gameActorWornLights.write([&](auto& map) {
 					map[a_srcData.handle].write([&](auto& nodeNameMap) {
 						char nodeName[MAX_PATH]{ '\0' };
 						a_srcData.GetWornItemNodeName(nodeName);
@@ -411,7 +467,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 							REFR_LIGH lightData(a_lightSource, bsLight, niLight, a_srcData.ref);
 							lightDataVec.push_back(lightData);
 							processedGameRefLights.write([&](auto& cellMap) {
-								cellMap[a_srcData.ref->GetParentCell()->GetFormID()].write([&](auto& innerMap) {
+								cellMap[a_srcData.cellID].write([&](auto& innerMap) {
 									innerMap.emplace(lightData, a_srcData.handle);
 								});
 							});
@@ -420,7 +476,18 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 				});
 			}
 			break;
-		case SOURCE_TYPE::kEffect:
+		case SOURCE_TYPE::kActorMagic:
+			{
+				gameActorMagicLights.write([&](auto& map) {
+					auto& effectLights = map[a_srcData.root];
+
+					if (std::find(effectLights.lights.begin(), effectLights.lights.end(), niLight) == effectLights.lights.end()) {
+						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_srcData.ref);
+					}
+				});
+			}
+			break;
+		case SOURCE_TYPE::kTempEffect:
 			{
 				gameVisualEffectLights.write([&](auto& map) {
 					auto& effectLights = map[a_srcData.effectID];
@@ -570,6 +637,41 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 					if (withinFlickerDistance) {
 						lightData.UpdateFlickering();
 					}
+				}
+			}
+		}
+	});
+}
+
+void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta)
+{
+	if (a_actorMagicCaster->flags.none(RE::ActorMagicCaster::Flags::kCastingArtAttached)) {
+		return;
+	}
+
+	if (!a_actorMagicCaster->castingArtData.attachedArt) {
+		return;
+	}
+
+	auto actor = a_actorMagicCaster->GetCasterAsActor();
+	if (!actor) {
+		return;
+	}
+
+	gameActorMagicLights.read_unsafe([&](auto& map) {
+		if (auto it = map.find(a_actorMagicCaster->castingArtData.attachedArt); it != map.end()) {
+			auto& [flickerTimer, conditionTimer, lightDataVec] = it->second;
+
+			const bool updateConditions = conditionTimer.UpdateTimer(a_delta, 0.25f);
+			const bool withinFlickerDistance = actor->IsPlayerRef() || actor->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < flickeringDistanceSq;
+
+			for (auto& lightData : lightDataVec) {
+				if (updateConditions) {
+					lightData.UpdateConditions(actor);
+				}
+				lightData.UpdateAnimation(withinFlickerDistance);
+				if (withinFlickerDistance) {
+					lightData.UpdateFlickering();
 				}
 			}
 		}

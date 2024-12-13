@@ -543,14 +543,19 @@ void REFR_LIGH::UpdateEmittance() const
 	}
 }
 
-bool Timer::UpdateTimer(float a_interval)
+bool Timer::UpdateTimer(float a_delta, float a_interval)
 {
-	lastUpdateTime += RE::BSTimer::GetSingleton()->delta;
+	lastUpdateTime += a_delta;
 	if (lastUpdateTime >= a_interval) {
 		lastUpdateTime = 0.0f;
 		return true;
 	}
 	return false;
+}
+
+bool Timer::UpdateTimer(float a_interval)
+{
+	return UpdateTimer(RE::BSTimer::GetSingleton()->delta, a_interval);
 }
 
 void ProcessedREFRLights::emplace(const REFR_LIGH& a_lightData, RE::RefHandle a_handle)

@@ -92,6 +92,24 @@ namespace Hooks::Update
 		}
 	};
 
+	struct ActorMagicCaster__Update
+	{
+		static void thunk(RE::ActorMagicCaster* a_this, float a_delta)
+		{
+			LightManager::GetSingleton()->UpdateCastingLights(a_this, a_delta);
+
+			func(a_this, a_delta);
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+		static constexpr std::size_t                   size{ 0x1D };
+
+		static void Install()
+		{
+			stl::write_vfunc<RE::ActorMagicCaster, ActorMagicCaster__Update>();
+			logger::info("Hooked ActorMagicCaster::Update"sv);
+		}
+	};
+
 	// remove lights
 	struct RemoveExternalEmittance
 	{
@@ -129,6 +147,7 @@ namespace Hooks::Update
 		UpdateManagedNodes::Install();
 		BSTempEffect::UpdatePosition<RE::ShaderReferenceEffect>::Install();
 		BSTempEffect::UpdatePosition<RE::ModelReferenceEffect>::Install();
+		ActorMagicCaster__Update::Install();
 
 		RemoveExternalEmittance::Install();
 	}

@@ -196,6 +196,7 @@ struct Timer
 {
 	Timer() = default;
 
+	bool UpdateTimer(float a_delta, float a_interval);
 	bool UpdateTimer(float a_interval);
 
 	// members

@@ -89,7 +89,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	logger::info("Game version : {}", a_skse->RuntimeVersion().string());
 
 	SKSE::Init(a_skse, false);
-	SKSE::AllocTrampoline(275);
+	SKSE::AllocTrampoline(512);
 
 	if (LightManager::GetSingleton()->ReadConfigs()) {
 		Hooks::Install();

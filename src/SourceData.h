@@ -4,8 +4,9 @@ enum class SOURCE_TYPE
 {
 	kNone = 0,
 	kRef,
-	kActor,
-	kEffect
+	kActorWorn,
+	kActorMagic,
+	kTempEffect
 };
 
 struct SourceData
