@@ -736,7 +736,7 @@ bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_par
 					a_param.ptr = *it;
 				}
 			} else {
-				a_param.ptr = LookupForm(a_str);			
+				a_param.ptr = LookupForm(a_str);
 			}
 		}
 		break;
@@ -769,6 +769,8 @@ void ConditionParser::BuildCondition(std::shared_ptr<RE::TESCondition>& a_condit
 		// subject
 		if (subject.str() == "Self") {
 			condData.object = RE::CONDITIONITEMOBJECT::kSelf;
+		} else if (subject.str() == "CombatTarget") {
+			condData.object = RE::CONDITIONITEMOBJECT::kCombatTarget;
 		} else {
 			RE::TESForm* refForm{};
 			if (subject.str() == "PlayerRef") {
