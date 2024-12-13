@@ -13,8 +13,8 @@ public:
 	bool LoadDebugMarkers() const;
 	void ToggleDebugMarkers();
 
-	bool GetGameLightsDisabled() const;
-	bool IsGameLightAllowed(const RE::TESObjectREFR* a_ref) const;
+	bool ShouldDisableLights() const;
+	bool GetGameLightDisabled(const RE::TESObjectREFR* a_ref) const;
 
 private:
 	void ReadSettings(std::string_view a_path);
@@ -23,7 +23,6 @@ private:
 	bool showDebugMarkers{ false };
 	bool loadDebugMarkers{ false };
 
-	bool                disableGameLights{ false };
-	StringSet           whiteListedLights;
-	FlatSet<RE::FormID> whiteListedLightsRefs;
+	StringSet           blackListedLights;
+	FlatSet<RE::FormID> blackListedLightsRefs;
 };

@@ -20,20 +20,19 @@ void Settings::LoadSettings()
 
 	logger::info("");
 	logger::info("bShowMarkers is {}", showDebugMarkers);
-	logger::info("bDisableGameLights is {}", disableGameLights);
-	logger::info("AllowedGameLights : {} entries", whiteListedLights.size());
+	logger::info("LightBlackList : {} entries", blackListedLights.size());
 
 	loadDebugMarkers = showDebugMarkers;
 }
 
 void Settings::OnDataLoad()
 {
-	erase_if(whiteListedLights, [this](const auto& str) {
+	erase_if(blackListedLights, [this](const auto& str) {
 		if (!str.starts_with("0x")) { // assume formid
 			return false;
 		}
 		if (auto formID = RE::GetFormID(str); formID != 0) {
-			this->whiteListedLightsRefs.emplace(formID);
+			this->blackListedLightsRefs.emplace(formID);
 		}
 		return true;
 	});
@@ -54,14 +53,14 @@ void Settings::ToggleDebugMarkers()
 	showDebugMarkers = !showDebugMarkers;
 }
 
-bool Settings::GetGameLightsDisabled() const
+bool Settings::ShouldDisableLights() const
 {
-	return disableGameLights;
+	return !blackListedLights.empty() || blackListedLightsRefs.empty();
 }
 
-bool Settings::IsGameLightAllowed(const RE::TESObjectREFR* a_ref) const
+bool Settings::GetGameLightDisabled(const RE::TESObjectREFR* a_ref) const
 {
-	return whiteListedLights.contains(a_ref->GetFile(0)->fileName) || whiteListedLightsRefs.contains(a_ref->GetFormID());
+	return blackListedLights.contains(a_ref->GetFile(0)->fileName) || blackListedLightsRefs.contains(a_ref->GetFormID());
 }
 
 void Settings::ReadSettings(std::string_view a_path)
@@ -77,14 +76,11 @@ void Settings::ReadSettings(std::string_view a_path)
 	if (!showDebugMarkers) {
 		showDebugMarkers = ini.GetBoolValue("Settings", "bShowMarkers", false);
 	}
-	if (!disableGameLights) {
-		disableGameLights = ini.GetBoolValue("Settings", "bDisableGameLights", false);
-	}
 
 	CSimpleIniA::TNamesDepend keys;
-	ini.GetAllKeys("AllowedGameLights", keys);
+	ini.GetAllKeys("LightBlackList", keys);
 
 	for (const auto& key : keys) {
-		whiteListedLights.emplace(string::trim_copy(key.pItem));
+		blackListedLights.emplace(string::trim_copy(key.pItem));
 	}
 }

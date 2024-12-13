@@ -15,12 +15,12 @@ namespace Hooks::Misc
 				return;
 			}
 
-			if (Settings::GetSingleton()->IsGameLightAllowed(a_ref)) {
+			auto light = base->As<RE::TESObjectLIGH>();
+			if (!light || light->data.flags.any(RE::TES_LIGHT_FLAGS::kCanCarry)) {
 				return;
 			}
 
-			auto light = base->As<RE::TESObjectLIGH>();
-			if (!light || light->data.flags.any(RE::TES_LIGHT_FLAGS::kCanCarry)) {
+			if (!Settings::GetSingleton()->GetGameLightDisabled(a_ref)) {
 				return;
 			}
 
@@ -39,7 +39,7 @@ namespace Hooks::Misc
 
 	void Install()
 	{
-		if (Settings::GetSingleton()->GetGameLightsDisabled()) {
+		if (Settings::GetSingleton()->ShouldDisableLights()) {
 			InitItemImpl::Install();
 		}
 	}
