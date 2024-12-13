@@ -1,5 +1,4 @@
 #include "Attach.h"
-#include "Hooks.h"
 
 namespace Hooks::Attach
 {

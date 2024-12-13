@@ -1,5 +1,4 @@
 #include "Detach.h"
-#include "Hooks.h"
 
 namespace Hooks::Detach
 {

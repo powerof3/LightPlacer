@@ -2,24 +2,29 @@
 
 #include "Manager.h"
 
-namespace Hooks::Update::BSTempEffect
+namespace Hooks::Update
 {
-	template <class T>
-	struct UpdatePosition
+	namespace BSTempEffect
 	{
-		static void thunk(T* a_this)
+		template <class T>
+		struct UpdatePosition
 		{
-			func(a_this);
+			static void thunk(T* a_this)
+			{
+				func(a_this);
 
-			LightManager::GetSingleton()->UpdateTempEffectLights(a_this);
-		}
-		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   size{ 0x3B };
+				LightManager::GetSingleton()->UpdateTempEffectLights(a_this);
+			}
+			static inline REL::Relocation<decltype(thunk)> func;
+			static constexpr std::size_t                   size{ 0x3B };
 
-		static void Install()
-		{
-			stl::write_vfunc<T, UpdatePosition>();
-			logger::info("Hooked {}::UpdatePosition"sv, typeid(T).name());
-		}
-	};
+			static void Install()
+			{
+				stl::write_vfunc<T, UpdatePosition>();
+				logger::info("Hooked {}::UpdatePosition"sv, typeid(T).name());
+			}
+		};		
+	}
+
+	void Install();
 }

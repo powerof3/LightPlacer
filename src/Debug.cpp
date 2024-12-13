@@ -1,7 +1,7 @@
 #include "Debug.h"
 
 #include "Manager.h"
-#include <algorithm>
+#include "Settings.h"
 
 namespace Debug
 {
@@ -119,12 +119,21 @@ namespace Debug
 
 		static bool Execute(const RE::SCRIPT_PARAMETER*, RE::SCRIPT_FUNCTION::ScriptData*, RE::TESObjectREFR*, RE::TESObjectREFR*, RE::Script*, RE::ScriptLocals*, double&, std::uint32_t&)
 		{
-			showDebugMarker = !showDebugMarker;
-			LightManager::GetSingleton()->ForAllLights([](const auto& lightData) {
-				lightData.ShowDebugMarker(showDebugMarker);
+			const auto settings = Settings::GetSingleton();
+
+			if (!settings->LoadDebugMarkers()) {
+				RE::ConsoleLog::GetSingleton()->Print("bShowMarkers not enabled in Data/SKSE/Plugins/po3_LightPlacer.ini");
+				return false;
+			}
+
+			settings->ToggleDebugMarkers();
+
+			bool showDebugMarkers = settings->CanShowDebugMarkers();
+			LightManager::GetSingleton()->ForAllLights([&](const auto& lightData) {
+				lightData.ShowDebugMarker(showDebugMarkers);
 			});
 
-			RE::ConsoleLog::GetSingleton()->Print("Light Placer Markers %s", showDebugMarker ? "ON" : "OFF");
+			RE::ConsoleLog::GetSingleton()->Print("Light Placer Markers %s", showDebugMarkers ? "ON" : "OFF");
 
 			return false;
 		}

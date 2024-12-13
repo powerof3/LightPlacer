@@ -6,11 +6,13 @@ set(headers ${headers}
 	src/Hooks.h
 	src/Hooks/Attach.h
 	src/Hooks/Detach.h
+	src/Hooks/Misc.h
 	src/Hooks/Update.h
 	src/LightControllers.h
 	src/LightData.h
 	src/Manager.h
 	src/PCH.h
 	src/RE.h
+	src/Settings.h
 	src/SourceData.h
 )

@@ -1,4 +1,3 @@
-#include "Hooks.h"
 #include "Update.h"
 
 namespace Hooks::Update

@@ -2,8 +2,6 @@
 
 namespace Debug
 {
-	inline bool showDebugMarker{ false };
-
 	template <class T>
 	struct ConsoleCommandHandler
 	{

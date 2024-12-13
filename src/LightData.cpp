@@ -1,6 +1,6 @@
 #include "LightData.h"
 #include "ConditionParser.h"
-#include "Debug.h"
+#include "Settings.h"
 #include "SourceData.h"
 
 bool LightData::IsValid() const
@@ -49,8 +49,14 @@ bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
 	return false;
 }
 
-void LightData::AttachDebugMarker(RE::NiNode* a_node, bool a_hideMarker) const
+void LightData::AttachDebugMarker(RE::NiNode* a_node) const
 {
+	const auto settings = Settings::GetSingleton();
+
+	if (!settings->LoadDebugMarkers()) {
+		return;
+	}
+
 	const auto get_marker = [this] {
 		if (GetCastsShadows()) {
 			if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
@@ -67,13 +73,13 @@ void LightData::AttachDebugMarker(RE::NiNode* a_node, bool a_hideMarker) const
 	auto [model, scale, flip] = get_marker();
 	if (const auto error = Demand(model, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
 		if (const auto clonedModel = loadedModel->Clone()) {
+			if (!settings->CanShowDebugMarkers()) {
+				clonedModel->SetAppCulled(true);
+			}
 			clonedModel->name = LP_DEBUG;
 			clonedModel->local.scale = scale;
 			if (flip) {
 				clonedModel->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(-180), 0, RE::deg_to_rad(-180));
-			}
-			if (a_hideMarker) {
-				clonedModel->SetAppCulled(true);
 			}
 			RE::AttachNode(a_node, clonedModel);
 		}
@@ -159,8 +165,7 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 		niLight = RE::NiPointLight::Create();
 		niLight->name = a_lightName;
 		RE::AttachNode(a_node, niLight);
-
-		AttachDebugMarker(a_node, !Debug::showDebugMarker);
+		AttachDebugMarker(a_node);
 	}
 
 	if (niLight) {
@@ -185,7 +190,7 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
 			niLight->SetAppCulled(true);
 		}
-		if (Debug::showDebugMarker) {
+		if (Settings::GetSingleton()->CanShowDebugMarkers()) {
 			if (const auto debugMarker = a_node->GetObjectByName(LP_DEBUG)) {
 				debugMarker->SetAppCulled(false);
 			}
@@ -386,16 +391,18 @@ void REFR_LIGH::ReattachLight() const
 	if (bsLight) {
 		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->AddLight(bsLight.get());
 	}
-	if (niLight && Debug::showDebugMarker) {
+
+	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
 		ShowDebugMarker(true);
 	}
 }
 
 void REFR_LIGH::RemoveLight(bool a_clearData) const
 {
-	if (niLight && Debug::showDebugMarker) {
+	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
 		ShowDebugMarker(false);
 	}
+
 	if (bsLight) {
 		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->RemoveLight(bsLight);
 	}
@@ -462,9 +469,7 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref) const
 	if (data.conditions && niLight) {
 		const bool hideLight = !data.conditions->IsTrue(a_ref, a_ref);
 		niLight->SetAppCulled(hideLight);
-		if (Debug::showDebugMarker) {
-			ShowDebugMarker(!hideLight);
-		}
+		ShowDebugMarker(!hideLight);
 	}
 }
 

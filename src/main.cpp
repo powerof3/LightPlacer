@@ -1,6 +1,7 @@
 #include "Debug.h"
 #include "Hooks.h"
 #include "Manager.h"
+#include "Settings.h"
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {
@@ -20,6 +21,8 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 	case SKSE::MessagingInterface::kDataLoaded:
 		{
 			LightManager::GetSingleton()->OnDataLoad();
+			Settings::GetSingleton()->OnDataLoad();
+
 			Debug::Install();
 		}
 		break;

@@ -4,7 +4,7 @@ bool LightManager::ReadConfigs(bool a_reload)
 {
 	logger::info("{:*^50}", a_reload ? "RELOAD" : "CONFIG FILES");
 
-	std::filesystem::path dir{ "Data\\LightPlacer" };
+	std::filesystem::path dir{ R"(Data\LightPlacer)" };
 
 	std::error_code ec;
 	if (!std::filesystem::exists(dir, ec)) {

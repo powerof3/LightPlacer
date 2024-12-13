@@ -10,6 +10,7 @@
 #include <ClibUtil/RNG.hpp>
 #include <ClibUtil/distribution.hpp>
 #include <ClibUtil/singleton.hpp>
+#include <ClibUtil/simpleINI.hpp>
 #include <MergeMapperPluginAPI.h>
 //#include <boost_unordered.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -26,6 +27,7 @@
 namespace logger = SKSE::log;
 namespace string = clib_util::string;
 namespace dist = clib_util::distribution;
+namespace ini = clib_util::ini;
 
 using namespace std::literals;
 using namespace clib_util::string::literals;
