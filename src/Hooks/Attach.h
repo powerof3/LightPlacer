@@ -33,22 +33,25 @@ namespace Hooks::Attach
 		template <class T>
 		struct Init
 		{
-			static void thunk(T* a_this)
+			static bool thunk(T* a_this)
 			{
-				func(a_this);
+				auto result = func(a_this);
 
-				RE::FormID effectID = 0;
-				if constexpr (std::is_same_v<RE::ShaderReferenceEffect, T>) {
-					if (a_this->effectData) {
-						effectID = a_this->effectData->GetFormID();
+				if (result) {
+					RE::FormID effectID = 0;
+					if constexpr (std::is_same_v<RE::ShaderReferenceEffect, T>) {
+						if (a_this->effectData) {
+							effectID = a_this->effectData->GetFormID();
+						}
+					} else if constexpr (std::is_same_v<RE::ModelReferenceEffect, T>) {
+						if (a_this->artObject) {
+							effectID = a_this->artObject->GetFormID();
+						}
 					}
-				} else if constexpr (std::is_same_v<RE::ModelReferenceEffect, T>) {
-					if (a_this->artObject) {
-						effectID = a_this->artObject->GetFormID();
-					}
+					LightManager::GetSingleton()->AddTempEffectLights(a_this, effectID);					
 				}
 
-				LightManager::GetSingleton()->AddTempEffectLights(a_this, effectID);
+				return result;
 			}
 			static inline REL::Relocation<decltype(thunk)> func;
 			static constexpr std::size_t                   size{ 0x36 };

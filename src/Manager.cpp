@@ -281,10 +281,6 @@ void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_
 
 void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 {
-	if (!a_actorMagicCaster) {
-		return;
-	}
-
 	const auto& root = a_actorMagicCaster->castingArtData.attachedArt;
 
 	if (!root) {
