@@ -50,7 +50,7 @@ RE::NiNode* SourceData::GetRootNode() const
 		return ref->Get3D()->AsNode();
 	}
 	if (type == SOURCE_TYPE::kActorMagic && ref->IsPlayerRef()) { // light doesn't get show in first person (possibly culled when switching nodes)?
-		if (const auto fPRoot = ref->Get3D(true)) {
+		if (ref->Get3D(true)) {
 			const auto tpRoot = ref->Get3D(false);
 			if (const auto node = tpRoot->GetObjectByName(root->parent->name)) {
 				return node->AsNode();

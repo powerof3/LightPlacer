@@ -91,7 +91,7 @@ namespace Debug
 			return output;
 		}
 
-		static void OutputSceneGraph(const SceneGraphMap& a_mergedSceneGraph, RE::NiAVObject* a_currentNode, std::vector<std::string>& a_output, std::string a_indent, bool a_isLastChild)
+		static void OutputSceneGraph(const SceneGraphMap& a_mergedSceneGraph, RE::NiAVObject* a_currentNode, std::vector<std::string>& a_output, const std::string& a_indent, bool a_isLastChild)
 		{
 			if (!a_currentNode) {
 				return;
@@ -102,7 +102,7 @@ namespace Debug
 			if (auto it = a_mergedSceneGraph.find(a_currentNode); it != a_mergedSceneGraph.end()) {
 				const auto& children = it->second;
 				for (std::size_t i = 0; i < children.size(); ++i) {
-					std::string childIndent = a_indent + (a_isLastChild ? "    " : "|   ");
+					std::string childIndent = a_indent + (a_isLastChild ? "\t\t\t" : "|\t\t\t");
 					OutputSceneGraph(a_mergedSceneGraph, children[i], a_output, childIndent, i == children.size() - 1);
 				}
 			}

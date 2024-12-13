@@ -317,9 +317,14 @@ bool LightSourceData::PostProcess()
 	return true;
 }
 
+bool LightSourceData::IsStaticLight() const
+{
+	return data.offset == RE::NiPoint3::Zero() && data.rotation == RE::MATRIX_ZERO && positionController.empty() && rotationController.empty();
+}
+
 RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const
 {
-	if (a_point == RE::NiPoint3::Zero() && data.offset == RE::NiPoint3::Zero() && data.rotation == RE::MATRIX_ZERO && positionController.empty() && rotationController.empty()) {
+	if (a_point == RE::NiPoint3::Zero() && IsStaticLight()) {
 		return a_root;
 	}
 
@@ -345,7 +350,7 @@ RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const std::stri
 RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
 {
 	if (const auto node = a_obj->AsNode()) {
-		if (data.offset == RE::NiPoint3::Zero() && data.rotation == RE::MATRIX_ZERO && positionController.empty() && rotationController.empty()) {
+		if (IsStaticLight()) {
 			return node;
 		}
 	}
