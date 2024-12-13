@@ -33,7 +33,8 @@ struct glz::meta<RE::NiColor>
 
 namespace RE
 {
-	static constexpr NiColor COLOR_BLACK(0, 0, 0);
+	static constexpr NiColor COLOR_BLACK{};
+	static constexpr NiMatrix3 MATRIX_ZERO{};
 
 	template <class T>
 	void AttachNode(NiNode* a_root, T* a_obj)

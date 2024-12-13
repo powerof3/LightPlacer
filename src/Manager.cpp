@@ -361,12 +361,12 @@ void LightManager::ProcessConfigs()
 
 void LightManager::AttachLightsImpl(const SourceData& a_srcData)
 {
-	[[maybe_unused]] std::int32_t LP_INDEX = 0;
-	std::int32_t                  LP_ADDON_INDEX = 0;
+	std::int32_t LP_INDEX = 0;
 
 	if (auto mIt = gameModels.find(a_srcData.modelPath); mIt != gameModels.end()) {
 		for (const auto [index, data] : std::views::enumerate(mIt->second)) {
 			AttachConfigLights(a_srcData, data, static_cast<std::uint32_t>(index));
+			LP_INDEX++;
 		}
 	}
 
@@ -375,10 +375,10 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData)
 			if (auto it = gameAddonNodes.find(addonNode->value); it != gameAddonNodes.end()) {
 				for (const auto& [filter, lightData] : it->second) {
 					if (!filter.IsInvalid(a_srcData)) {
-						if (auto lightPlacerNode = lightData.data.GetOrCreateNode(a_srcData.root, addonNode, LP_ADDON_INDEX)) {
-							AttachLight(lightData, a_srcData, lightPlacerNode, LP_ADDON_INDEX);
+						if (auto lightPlacerNode = lightData.GetOrCreateNode(a_srcData.root, addonNode, LP_INDEX)) {
+							AttachLight(lightData, a_srcData, lightPlacerNode, LP_INDEX);
 						}
-						LP_ADDON_INDEX++;
+						LP_INDEX++;
 					}
 				}
 			}
@@ -404,15 +404,7 @@ void LightManager::AttachConfigLights(const SourceData& a_srcData, const Config:
 					   auto& [filter, points, lightData] = pointData;
 					   if (!filter.IsInvalid(a_srcData)) {
 						   for (const auto [pointIdx, point] : std::views::enumerate(points)) {
-							   auto name = LightData::GetNodeName(point, a_index);
-							   lightPlacerNode = rootNode->GetObjectByName(name);
-							   if (!lightPlacerNode) {
-								   lightPlacerNode = RE::NiNode::Create(0);
-								   lightPlacerNode->name = name;
-								   lightPlacerNode->local.translate = point + lightData.data.offset;
-								   lightPlacerNode->local.rotate = lightData.data.rotation;
-								   RE::AttachNode(rootNode, lightPlacerNode);
-							   }
+							   lightPlacerNode = lightData.GetOrCreateNode(rootNode, point, static_cast<std::uint32_t>(pointIdx));
 							   if (lightPlacerNode) {
 								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), static_cast<std::uint32_t>(pointIdx));
 							   }
@@ -423,7 +415,7 @@ void LightManager::AttachConfigLights(const SourceData& a_srcData, const Config:
 					   auto& [filter, nodes, lightData] = nodeData;
 					   if (!filter.IsInvalid(a_srcData)) {
 						   for (const auto& nodeName : nodes) {
-							   lightPlacerNode = lightData.data.GetOrCreateNode(rootNode, nodeName, a_index);
+							   lightPlacerNode = lightData.GetOrCreateNode(rootNode, nodeName, a_index);
 							   if (lightPlacerNode) {
 								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode());
 							   }

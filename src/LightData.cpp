@@ -14,22 +14,21 @@ std::string LightData::GetName(const SourceData& a_srcData, std::uint32_t a_inde
 	boost::hash_combine(seed, light->GetFormID());
 	boost::hash_combine(seed, radius);
 	boost::hash_combine(seed, fade);
-
 	if (a_srcData.effectID != std::numeric_limits<std::uint32_t>::max()) {
-		return std::format("{} [{}|{}] #{}", LP_LIGHT, a_srcData.effectID, seed, a_index);
+		boost::hash_combine(seed, a_srcData.effectID);
 	}
 
-	return std::format("{} [{}] #{}", LP_LIGHT, seed, a_index);
+	return std::format("{}[{}]#{}", LP_LIGHT, seed, a_index);
 }
 
 std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index)
 {
-	return std::format("{} [{},{},{}] #{}", LP_NODE, a_point.x, a_point.y, a_point.z, a_index);
+	return std::format("{}[{},{},{}]#{}", LP_NODE, a_point.x, a_point.y, a_point.z, a_index);
 }
 
 std::string LightData::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index)
 {
-	return std::format("{} [{}] #{}", LP_NODE, a_obj->name.c_str(), a_index);
+	return std::format("{}[{}]#{}", LP_NODE, a_obj->name.c_str(), a_index);
 }
 
 bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
@@ -148,32 +147,6 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR*
 bool LightData::GetPortalStrict() const
 {
 	return flags.any(LightFlags::PortalStrict) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
-}
-
-RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
-{
-	auto obj = a_root->GetObjectByName(a_nodeName);
-	return obj ? GetOrCreateNode(a_root, obj, a_index) : nullptr;
-}
-
-RE::NiNode* LightData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
-{
-	const auto name = GetNodeName(a_obj, a_index);
-	if (auto node = a_root->GetObjectByName(name)) {
-		return node->AsNode();
-	}
-	auto geometry = a_obj->AsGeometry();
-	if (auto newNode = RE::NiNode::Create(0); newNode) {
-		newNode->name = name;
-		if (geometry) {
-			newNode->local.translate = geometry->modelBound.center;
-		}
-		newNode->local.translate += offset;
-		newNode->local.rotate = rotation;
-		RE::AttachNode(geometry ? a_root : a_obj->AsNode(), newNode);
-		return newNode;
-	}
-	return nullptr;
 }
 
 std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName) const
@@ -337,6 +310,58 @@ bool LightSourceData::PostProcess()
 	ReadConditions();
 
 	return true;
+}
+
+RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const
+{
+	if (a_point == RE::NiPoint3::Zero() && data.offset == RE::NiPoint3::Zero() && data.rotation == RE::MATRIX_ZERO && positionController.empty() && rotationController.empty()) {
+		return a_root;
+	}
+
+	auto name = LightData::GetNodeName(a_point, a_index);
+	auto node = a_root->GetObjectByName(name);
+	if (!node) {
+		node = RE::NiNode::Create(1);
+		node->name = name;
+		node->local.translate = a_point + data.offset;
+		node->local.rotate = data.rotation;
+		RE::AttachNode(a_root, node);
+	}
+
+	return node->AsNode();
+}
+
+RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
+{
+	const auto obj = a_root->GetObjectByName(a_nodeName);
+	return obj ? GetOrCreateNode(a_root, obj, a_index) : nullptr;
+}
+
+RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
+{
+	if (const auto node = a_obj->AsNode()) {
+		if (data.offset == RE::NiPoint3::Zero() && data.rotation == RE::MATRIX_ZERO && positionController.empty() && rotationController.empty()) {
+			return node;
+		}
+	}
+
+	const auto name = LightData::GetNodeName(a_obj, a_index);
+	if (const auto node = a_root->GetObjectByName(name)) {
+		return node->AsNode();
+	}
+	auto geometry = a_obj->AsGeometry();
+	if (const auto newNode = RE::NiNode::Create(1); newNode) {
+		newNode->name = name;
+		if (geometry) {
+			newNode->local.translate = geometry->modelBound.center;
+		}
+		newNode->local.translate += data.offset;
+		newNode->local.rotate = data.rotation;
+		RE::AttachNode(geometry ? a_root : a_obj->AsNode(), newNode);
+		return newNode;
+	}
+
+	return nullptr;
 }
 
 bool REFR_LIGH::DimLight(const float a_dimmer) const
