@@ -42,7 +42,7 @@ namespace Debug
 				return false;
 			}
 
-			if (lightSceneGraph.size() == 1) {
+			if (lightSceneGraph.size() == 1 && lightSceneGraph[0].size() <= 2) {
 				RE::ConsoleLog::GetSingleton()->Print("\t%s", OutputSceneGraph(lightSceneGraph[0]).c_str());
 				return false;
 			}
@@ -85,7 +85,7 @@ namespace Debug
 			for (std::size_t i = 0; i < nodeHierarchy.size(); ++i) {
 				output += nodeHierarchy[i]->name.c_str();
 				if (i < nodeHierarchy.size() - 1) {
-					output += " -> ";
+					output += " > ";
 				}
 			}
 			return output;
@@ -142,21 +142,17 @@ namespace Debug
 		{
 			const auto refs = LightManager::GetSingleton()->GetLightAttachedRefs();
 
-			for (auto& ref : refs) {
-				if (ref) {
-					ref->Disable();
-				}
-			}
-
 			LightManager::GetSingleton()->ReloadConfigs();
 
-			for (auto& ref : refs) {
-				if (ref) {
-					ref->Enable(false);
+			SKSE::GetTaskInterface()->AddTask([refs]() {
+				for (auto& ref : refs) {
+					if (ref) {
+						ref->Disable();
+						ref->Enable(false);
+					}
 				}
-			}
-
-			RE::TES::GetSingleton()->PurgeBufferedCells();
+				RE::TES::GetSingleton()->PurgeBufferedCells();
+			});
 
 			RE::ConsoleLog::GetSingleton()->Print("%u refs reloaded", refs.size());
 
