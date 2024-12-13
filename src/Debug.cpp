@@ -97,12 +97,16 @@ namespace Debug
 				return;
 			}
 
-			a_output.emplace_back(a_indent + "> " + a_currentNode->name.c_str());
+			std::string details{};
+			if (auto light = netimmerse_cast<RE::NiPointLight*>(a_currentNode)) {
+				details = std::format(" (radius: {},fade: {})", light->radius.x, light->fade);
+			}
+			a_output.emplace_back(std::format("{}> {}{}", a_indent, a_currentNode->name.c_str(), details));
 
 			if (auto it = a_mergedSceneGraph.find(a_currentNode); it != a_mergedSceneGraph.end()) {
 				const auto& children = it->second;
 				for (std::size_t i = 0; i < children.size(); ++i) {
-					std::string childIndent = a_indent + (a_isLastChild ? "\t\t\t" : "|\t\t\t");
+					std::string childIndent = a_indent + (a_isLastChild ? "    " : "|   ");
 					OutputSceneGraph(a_mergedSceneGraph, children[i], a_output, childIndent, i == children.size() - 1);
 				}
 			}
