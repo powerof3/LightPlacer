@@ -56,7 +56,7 @@ void Settings::ToggleDebugMarkers()
 
 bool Settings::ShouldDisableLights() const
 {
-	return !blackListedLights.empty() || blackListedLightsRefs.empty();
+	return disableAllGameLights || !blackListedLights.empty() || !blackListedLightsRefs.empty();
 }
 
 bool Settings::GetGameLightDisabled(const RE::TESObjectREFR* a_ref) const
