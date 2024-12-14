@@ -542,7 +542,7 @@ void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell
 						return true;
 					}
 
-					const bool withinFlickerDistance = ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistanceSq;
+					const bool  withinFlickerDistance = ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistanceSq;
 					const float scale = withinFlickerDistance ? ref->GetScale() : 1.0f;
 
 					ForEachLight(ref.get(), handle, [=](auto& lightREFRData) {

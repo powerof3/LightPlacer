@@ -82,7 +82,7 @@ void Settings::ReadSettings(std::string_view a_path)
 		showDebugMarkers = ini.GetBoolValue("Settings", "bShowMarkers", false);
 	}
 	if (!disableAllGameLights) {
-		disableAllGameLights = ini.GetBoolValue("Settings", "bDisableAllGameLights", false);		
+		disableAllGameLights = ini.GetBoolValue("Settings", "bDisableAllGameLights", false);
 	}
 
 	CSimpleIniA::TNamesDepend keys;
