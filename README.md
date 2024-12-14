@@ -1,6 +1,8 @@
 # Light Placer
 
-SKSE plugin and framework for adding lights to objects, using configurable JSON files or through extradata in nif.
+SKSE plugin and framework for adding lights to objects, using configurable JSON files.
+*	[SSE/AE Version](https://www.nexusmods.com/skyrimspecialedition/mods/127557)
+*	[VR Version](https://www.nexusmods.com/skyrimspecialedition/mods/135822)
 
 ## Requirements
 * [CMake](https://cmake.org/)
@@ -14,7 +16,7 @@ SKSE plugin and framework for adding lights to objects, using configurable JSON 
 	* You need to build from the powerof3/dev branch
 	* Add this as as an environment variable `CommonLibSSEPath`
 * [CommonLibVR](https://github.com/FlayaN/CommonLibVR/tree/vr)
-	* Add this as as an environment variable `CommonLibVRPath` instead of /external
+	* Add this as as an environment variable `CommonLibVRPath` instead of /extern
 
 ## User Requirements
 * [Address Library for SKSE](https://www.nexusmods.com/skyrimspecialedition/mods/32444)

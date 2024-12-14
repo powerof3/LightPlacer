@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Hooks
+namespace Hooks::Misc
 {
 	void Install();
 }

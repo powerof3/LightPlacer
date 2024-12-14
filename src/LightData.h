@@ -2,85 +2,69 @@
 
 #include "LightControllers.h"
 
-struct Timer
-{
-	Timer() = default;
-
-	bool UpdateTimer(float a_interval);
-
-	// members
-	float lastUpdateTime{ 0.0f };
-};
-
-struct ObjectREFRParams
-{
-	ObjectREFRParams() = default;
-	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
-	ObjectREFRParams(RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, RE::TESBoundObject* a_object, RE::TESModel* a_model = nullptr);
-
-	bool IsValid() const;
-
-	// members
-	RE::TESObjectREFR*   ref{};
-	RE::ReferenceEffect* effect{};
-	RE::NiNode*          root{};
-	RE::RefHandle        handle{};
-	std::string_view     modelPath;
-
-	RE::FormID baseID{ 0 };
-	RE::FormID cellID{ 0 };
-	RE::FormID worldSpaceID{ 0 };
-	RE::FormID locationID{ 0 };
-};
+struct SourceData;
 
 struct LightData
 {
 	// CS light flags
-	enum class LightFlags
+	enum class Flags
 	{
 		None = 0,
 		PortalStrict = (1 << 0),
 		Shadow = (1 << 1),
 		Simple = (1 << 2),
 
+		IgnoreScale = (1 << 28),
+		RandomAnimStart = (1 << 29),
 		NoExternalEmittance = (1 << 30)
 	};
 
-	bool                                     GetCastsShadows() const;
-	RE::NiColor                              GetDiffuse() const;
-	float                                    GetRadius() const;
-	float                                    GetFade() const;
+	void AttachDebugMarker(RE::NiNode* a_node) const;
+
+	bool        GetCastsShadows() const;
+	RE::NiColor GetDiffuse() const;
+
+	float GetRadius() const;
+	float GetFade() const;
+
+	float GetScaledRadius(float a_radius, float a_scale) const;
+	float GetScaledFade(float a_fade, float a_scale) const;
+	float GetScaledRadius(float a_scale) const;
+	float GetScaledFade(float a_scale) const;
+
 	float                                    GetFOV() const;
 	float                                    GetFalloff() const;
 	float                                    GetNearDistance() const;
-	std::string                              GetName(std::uint32_t a_index) const;
-	static std::string                       GetNodeName(std::uint32_t a_index);
+	std::string                              GetName(const SourceData& a_srcData, std::uint32_t a_index) const;
+	static std::string                       GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
 	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
+	bool                                     GetPortalStrict() const;
 	bool                                     IsDynamicLight(RE::TESObjectREFR* a_ref) const;
 	bool                                     IsValid() const;
 
-	static RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index);
-	static RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index);
-
-	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point = { 0, 0, 0 }, std::uint32_t a_index = 0) const;
+	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;
 
 	// members
-	RE::TESObjectLIGH*                      light{ nullptr };
-	RE::NiColor                             color{ RE::COLOR_BLACK };
-	float                                   radius{ 0.0f };
-	float                                   fade{ 0.0f };
-	RE::NiPoint3                            offset;
+	RE::TESObjectLIGH* light{ nullptr };
+	RE::NiColor        color{ RE::COLOR_BLACK };
+	float              radius{ 0.0f };
+	float              fade{ 0.0f };
+	float              fov{ 0.0f };
+	float              shadowDepthBias{ 1.0f };
+	RE::NiPoint3       offset;
+	RE::NiMatrix3      rotation;
 #if defined(SKYRIMVR)
-	stl::enumeration<LightFlags, std::uint32_t> flags{ LightFlags::None };
+	stl::enumeration<Flags, std::uint32_t> flags{ Flags::None };
 #else
-	REX::EnumSet<LightFlags, std::uint32_t> flags{ LightFlags::None };
+	REX::EnumSet<Flags, std::uint32_t> flags{ Flags::None };
 #endif
-	RE::TESForm*                            emittanceForm{ nullptr };
-	std::shared_ptr<RE::TESCondition>       conditions;
+	RE::TESForm*                      emittanceForm{ nullptr };
+	std::shared_ptr<RE::TESCondition> conditions;
 
-	constexpr static auto LP_ID = "LightPlacer"sv;
-	constexpr static auto LP_NODE = "LightPlacerNode"sv;
+	constexpr static auto LP_LIGHT = "LP_Light"sv;
+	constexpr static auto LP_NODE = "LP_Node"sv;
+	constexpr static auto LP_DEBUG = "LP_DebugMarker"sv;
 };
 
 struct LightSourceData
@@ -108,6 +92,12 @@ struct LightSourceData
 	void ReadConditions();
 	bool PostProcess();
 
+	bool IsStaticLight() const;
+
+	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
+	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
+	RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
+
 	// members
 	LightData                data;
 	std::string              lightEDID;
@@ -118,6 +108,7 @@ struct LightSourceData
 	FloatKeyframeSequence    radiusController;
 	FloatKeyframeSequence    fadeController;
 	PosKeyframeSequence      positionController;
+	RotKeyframeSequence      rotationController;
 };
 
 template <>
@@ -129,47 +120,24 @@ struct glz::meta<LightSourceData>
 		"color", "color", custom<&T::read_color, &T::write_color>,
 		"radius", [](auto&& self) -> auto& { return self.data.radius; },
 		"fade", [](auto&& self) -> auto& { return self.data.fade; },
+		"fov", [](auto&& self) -> auto& { return self.data.fov; },
+		"shadowDepthBias", [](auto&& self) -> auto& { return self.data.shadowDepthBias; },
 		"offset", [](auto&& self) -> auto& { return self.data.offset; },
+		"rotation", [](auto&& self) -> auto& { return self.data.rotation; },
 		"externalEmittance", &T::emittanceFormEDID,
 		"flags", &T::flags,
 		"conditions", &T::conditions,
 		"colorController", &T::colorController,
 		"radiusController", &T::radiusController,
 		"fadeController", &T::fadeController,
-		"transformController", &T::positionController);
+		"positionController", &T::positionController,
+		"rotationController", &T::rotationController);
 };
 
 struct REFR_LIGH
 {
 	REFR_LIGH() = default;
-
-	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, RE::NiNode* a_node, const RE::NiPoint3& a_point, std::uint32_t a_index) :
-		data(a_lightSource.data),
-		bsLight(a_bsLight),
-		niLight(a_niLight),
-		parentNode(a_node),
-		point(a_point),
-		index(a_index),
-		isReference(!RE::IsActor(a_ref))
-	{
-		if (!data.emittanceForm && data.flags.none(LightData::LightFlags::NoExternalEmittance)) {
-			auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
-			data.emittanceForm = xData ? xData->source : nullptr;
-		}
-
-		if (!a_lightSource.colorController.empty()) {
-			colorController = Animation::LightController(a_lightSource.colorController);
-		}
-		if (!a_lightSource.radiusController.empty()) {
-			radiusController = Animation::LightController(a_lightSource.radiusController);
-		}
-		if (!a_lightSource.fadeController.empty()) {
-			fadeController = Animation::LightController(a_lightSource.fadeController);
-		}
-		if (!a_lightSource.positionController.empty()) {
-			positionController = Animation::LightController(a_lightSource.positionController);
-		}
-	}
+	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, float a_scale);
 
 	bool operator==(const REFR_LIGH& rhs) const
 	{
@@ -181,29 +149,43 @@ struct REFR_LIGH
 		return niLight->name == rhs->name;
 	}
 
-	void ReattachLight(RE::TESObjectREFR* a_ref);
+	bool IsAnimated() const;
 
-	void UpdateAnimation();
+	bool DimLight(float a_dimmer) const;
+	void ReattachLight(RE::TESObjectREFR* a_ref);
+	void ReattachLight() const;
+	void RemoveLight(bool a_clearData) const;
+	void ShowDebugMarker(bool a_show) const;
+	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
 	void UpdateConditions(RE::TESObjectREFR* a_ref) const;
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;
-	void ReattachLight() const;
-	void RemoveLight() const;
 
 	LightData                       data;
 	RE::NiPointer<RE::BSLight>      bsLight;
 	RE::NiPointer<RE::NiPointLight> niLight;
-	RE::NiPointer<RE::NiNode>       parentNode;
+	RE::NiPointer<RE::NiAVObject>   debugMarker;
 	std::optional<ColorController>  colorController;
 	std::optional<FloatController>  radiusController;
 	std::optional<FloatController>  fadeController;
 	std::optional<PosController>    positionController;
-	RE::NiPoint3                    point;
-	std::uint32_t                   index{ 0 };
+	std::optional<RotController>    rotationController;
+	float                           scale{ 1.0f };
 	bool                            isReference{};
 
 private:
 	void UpdateLight() const;
+};
+
+struct Timer
+{
+	Timer() = default;
+
+	bool UpdateTimer(float a_delta, float a_interval);
+	bool UpdateTimer(float a_interval);
+
+	// members
+	float lastUpdateTime{ 0.0f };
 };
 
 struct ProcessedREFRLights : Timer

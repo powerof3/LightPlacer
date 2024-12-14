@@ -1,5 +1,4 @@
 #include "Attach.h"
-#include "Hooks.h"
 
 namespace Hooks::Attach
 {
@@ -20,6 +19,26 @@ namespace Hooks::Attach
 			stl::hook_function_prologue<AddAddonNodes, 5>(target.address());
 
 			logger::info("Hooked BipedAnim::AddAddonNodes");
+		}
+	};
+
+	// casting art
+	struct AttachEnchantmentVisuals
+	{
+		static void thunk(RE::ActorMagicCaster* a_this)
+		{
+			LightManager::GetSingleton()->AddCastingLights(a_this);
+
+			func(a_this);
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		static void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(33373, 34154) };
+			stl::hook_function_prologue<AttachEnchantmentVisuals, 6>(target.address());
+
+			logger::info("Hooked ActorMagicCaster::AttachEnchantmentVisuals");
 		}
 	};
 
@@ -99,10 +118,9 @@ namespace Hooks::Attach
 		Clone3D<RE::AlchemyItem>::Install();
 		Clone3D<RE::IngredientItem>::Install();
 		Clone3D<RE::TESFlora>::Install();
-
 		BSTempEffect::Init<RE::ShaderReferenceEffect>::Install();
 		BSTempEffect::Init<RE::ModelReferenceEffect>::Install();
-
+		AttachEnchantmentVisuals::Install();
 		AddAddonNodes::Install();
 
 		AttachLight::Install();

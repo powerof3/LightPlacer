@@ -1,19 +1,11 @@
 #include "Debug.h"
 #include "Hooks.h"
 #include "Manager.h"
+#include "Settings.h"
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {
 	switch (a_message->type) {
-	case SKSE::MessagingInterface::kPostLoad:
-		{
-			if (LightManager::GetSingleton()->ReadConfigs()) {
-				Hooks::Install();
-			} else {
-				logger::warn("No Light Placer configs found...");
-			}
-		}
-		break;
 	case SKSE::MessagingInterface::kPostPostLoad:
 		{
 			logger::info("{:*^50}", "MERGES");
@@ -29,6 +21,8 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 	case SKSE::MessagingInterface::kDataLoaded:
 		{
 			LightManager::GetSingleton()->OnDataLoad();
+			Settings::GetSingleton()->OnDataLoad();
+
 			Debug::Install();
 		}
 		break;
@@ -74,7 +68,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 	}
 
 #	ifdef SKYRIMVR
-	REL::IDDatabase::get().IsVRAddressLibraryAtLeastVersion("LightPlacer VR", "0.159.0");
+	REL::IDDatabase::get().IsVRAddressLibraryAtLeastVersion("LightPlacer VR", "0.161.0");
 #	endif
 
 	return true;
@@ -105,12 +99,17 @@ void InitializeLog()
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
 	InitializeLog();
-
 	logger::info("Game version : {}", a_skse->RuntimeVersion().string());
 
 	SKSE::Init(a_skse, false);
+	SKSE::AllocTrampoline(512);
 
-	SKSE::AllocTrampoline(275);
+	if (LightManager::GetSingleton()->ReadConfigs()) {
+		Hooks::Install();
+	} else {
+		logger::warn("No Light Placer configs found...");
+		return true;
+	}
 
 	const auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(MessageHandler);

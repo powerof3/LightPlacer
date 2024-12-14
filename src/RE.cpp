@@ -46,17 +46,49 @@ namespace RE
 	}
 #endif
 
-	TESBoundObject* GetReferenceEffectBase(const ReferenceEffect* a_referenceEffect)
+	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect)
 	{
-		auto ref = a_referenceEffect->target.get();
-
-		if (IsActor(ref.get())) {
+		if (IsActor(a_ref.get())) {
 			if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {
 				return weapController->lastWeapon;
 			}
-			// no vfx on equipped armor?
-		} else {
-			return ref->GetBaseObject();
+		}
+
+		if (auto modelEffect = a_referenceEffect->As<ModelReferenceEffect>()) {
+			return modelEffect->artObject;
+		}
+		if (auto shaderReferenceEffect = a_referenceEffect->As<ShaderReferenceEffect>(); shaderReferenceEffect && shaderReferenceEffect->wornObject) {
+			return shaderReferenceEffect->wornObject;
+		}
+
+		return a_ref->GetBaseObject();
+	}
+
+	BGSArtObject* GetCastingArt(const MagicItem* a_magicItem)
+	{
+		if (!a_magicItem) {
+			return nullptr;
+		}
+
+		if (const auto avEffect = a_magicItem->GetAVEffect()) {
+			return avEffect->data.castingArt;
+		}
+
+		return nullptr;
+	}
+
+	BGSArtObject* GetCastingArt(const ActorMagicCaster* a_actorMagicCaster)
+	{
+		if (a_actorMagicCaster->castingArt) {
+			return a_actorMagicCaster->castingArt;
+		}
+
+		if (auto art = GetCastingArt(a_actorMagicCaster->currentSpell)) {
+			return art;
+		}
+
+		if (auto actor = a_actorMagicCaster->GetCasterAsActor()) {
+			return GetCastingArt(actor->selectedSpells[std::to_underlying(a_actorMagicCaster->castingSource)]);
 		}
 
 		return nullptr;

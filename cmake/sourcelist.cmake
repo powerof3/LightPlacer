@@ -5,10 +5,13 @@ set(sources ${sources}
 	src/Hooks.cpp
 	src/Hooks/Attach.cpp
 	src/Hooks/Detach.cpp
+	src/Hooks/Misc.cpp
 	src/Hooks/Update.cpp
 	src/LightData.cpp
 	src/Manager.cpp
 	src/PCH.cpp
 	src/RE.cpp
+	src/Settings.cpp
+	src/SourceData.cpp
 	src/main.cpp
 )
