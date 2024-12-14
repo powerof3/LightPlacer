@@ -14,7 +14,7 @@ namespace Hooks::Update
 				Patch(std::uintptr_t a_func)
 				{
 					Xbyak::Label f;
-#ifdef SKYRIM_AE
+#if defined(SKYRIM_AE) || defined(SKYRIMVR)
 					mov(rdx, r15);
 #else
 					mov(rdx, r14);

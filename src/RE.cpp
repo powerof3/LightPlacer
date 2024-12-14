@@ -24,6 +24,7 @@ namespace RE
 		return 0;
 	}
 
+#ifndef SKYRIMVR
 	const char* GetGameVersionImpl()
 	{
 		using func_t = decltype(&GetGameVersionImpl);
@@ -43,6 +44,7 @@ namespace RE
 
 		return REL::Version(version);
 	}
+#endif
 
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect)
 	{

@@ -56,8 +56,10 @@ namespace RE
 		return formID != 0 ? TESForm::LookupByID<T>(GetFormID(a_str)) : nullptr;
 	}
 
+#ifndef SKYRIMVR
 	const char*  GetGameVersionImpl();
 	REL::Version GetGameVersion();
+#endif
 
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
 
