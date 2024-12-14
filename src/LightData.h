@@ -14,6 +14,7 @@ struct LightData
 		Shadow = (1 << 1),
 		Simple = (1 << 2),
 
+		IgnoreScale = (1 << 28),
 		RandomAnimStart = (1 << 29),
 		NoExternalEmittance = (1 << 30)
 	};
@@ -125,40 +126,7 @@ struct glz::meta<LightSourceData>
 struct REFR_LIGH
 {
 	REFR_LIGH() = default;
-
-	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref) :
-		data(a_lightSource.data),
-		bsLight(a_bsLight),
-		niLight(a_niLight),
-		isReference(!RE::IsActor(a_ref))
-	{
-		if (!data.emittanceForm && data.flags.none(LightData::LightFlags::NoExternalEmittance)) {
-			auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
-			data.emittanceForm = xData ? xData->source : nullptr;
-		}
-
-		const bool randomAnimStart = data.flags.any(LightData::LightFlags::RandomAnimStart);
-
-		if (!a_lightSource.colorController.empty()) {
-			colorController = Animation::LightController(a_lightSource.colorController, randomAnimStart);
-		}
-		if (!a_lightSource.radiusController.empty()) {
-			radiusController = Animation::LightController(a_lightSource.radiusController, randomAnimStart);
-		}
-		if (!a_lightSource.fadeController.empty()) {
-			fadeController = Animation::LightController(a_lightSource.fadeController, randomAnimStart);
-		}
-		if (!a_lightSource.positionController.empty()) {
-			positionController = Animation::LightController(a_lightSource.positionController, randomAnimStart);
-		}
-		if (!a_lightSource.rotationController.empty()) {
-			rotationController = Animation::LightController(a_lightSource.rotationController, randomAnimStart);
-		}
-
-		if (a_niLight && a_niLight->parent) {
-			debugMarker.reset(niLight->parent->GetObjectByName(LightData::LP_DEBUG));
-		}
-	}
+	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref);
 
 	bool operator==(const REFR_LIGH& rhs) const
 	{
@@ -170,12 +138,14 @@ struct REFR_LIGH
 		return niLight->name == rhs->name;
 	}
 
+	bool IsAnimated() const;
+
 	bool DimLight(float a_dimmer) const;
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	void ReattachLight() const;
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker(bool a_show) const;
-	void UpdateAnimation(bool a_withinRange);
+	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
 	void UpdateConditions(RE::TESObjectREFR* a_ref) const;
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;
@@ -189,6 +159,7 @@ struct REFR_LIGH
 	std::optional<FloatController>  fadeController;
 	std::optional<PosController>    positionController;
 	std::optional<RotController>    rotationController;
+	float                           scale{ 1.0f };
 	bool                            isReference{};
 
 private:

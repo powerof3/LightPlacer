@@ -174,7 +174,9 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 
 		niLight->diffuse = GetDiffuse();
 
-		const auto lightRadius = GetRadius();
+		const auto scaleFactor = flags.none(LightFlags::IgnoreScale) ? a_ref->GetScale() : 1.0f;
+
+		const auto lightRadius = GetRadius() * scaleFactor;
 		niLight->radius.x = lightRadius;
 		niLight->radius.y = lightRadius;
 		niLight->radius.z = lightRadius;
@@ -185,7 +187,7 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 		}
 
 		niLight->SetLightAttenuation(lightRadius);
-		niLight->fade = GetFade();
+		niLight->fade = GetFade() * scaleFactor;
 
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
 			niLight->SetAppCulled(true);
@@ -281,6 +283,9 @@ void LightSourceData::ReadFlags()
 			case "Simple"_h:
 				data.flags.set(LightData::LightFlags::Simple);
 				break;
+			case "IgnoreScale"_h:
+				data.flags.set(LightData::LightFlags::IgnoreScale);
+				break;
 			case "RandomAnimStart"_h:
 				data.flags.set(LightData::LightFlags::RandomAnimStart);
 				break;
@@ -374,6 +379,48 @@ RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject*
 	return nullptr;
 }
 
+REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref) :
+	data(a_lightSource.data),
+	bsLight(a_bsLight),
+	niLight(a_niLight),
+	isReference(!RE::IsActor(a_ref)),
+	scale(a_ref->GetScale())
+{
+	data.fade = data.GetFade();
+	data.radius = data.GetRadius();
+
+	if (!data.emittanceForm && data.flags.none(LightData::LightFlags::NoExternalEmittance)) {
+		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
+		data.emittanceForm = xData ? xData->source : nullptr;
+	}
+
+	const bool randomAnimStart = data.flags.any(LightData::LightFlags::RandomAnimStart);
+	if (!a_lightSource.colorController.empty()) {
+		colorController = Animation::LightController(a_lightSource.colorController, randomAnimStart);
+	}
+	if (!a_lightSource.radiusController.empty()) {
+		radiusController = Animation::LightController(a_lightSource.radiusController, randomAnimStart);
+	}
+	if (!a_lightSource.fadeController.empty()) {
+		fadeController = Animation::LightController(a_lightSource.fadeController, randomAnimStart);
+	}
+	if (!a_lightSource.positionController.empty()) {
+		positionController = Animation::LightController(a_lightSource.positionController, randomAnimStart);
+	}
+	if (!a_lightSource.rotationController.empty()) {
+		rotationController = Animation::LightController(a_lightSource.rotationController, randomAnimStart);
+	}
+
+	if (a_niLight && a_niLight->parent) {
+		debugMarker.reset(niLight->parent->GetObjectByName(LightData::LP_DEBUG));
+	}
+}
+
+bool REFR_LIGH::IsAnimated() const
+{
+	return data.light->GetNoFlicker() || data.conditions || colorController || fadeController || radiusController || positionController || rotationController;
+}
+
 bool REFR_LIGH::DimLight(const float a_dimmer) const
 {
 	if (niLight && a_dimmer <= 1.0f) {
@@ -425,7 +472,7 @@ void REFR_LIGH::ShowDebugMarker(bool a_show) const
 	}
 }
 
-void REFR_LIGH::UpdateAnimation(bool a_withinRange)
+void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 {
 	if (!niLight) {
 		return;
@@ -441,14 +488,18 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange)
 		return;
 	}
 
+	if (data.flags.none(LightData::LightFlags::IgnoreScale)) {
+		scale = a_scalingFactor;
+	}
+
 	if (radiusController) {
-		const auto newRadius = radiusController->GetValue(RE::BSTimer::GetSingleton()->delta);
+		const auto newRadius = radiusController->GetValue(RE::BSTimer::GetSingleton()->delta) * scale;
 		niLight->radius.x = newRadius;
 		niLight->radius.y = newRadius;
 		niLight->radius.z = newRadius;
 	}
 	if (fadeController) {
-		niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta);
+		niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta) * scale;
 	}
 	if (auto parentNode = niLight->parent) {
 		if (positionController) {
@@ -527,7 +578,7 @@ void REFR_LIGH::UpdateLight() const
 														 RE::NiSinQImpl(quadraticAttenOffset * 3.0f * (512.0f / RE::NI_TWO_PI) + 73.3386f) * 0.2f,
 				-1.0f, 1.0f);
 
-			niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * data.fade;
+			niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * (data.fade * scale);
 		}
 
 	} else {
@@ -543,7 +594,7 @@ void REFR_LIGH::UpdateLight() const
 
 		if (!fadeController) {
 			const auto halfIntensityAmplitude = data.light->data.flickerIntensityAmplitude * 0.5f;
-			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * data.fade;
+			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * (data.fade * scale);
 		}
 
 		if (!positionController) {
@@ -595,7 +646,7 @@ bool Timer::UpdateTimer(float a_interval)
 
 void ProcessedREFRLights::emplace(const REFR_LIGH& a_lightData, RE::RefHandle a_handle)
 {
-	if (!a_lightData.data.light->GetNoFlicker() || a_lightData.data.conditions || a_lightData.colorController || a_lightData.fadeController || a_lightData.radiusController || a_lightData.positionController || a_lightData.rotationController) {
+	if (!a_lightData.IsAnimated()) {
 		stl::unique_insert(animatedLights, a_handle);
 	}
 

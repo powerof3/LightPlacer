@@ -543,12 +543,13 @@ void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell
 					}
 
 					const bool withinFlickerDistance = ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistanceSq;
+					const float scale = withinFlickerDistance ? ref->GetScale() : 1.0f;
 
 					ForEachLight(ref.get(), handle, [=](auto& lightREFRData) {
 						if (updateConditions) {
 							lightREFRData.UpdateConditions(ref.get());
 						}
-						lightREFRData.UpdateAnimation(withinFlickerDistance);
+						lightREFRData.UpdateAnimation(withinFlickerDistance, scale);
 						if (withinFlickerDistance) {
 							lightREFRData.UpdateFlickering();
 						}
@@ -609,9 +610,10 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 
 			auto& [flickerTimer, conditionTimer, lightDataVec] = it->second;
 
-			const bool updateFlicker = flickerTimer.UpdateTimer(RE::BSTimer::GetSingleton()->delta * 2.0f);
-			const bool updateConditions = conditionTimer.UpdateTimer(0.25f);
-			const bool withinFlickerDistance = ref->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < flickeringDistanceSq;
+			const bool  updateFlicker = flickerTimer.UpdateTimer(RE::BSTimer::GetSingleton()->delta * 2.0f);
+			const bool  updateConditions = conditionTimer.UpdateTimer(0.25f);
+			const bool  withinFlickerDistance = ref->IsPlayerRef() || ref->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < flickeringDistanceSq;
+			const float scale = withinFlickerDistance ? ref->GetScale() : 1.0f;
 
 			for (auto& lightData : lightDataVec) {
 				if (lightData.DimLight(dimFactor)) {
@@ -620,7 +622,7 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 				if (updateConditions) {
 					lightData.UpdateConditions(ref.get());
 				}
-				lightData.UpdateAnimation(withinFlickerDistance);
+				lightData.UpdateAnimation(withinFlickerDistance, scale);
 				if (updateFlicker) {
 					if (withinFlickerDistance) {
 						lightData.UpdateFlickering();
@@ -650,14 +652,15 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 		if (auto it = map.find(a_actorMagicCaster->castingArtData.attachedArt); it != map.end()) {
 			auto& [flickerTimer, conditionTimer, lightDataVec] = it->second;
 
-			const bool updateConditions = conditionTimer.UpdateTimer(a_delta, 0.25f);
-			const bool withinFlickerDistance = actor->IsPlayerRef() || actor->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < flickeringDistanceSq;
+			const bool  updateConditions = conditionTimer.UpdateTimer(a_delta, 0.25f);
+			const bool  withinFlickerDistance = actor->IsPlayerRef() || actor->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < flickeringDistanceSq;
+			const float scale = withinFlickerDistance ? actor->GetScale() : 1.0f;
 
 			for (auto& lightData : lightDataVec) {
 				if (updateConditions) {
 					lightData.UpdateConditions(actor);
 				}
-				lightData.UpdateAnimation(withinFlickerDistance);
+				lightData.UpdateAnimation(withinFlickerDistance, scale);
 				if (withinFlickerDistance) {
 					lightData.UpdateFlickering();
 				}
