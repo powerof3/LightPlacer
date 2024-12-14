@@ -5,7 +5,8 @@ SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObj
 	ref(a_ref),
 	base(a_object),
 	root(a_root->AsNode()),
-	handle(a_ref->CreateRefHandle().native_handle())
+	handle(a_ref->CreateRefHandle().native_handle()),
+	scale(a_ref->GetScale())
 {
 	RE::TESModel* model = a_model;
 	if (!model) {

@@ -7,7 +7,7 @@ struct SourceData;
 struct LightData
 {
 	// CS light flags
-	enum class LightFlags
+	enum class Flags
 	{
 		None = 0,
 		PortalStrict = (1 << 0),
@@ -21,10 +21,17 @@ struct LightData
 
 	void AttachDebugMarker(RE::NiNode* a_node) const;
 
-	bool                                     GetCastsShadows() const;
-	RE::NiColor                              GetDiffuse() const;
-	float                                    GetRadius() const;
-	float                                    GetFade() const;
+	bool        GetCastsShadows() const;
+	RE::NiColor GetDiffuse() const;
+
+	float GetRadius() const;
+	float GetFade() const;
+
+	float GetScaledRadius(float a_radius, float a_scale) const;
+	float GetScaledFade(float a_fade, float a_scale) const;
+	float GetScaledRadius(float a_scale) const;
+	float GetScaledFade(float a_scale) const;
+
 	float                                    GetFOV() const;
 	float                                    GetFalloff() const;
 	float                                    GetNearDistance() const;
@@ -36,20 +43,20 @@ struct LightData
 	bool                                     IsDynamicLight(RE::TESObjectREFR* a_ref) const;
 	bool                                     IsValid() const;
 
-	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName) const;
+	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;
 
 	// members
-	RE::TESObjectLIGH*                      light{ nullptr };
-	RE::NiColor                             color{ RE::COLOR_BLACK };
-	float                                   radius{ 0.0f };
-	float                                   fade{ 0.0f };
-	float                                   fov{ 0.0f };
-	float                                   shadowDepthBias{ 1.0f };
-	RE::NiPoint3                            offset;
-	RE::NiMatrix3                           rotation;
-	REX::EnumSet<LightFlags, std::uint32_t> flags{ LightFlags::None };
-	RE::TESForm*                            emittanceForm{ nullptr };
-	std::shared_ptr<RE::TESCondition>       conditions;
+	RE::TESObjectLIGH*                 light{ nullptr };
+	RE::NiColor                        color{ RE::COLOR_BLACK };
+	float                              radius{ 0.0f };
+	float                              fade{ 0.0f };
+	float                              fov{ 0.0f };
+	float                              shadowDepthBias{ 1.0f };
+	RE::NiPoint3                       offset;
+	RE::NiMatrix3                      rotation;
+	REX::EnumSet<Flags, std::uint32_t> flags{ Flags::None };
+	RE::TESForm*                       emittanceForm{ nullptr };
+	std::shared_ptr<RE::TESCondition>  conditions;
 
 	constexpr static auto LP_LIGHT = "LP_Light"sv;
 	constexpr static auto LP_NODE = "LP_Node"sv;
@@ -126,7 +133,7 @@ struct glz::meta<LightSourceData>
 struct REFR_LIGH
 {
 	REFR_LIGH() = default;
-	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref);
+	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, float a_scale);
 
 	bool operator==(const REFR_LIGH& rhs) const
 	{

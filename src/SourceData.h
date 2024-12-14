@@ -28,10 +28,10 @@ struct SourceData
 	RE::NiNode*         root{};
 	RE::RefHandle       handle{};
 	std::string_view    modelPath;
-
-	RE::FormID cellID{ 0 };
-	RE::FormID worldSpaceID{ 0 };
-	RE::FormID locationID{ 0 };
+	float               scale{};
+	RE::FormID          cellID{ 0 };
+	RE::FormID          worldSpaceID{ 0 };
+	RE::FormID          locationID{ 0 };
 
 	std::uint32_t effectID{ std::numeric_limits<std::uint32_t>::max() };
 };

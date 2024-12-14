@@ -429,7 +429,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 {
 	const auto name = a_lightSource.data.GetName(a_srcData, a_index);
 
-	if (auto [bsLight, niLight] = a_lightSource.data.GenLight(a_srcData.ref, a_node, name); bsLight && niLight) {
+	if (auto [bsLight, niLight] = a_lightSource.data.GenLight(a_srcData.ref, a_node, name, a_srcData.scale); bsLight && niLight) {
 		switch (a_srcData.type) {
 		case SOURCE_TYPE::kRef:
 			{
@@ -437,7 +437,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 					auto& lightDataVec = map[a_srcData.handle];
 
 					if (std::find(lightDataVec.begin(), lightDataVec.end(), niLight) == lightDataVec.end()) {
-						lightDataVec.emplace_back(a_lightSource, bsLight, niLight, a_srcData.ref);
+						lightDataVec.emplace_back(a_lightSource, bsLight, niLight, a_srcData.ref, a_srcData.scale);
 					}
 				});
 			}
@@ -452,7 +452,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 						auto& lightDataVec = nodeNameMap[nodeName];
 
 						if (std::find(lightDataVec.begin(), lightDataVec.end(), niLight) == lightDataVec.end()) {
-							REFR_LIGH lightData(a_lightSource, bsLight, niLight, a_srcData.ref);
+							REFR_LIGH lightData(a_lightSource, bsLight, niLight, a_srcData.ref, a_srcData.scale);
 							lightDataVec.push_back(lightData);
 							processedGameRefLights.write([&](auto& cellMap) {
 								cellMap[a_srcData.cellID].write([&](auto& innerMap) {
@@ -470,7 +470,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 					auto& effectLights = map[a_srcData.root];
 
 					if (std::find(effectLights.lights.begin(), effectLights.lights.end(), niLight) == effectLights.lights.end()) {
-						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_srcData.ref);
+						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_srcData.ref, a_srcData.scale);
 					}
 				});
 			}
@@ -481,7 +481,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 					auto& effectLights = map[a_srcData.effectID];
 
 					if (std::find(effectLights.lights.begin(), effectLights.lights.end(), niLight) == effectLights.lights.end()) {
-						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_srcData.ref);
+						effectLights.lights.emplace_back(a_lightSource, bsLight, niLight, a_srcData.ref, a_srcData.scale);
 					}
 				});
 			}

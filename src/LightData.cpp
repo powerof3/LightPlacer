@@ -88,7 +88,7 @@ void LightData::AttachDebugMarker(RE::NiNode* a_node) const
 
 bool LightData::GetCastsShadows() const
 {
-	return flags.any(LightFlags::Shadow) /*|| light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow)*/;
+	return flags.any(Flags::Shadow) /*|| light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow)*/;
 }
 
 RE::NiColor LightData::GetDiffuse() const
@@ -105,6 +105,30 @@ float LightData::GetRadius() const
 float LightData::GetFade() const
 {
 	return fade > 0.0f ? fade : light->fade;
+}
+
+float LightData::GetScaledRadius(float a_radius, float a_scale) const
+{
+	return flags.any(Flags::IgnoreScale) ?
+	           a_radius :
+	           a_radius * a_scale;
+}
+
+float LightData::GetScaledFade(float a_fade, float a_scale) const
+{
+	return flags.any(Flags::IgnoreScale) ?
+	           a_fade :
+	           a_fade * a_scale;
+}
+
+float LightData::GetScaledRadius(float a_scale) const
+{
+	return GetScaledRadius(GetRadius(), a_scale);
+}
+
+float LightData::GetScaledFade(float a_scale) const
+{
+	return GetScaledFade(GetFade(), a_scale);
 }
 
 float LightData::GetFOV() const
@@ -152,10 +176,10 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR*
 
 bool LightData::GetPortalStrict() const
 {
-	return flags.any(LightFlags::PortalStrict) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
+	return flags.any(Flags::PortalStrict) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
 }
 
-std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName) const
+std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const
 {
 	RE::BSLight*      bsLight = nullptr;
 	RE::NiPointLight* niLight = nullptr;
@@ -174,9 +198,7 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 
 		niLight->diffuse = GetDiffuse();
 
-		const auto scaleFactor = flags.none(LightFlags::IgnoreScale) ? a_ref->GetScale() : 1.0f;
-
-		const auto lightRadius = GetRadius() * scaleFactor;
+		const auto lightRadius = GetScaledRadius(a_scale);
 		niLight->radius.x = lightRadius;
 		niLight->radius.y = lightRadius;
 		niLight->radius.z = lightRadius;
@@ -187,7 +209,7 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 		}
 
 		niLight->SetLightAttenuation(lightRadius);
-		niLight->fade = GetFade() * scaleFactor;
+		niLight->fade = GetScaledFade(a_scale);
 
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
 			niLight->SetAppCulled(true);
@@ -275,22 +297,22 @@ void LightSourceData::ReadFlags()
 		for (const auto& flagStr : flagStrs) {
 			switch (string::const_hash(flagStr)) {
 			case "PortalStrict"_h:
-				data.flags.set(LightData::LightFlags::PortalStrict);
+				data.flags.set(LightData::Flags::PortalStrict);
 				break;
 			case "Shadow"_h:
-				data.flags.set(LightData::LightFlags::Shadow);
+				data.flags.set(LightData::Flags::Shadow);
 				break;
 			case "Simple"_h:
-				data.flags.set(LightData::LightFlags::Simple);
+				data.flags.set(LightData::Flags::Simple);
 				break;
 			case "IgnoreScale"_h:
-				data.flags.set(LightData::LightFlags::IgnoreScale);
+				data.flags.set(LightData::Flags::IgnoreScale);
 				break;
 			case "RandomAnimStart"_h:
-				data.flags.set(LightData::LightFlags::RandomAnimStart);
+				data.flags.set(LightData::Flags::RandomAnimStart);
 				break;
 			case "NoExternalEmittance"_h:
-				data.flags.set(LightData::LightFlags::NoExternalEmittance);
+				data.flags.set(LightData::Flags::NoExternalEmittance);
 				break;
 			default:
 				break;
@@ -379,22 +401,19 @@ RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject*
 	return nullptr;
 }
 
-REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref) :
+REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, float a_scale) :
 	data(a_lightSource.data),
 	bsLight(a_bsLight),
 	niLight(a_niLight),
-	isReference(!RE::IsActor(a_ref)),
-	scale(a_ref->GetScale())
+	scale(a_scale),
+	isReference(!RE::IsActor(a_ref))
 {
-	data.fade = data.GetFade();
-	data.radius = data.GetRadius();
-
-	if (!data.emittanceForm && data.flags.none(LightData::LightFlags::NoExternalEmittance)) {
+	if (!data.emittanceForm && data.flags.none(LightData::Flags::NoExternalEmittance)) {
 		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
 		data.emittanceForm = xData ? xData->source : nullptr;
 	}
 
-	const bool randomAnimStart = data.flags.any(LightData::LightFlags::RandomAnimStart);
+	const bool randomAnimStart = data.flags.any(LightData::Flags::RandomAnimStart);
 	if (!a_lightSource.colorController.empty()) {
 		colorController = Animation::LightController(a_lightSource.colorController, randomAnimStart);
 	}
@@ -432,7 +451,7 @@ bool REFR_LIGH::DimLight(const float a_dimmer) const
 
 void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 {
-	auto lights = data.GenLight(a_ref, niLight->parent, niLight->name);
+	auto lights = data.GenLight(a_ref, niLight->parent, niLight->name, scale);
 
 	bsLight.reset(lights.first);
 	niLight.reset(lights.second);
@@ -488,18 +507,16 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 		return;
 	}
 
-	if (data.flags.none(LightData::LightFlags::IgnoreScale)) {
-		scale = a_scalingFactor;
-	}
+	scale = a_scalingFactor;
 
 	if (radiusController) {
-		const auto newRadius = radiusController->GetValue(RE::BSTimer::GetSingleton()->delta) * scale;
+		const auto newRadius = data.GetScaledRadius(radiusController->GetValue(RE::BSTimer::GetSingleton()->delta), scale);
 		niLight->radius.x = newRadius;
 		niLight->radius.y = newRadius;
 		niLight->radius.z = newRadius;
 	}
 	if (fadeController) {
-		niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta) * scale;
+		niLight->fade = data.GetScaledFade(fadeController->GetValue(RE::BSTimer::GetSingleton()->delta), scale);
 	}
 	if (auto parentNode = niLight->parent) {
 		if (positionController) {
@@ -578,7 +595,7 @@ void REFR_LIGH::UpdateLight() const
 														 RE::NiSinQImpl(quadraticAttenOffset * 3.0f * (512.0f / RE::NI_TWO_PI) + 73.3386f) * 0.2f,
 				-1.0f, 1.0f);
 
-			niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * (data.fade * scale);
+			niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * data.GetScaledFade(scale);
 		}
 
 	} else {
@@ -594,7 +611,7 @@ void REFR_LIGH::UpdateLight() const
 
 		if (!fadeController) {
 			const auto halfIntensityAmplitude = data.light->data.flickerIntensityAmplitude * 0.5f;
-			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * (data.fade * scale);
+			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * data.GetScaledFade(scale);
 		}
 
 		if (!positionController) {
