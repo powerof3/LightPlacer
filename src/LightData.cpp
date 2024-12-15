@@ -663,7 +663,7 @@ bool Timer::UpdateTimer(float a_interval)
 
 void ProcessedREFRLights::emplace(const REFR_LIGH& a_lightData, RE::RefHandle a_handle)
 {
-	if (!a_lightData.IsAnimated()) {
+	if (a_lightData.IsAnimated()) {
 		stl::unique_insert(animatedLights, a_handle);
 	}
 
