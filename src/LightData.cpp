@@ -514,6 +514,7 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 		niLight->radius.x = newRadius;
 		niLight->radius.y = newRadius;
 		niLight->radius.z = newRadius;
+		niLight->SetLightAttenuation(newRadius);
 	}
 	if (fadeController) {
 		niLight->fade = data.GetScaledFade(fadeController->GetValue(RE::BSTimer::GetSingleton()->delta), scale);
