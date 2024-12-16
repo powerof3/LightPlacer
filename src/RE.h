@@ -13,7 +13,8 @@ struct glz::meta<RE::NiMatrix3>
 	static constexpr auto read = [](RE::NiMatrix3& input, const std::array<float, 3>& vec) {
 		input.SetEulerAnglesXYZ(RE::deg_to_rad(vec[0]), RE::deg_to_rad(vec[1]), RE::deg_to_rad(vec[2]));
 	};
-	static constexpr auto write = [](auto& input) -> auto {
+	static constexpr auto write = [](auto& input) -> auto
+	{
 		std::array<float, 3> vec{};
 		input.ToEulerAnglesXYZ(vec[0], vec[1], vec[2]);
 		vec[0] = RE::rad_to_deg(vec[0]);
