@@ -13,8 +13,7 @@ struct glz::meta<RE::NiMatrix3>
 	static constexpr auto read = [](RE::NiMatrix3& input, const std::array<float, 3>& vec) {
 		input.SetEulerAnglesXYZ(RE::deg_to_rad(vec[0]), RE::deg_to_rad(vec[1]), RE::deg_to_rad(vec[2]));
 	};
-	static constexpr auto write = [](auto& input) -> auto
-	{
+	static constexpr auto write = [](auto& input) -> auto {
 		std::array<float, 3> vec{};
 		input.ToEulerAnglesXYZ(vec[0], vec[1], vec[2]);
 		vec[0] = RE::rad_to_deg(vec[0]);
@@ -48,7 +47,6 @@ namespace RE
 	}
 
 	FormID GetFormID(const std::string& a_str);
-
 	template <class T>
 	T* GetFormFromID(const std::string& a_str)
 	{
@@ -62,16 +60,13 @@ namespace RE
 #endif
 
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
-
-	BGSArtObject* GetCastingArt(const MagicItem* a_magicItem);
-	BGSArtObject* GetCastingArt(const ActorMagicCaster* a_actorMagicCaster);
-
-	bool IsActor(const TESObjectREFR* a_ref);
-
-	float NiSinQImpl(float a_value);
-	float NiCosQImpl(float a_value);
-	float NiSinQ(float a_radians);
-	float NiCosQ(float a_radians);
-
-	void UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer);
+	BGSArtObject*   GetCastingArt(const MagicItem* a_magicItem);
+	BGSArtObject*   GetCastingArt(const ActorMagicCaster* a_actorMagicCaster);
+	bool            IsActor(const TESObjectREFR* a_ref);
+	float           NiSinQImpl(float a_value);
+	float           NiCosQImpl(float a_value);
+	float           NiSinQ(float a_radians);
+	float           NiCosQ(float a_radians);
+	bool            ToggleMasterParticleAddonNodes(const NiNode* a_node, bool a_enable);
+	void            UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer);
 }

@@ -14,12 +14,14 @@ struct LightData
 		Shadow = (1 << 1),
 		Simple = (1 << 2),
 
+		SyncAddonNodes = (1 << 27),
 		IgnoreScale = (1 << 28),
 		RandomAnimStart = (1 << 29),
 		NoExternalEmittance = (1 << 30)
 	};
 
 	void AttachDebugMarker(RE::NiNode* a_node) const;
+	void ToggleAddonNodes(RE::TESObjectREFR* a_ref, bool a_enable) const;
 
 	bool        GetCastsShadows() const;
 	RE::NiColor GetDiffuse() const;
@@ -157,7 +159,7 @@ struct REFR_LIGH
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker(bool a_show) const;
 	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
-	void UpdateConditions(RE::TESObjectREFR* a_ref) const;
+	void UpdateConditions(RE::TESObjectREFR* a_ref);
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;
 
@@ -171,6 +173,7 @@ struct REFR_LIGH
 	std::optional<PosController>    positionController;
 	std::optional<RotController>    rotationController;
 	float                           scale{ 1.0f };
+	std::optional<bool>             lastCulledState{};
 	bool                            isReference{};
 
 private:

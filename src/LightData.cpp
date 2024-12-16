@@ -86,6 +86,15 @@ void LightData::AttachDebugMarker(RE::NiNode* a_node) const
 	}
 }
 
+void LightData::ToggleAddonNodes(RE::TESObjectREFR* a_ref, bool a_enable) const
+{
+	if (flags.any(Flags::SyncAddonNodes)) {
+		if (const auto root = a_ref->Get3D()) {
+			RE::ToggleMasterParticleAddonNodes(root->AsNode(), a_enable);
+		}
+	}
+}
+
 bool LightData::GetCastsShadows() const
 {
 	return flags.any(Flags::Shadow) /*|| light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow)*/;
@@ -213,7 +222,9 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
 			niLight->SetAppCulled(true);
+			ToggleAddonNodes(a_ref, false);
 		}
+
 		if (Settings::GetSingleton()->CanShowDebugMarkers()) {
 			if (const auto debugMarker = a_node->GetObjectByName(LP_DEBUG)) {
 				debugMarker->SetAppCulled(false);
@@ -304,6 +315,9 @@ void LightSourceData::ReadFlags()
 				break;
 			case "Simple"_h:
 				data.flags.set(LightData::Flags::Simple);
+				break;
+			case "SyncAddonNodes"_h:
+				data.flags.set(LightData::Flags::SyncAddonNodes);
 				break;
 			case "IgnoreScale"_h:
 				data.flags.set(LightData::Flags::IgnoreScale);
@@ -414,21 +428,18 @@ REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLigh
 	}
 
 	const bool randomAnimStart = data.flags.any(LightData::Flags::RandomAnimStart);
-	if (!a_lightSource.colorController.empty()) {
-		colorController = Animation::LightController(a_lightSource.colorController, randomAnimStart);
+
+#define INIT_CONTROLLER(controller)                                                           \
+	if (!a_lightSource.controller.empty()) {                                                  \
+		(controller) = Animation::LightController(a_lightSource.controller, randomAnimStart); \
 	}
-	if (!a_lightSource.radiusController.empty()) {
-		radiusController = Animation::LightController(a_lightSource.radiusController, randomAnimStart);
-	}
-	if (!a_lightSource.fadeController.empty()) {
-		fadeController = Animation::LightController(a_lightSource.fadeController, randomAnimStart);
-	}
-	if (!a_lightSource.positionController.empty()) {
-		positionController = Animation::LightController(a_lightSource.positionController, randomAnimStart);
-	}
-	if (!a_lightSource.rotationController.empty()) {
-		rotationController = Animation::LightController(a_lightSource.rotationController, randomAnimStart);
-	}
+
+	INIT_CONTROLLER(colorController)
+	INIT_CONTROLLER(radiusController)
+	INIT_CONTROLLER(fadeController)
+	INIT_CONTROLLER(positionController)
+	INIT_CONTROLLER(rotationController)
+#undef INIT_CONTROLLER
 
 	if (a_niLight && a_niLight->parent) {
 		debugMarker.reset(niLight->parent->GetObjectByName(LightData::LP_DEBUG));
@@ -538,12 +549,17 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 	}
 }
 
-void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref) const
+void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref)
 {
 	if (data.conditions && niLight) {
-		const bool hideLight = !data.conditions->IsTrue(a_ref, a_ref);
-		niLight->SetAppCulled(hideLight);
-		ShowDebugMarker(!hideLight);
+		const bool cullState = data.conditions->IsTrue(a_ref, a_ref);
+		if (lastCulledState != cullState) {
+			lastCulledState = cullState;
+
+			niLight->SetAppCulled(!cullState);
+			data.ToggleAddonNodes(a_ref, cullState);
+			ShowDebugMarker(cullState);
+		}
 	}
 }
 
