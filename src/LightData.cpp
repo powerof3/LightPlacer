@@ -345,7 +345,7 @@ void LightSourceData::ReadConditions()
 bool LightSourceData::PostProcess()
 {
 	if (!lightEDID.contains("|")) {
-		data.light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);		
+		data.light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);
 	} else {
 		auto edids = string::split(lightEDID, "|");
 		for (auto& edid : edids) {
