@@ -39,7 +39,7 @@ void Settings::OnDataLoad()
 			}
 			return true;
 		});
-	}; 
+	};
 
 	post_process(blackListedLights, blackListedLightsRefs);
 	post_process(whiteListedLights, whiteListedLightsRefs);
