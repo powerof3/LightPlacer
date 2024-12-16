@@ -344,7 +344,17 @@ void LightSourceData::ReadConditions()
 
 bool LightSourceData::PostProcess()
 {
-	data.light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);
+	if (!lightEDID.contains("|")) {
+		data.light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);		
+	} else {
+		auto edids = string::split(lightEDID, "|");
+		for (auto& edid : edids) {
+			if (auto form = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(edid)) {
+				data.light = form;
+				break;
+			}
+		}
+	}
 
 	if (!data.IsValid()) {
 		return false;
