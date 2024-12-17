@@ -142,13 +142,14 @@ struct REFR_LIGH
 	// cull nodes based on condition state
 	struct NodeVisibilityHelper
 	{
+		void InsertConditionalNodes(const StringSet& a_nodes, bool a_isVisble);
 		void UpdateNodeVisibility(const RE::TESObjectREFR* a_ref, std::string_view a_nodeName) const;
 
 		// members
-		bool      isVisible{ false };
-		bool      canCullAddonNodes{ false };
-		bool      canCullNodes{ false };
-		StringSet nodesToCull;
+		bool            isVisible{ false };
+		bool            canCullAddonNodes{ false };
+		bool            canCullNodes{ false };
+		StringMap<bool> conditionalNodes;
 	};
 
 	REFR_LIGH() = default;

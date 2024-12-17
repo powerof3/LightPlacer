@@ -415,6 +415,13 @@ RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject*
 	return nullptr;
 }
 
+void REFR_LIGH::NodeVisibilityHelper::InsertConditionalNodes(const StringSet& a_nodes, bool a_isVisble)
+{
+	for (const auto& nodeName : a_nodes) {
+		conditionalNodes.insert_or_assign(nodeName, a_isVisble);		
+	}
+}
+
 void REFR_LIGH::NodeVisibilityHelper::UpdateNodeVisibility(const RE::TESObjectREFR* a_ref, std::string_view a_nodeName) const
 {
 	if (canCullAddonNodes || canCullNodes) {
@@ -430,8 +437,8 @@ void REFR_LIGH::NodeVisibilityHelper::UpdateNodeVisibility(const RE::TESObjectRE
 			}
 			if (canCullNodes) {
 				RE::BSVisit::TraverseScenegraphObjects(node, [&](RE::NiAVObject* a_obj) {
-					if (nodesToCull.contains(a_obj->name.c_str())) {
-						a_obj->SetAppCulled(!isVisible);
+					if (const auto it = conditionalNodes.find(a_obj->name.c_str()); it != conditionalNodes.end()) {
+						a_obj->SetAppCulled(it->second);
 					}
 					return RE::BSVisit::BSVisitControl::kContinue;
 				});
@@ -581,13 +588,12 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisibilityHelper&
 			niLight->SetAppCulled(!isVisible);
 			ShowDebugMarker(isVisible);
 
+			a_nodeVisHelper.isVisible |= isVisible;
 			a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);
 			a_nodeVisHelper.canCullNodes |= !data.conditionalNodes.empty();
 
-			a_nodeVisHelper.isVisible |= isVisible;
-
 			if (!data.conditionalNodes.empty()) {
-				a_nodeVisHelper.nodesToCull.insert(data.conditionalNodes.begin(), data.conditionalNodes.end());
+				a_nodeVisHelper.InsertConditionalNodes(data.conditionalNodes, isVisible);
 			}
 		}
 	}
