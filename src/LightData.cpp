@@ -419,8 +419,7 @@ REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLigh
 	data(a_lightSource.data),
 	bsLight(a_bsLight),
 	niLight(a_niLight),
-	scale(a_scale),
-	isReference(!RE::IsActor(a_ref))
+	scale(a_scale)
 {
 	if (!data.emittanceForm && data.flags.none(LightData::Flags::NoExternalEmittance)) {
 		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
@@ -660,67 +659,5 @@ void REFR_LIGH::UpdateEmittance() const
 			emittanceColor = region->emittanceColor;
 		}
 		niLight->diffuse = data.GetDiffuse() * emittanceColor;
-	}
-}
-
-bool Timer::UpdateTimer(float a_delta, float a_interval)
-{
-	lastUpdateTime += a_delta;
-	if (lastUpdateTime >= a_interval) {
-		lastUpdateTime = 0.0f;
-		return true;
-	}
-	return false;
-}
-
-bool Timer::UpdateTimer(float a_interval)
-{
-	return UpdateTimer(RE::BSTimer::GetSingleton()->delta, a_interval);
-}
-
-void ProcessedREFRLights::emplace(const REFR_LIGH& a_lightData, RE::RefHandle a_handle)
-{
-	if (a_lightData.IsAnimated()) {
-		stl::unique_insert(animatedLights, a_handle);
-	}
-
-	if (a_lightData.isReference && a_lightData.data.emittanceForm) {
-		stl::unique_insert(emittanceLights, a_handle);
-	}
-}
-
-void ProcessedREFRLights::erase(RE::RefHandle a_handle)
-{
-	stl::unique_erase(animatedLights, a_handle);
-	stl::unique_erase(emittanceLights, a_handle);
-}
-
-void ProcessedEffectLights::UpdateLightsAndRef(RE::TESObjectREFR* a_ref, float a_flickeringDistance, float a_delta, float a_dimFactor)
-{
-	const bool  updateConditions = UpdateTimer(a_delta, 0.25f);
-	const bool  withinFlickerDistance = a_ref->IsPlayerRef() || a_ref->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < a_flickeringDistance;
-	const float scale = withinFlickerDistance ? a_ref->GetScale() : 1.0f;
-
-	bool shouldCullAddonNodes = false;
-	bool cullAddonNodes = false;
-
-	for (auto& lightData : lights) {
-		if (a_dimFactor <= 1.0f) {
-			lightData.DimLight(a_dimFactor);
-			continue;
-		}
-		if (updateConditions) {
-			lightData.UpdateConditions(a_ref, shouldCullAddonNodes, cullAddonNodes);
-		}
-		lightData.UpdateAnimation(withinFlickerDistance, scale);
-		if (withinFlickerDistance) {
-			lightData.UpdateFlickering();
-		}
-	}
-
-	if (shouldCullAddonNodes) {
-		if (const auto root = a_ref->Get3D()) {
-			RE::ToggleMasterParticleAddonNodes(root->AsNode(), cullAddonNodes);
-		}
 	}
 }

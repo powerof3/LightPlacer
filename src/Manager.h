@@ -2,7 +2,7 @@
 
 #include "ConfigData.h"
 #include "LightData.h"
-#include "SourceData.h"
+#include "ProcessedLights.h"
 
 class LightManager : public ISingleton<LightManager>
 {
@@ -28,10 +28,10 @@ public:
 	void AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
 	void DetachCastingLights(RE::RefAttachTechniqueInput& a_refAttachInput);
 
-	void AddLightsToProcessQueue(const RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
+	void AddLightsToUpdateQueue(const RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
 	void UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(const RE::TESObjectCELL* a_cell);
-	void RemoveLightsFromProcessQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
+	void RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
 
 	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);
 	void UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta);
@@ -46,15 +46,15 @@ public:
 		};
 
 		gameRefLights.read_unsafe([&](auto& map) {
-			for (auto& [handle, lightDataVec] : map) {
-				for_each_light(lightDataVec);
+			for (auto& [handle, processedLight] : map) {
+				for_each_light(processedLight.lights);
 			}
 		});
 		gameActorWornLights.read_unsafe([&](auto& map) {
 			for (auto& [handle, nodes] : map) {
 				nodes.read_unsafe([&](auto& nodeMap) {
-					for (auto& [node, lightDataVec] : nodeMap) {
-						for_each_light(lightDataVec);
+					for (auto& [node, processedLight] : nodeMap) {
+						for_each_light(processedLight.lights);
 					}
 				});
 			}
@@ -76,36 +76,52 @@ public:
 	{
 		gameRefLights.read_unsafe([&](auto& map) {
 			if (auto it = map.find(a_handle); it != map.end()) {
-				for (auto& lightData : it->second) {
-					func(lightData);
-				}
+				func(it->second);
 			}
 		});
 	}
 
 	template <class F>
-	void ForEachWornLight(RE::RefHandle a_handle, F&& func)
+	void ForEachLightAndNode(RE::TESObjectREFR* a_ref, RE::RefHandle a_handle, F&& func)
 	{
-		gameActorWornLights.read_unsafe([&](auto& map) {
-			if (auto it = map.find(a_handle); it != map.end()) {
-				it->second.read_unsafe([&](auto& nodeMap) {
-					for (auto& [node, lightDataVec] : nodeMap) {
-						for (auto& lightData : lightDataVec) {
-							func(lightData);
+		if (RE::IsActor(a_ref)) {
+			gameActorWornLights.read_unsafe([&](auto& map) {
+				if (auto it = map.find(a_handle); it != map.end()) {
+					it->second.read_unsafe([&](auto& nodeMap) {
+						for (auto& [nodeName, processedLights] : nodeMap) {
+							func(nodeName, processedLights);
 						}
-					}
-				});
-			}
-		});
+					});
+				}
+			});
+		} else {
+			gameRefLights.read_unsafe([&](auto& map) {
+				if (auto it = map.find(a_handle); it != map.end()) {
+					func(""sv, it->second);
+				}
+			});
+		}
 	}
 
 	template <class F>
 	void ForEachLight(RE::TESObjectREFR* a_ref, RE::RefHandle a_handle, F&& func)
 	{
 		if (RE::IsActor(a_ref)) {
-			ForEachWornLight(a_handle, func);
+			gameActorWornLights.read_unsafe([&](auto& map) {
+				if (auto it = map.find(a_handle); it != map.end()) {
+					it->second.read_unsafe([&](auto& nodeMap) {
+						for (auto& [node, processedLights] : nodeMap) {
+							func(processedLights);
+						}
+					});
+				}
+			});
 		} else {
-			ForEachLight(a_handle, func);
+			gameRefLights.read_unsafe([&](auto& map) {
+				if (auto it = map.find(a_handle); it != map.end()) {
+					func(it->second);
+				}
+			});
 		}
 	}
 
@@ -123,11 +139,12 @@ private:
 	FlatMap<RE::FormID, Config::LightSourceVec>         gameVisualEffects;
 	FlatMap<std::uint32_t, Config::AddonLightSourceVec> gameAddonNodes;
 
-	LockedMap<RE::RefHandle, std::vector<REFR_LIGH>>                         gameRefLights;
-	LockedMap<RE::RefHandle, LockedMap<std::string, std::vector<REFR_LIGH>>> gameActorWornLights;     // nodeName (armor node on attach isn't same ptr on detach)
-	LockedNiPtrMap<RE::NiNode, ProcessedEffectLights>                        gameActorMagicLights;    // castingArt3D
-	LockedMap<std::uint32_t, ProcessedEffectLights>                          gameVisualEffectLights;  // effectID (fix higgs crash if we don't interact with refEffect??)
-	LockedMap<RE::FormID, MutexGuard<ProcessedREFRLights>>                   processedGameRefLights;
+	LockedMap<RE::RefHandle, ProcessedLights>                         gameRefLights;
+	LockedMap<RE::RefHandle, LockedMap<std::string, ProcessedLights>> gameActorWornLights;     // nodeName (armor node on attach isn't same ptr on detach)
+	LockedNiPtrMap<RE::NiNode, ProcessedLights>                       gameActorMagicLights;    // castingArt3D
+	LockedMap<std::uint32_t, ProcessedLights>                         gameVisualEffectLights;  // effectID
+
+	LockedMap<RE::FormID, MutexGuard<LightsToUpdate>> lightsToBeUpdated;
 
 	float flickeringDistanceSq{ 0.0f };
 };

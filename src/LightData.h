@@ -172,42 +172,8 @@ struct REFR_LIGH
 	std::optional<PosController>    positionController;
 	std::optional<RotController>    rotationController;
 	float                           scale{ 1.0f };
-	std::optional<bool>             lastCulledState{};
-	bool                            isReference{};
+	std::optional<bool>             lastCulledState;
 
 private:
 	void UpdateLight() const;
-};
-
-struct Timer
-{
-	Timer() = default;
-
-	bool UpdateTimer(float a_delta, float a_interval);
-	bool UpdateTimer(float a_interval);
-
-	// members
-	float lastUpdateTime{ 0.0f };
-};
-
-struct ProcessedREFRLights : Timer
-{
-	ProcessedREFRLights() = default;
-
-	void emplace(const REFR_LIGH& a_lightData, RE::RefHandle a_handle);
-	void erase(RE::RefHandle a_handle);
-
-	// members
-	std::vector<RE::RefHandle> animatedLights;  // color/flickering
-	std::vector<RE::RefHandle> emittanceLights;
-};
-
-struct ProcessedEffectLights : Timer
-{
-	ProcessedEffectLights() = default;
-
-	void UpdateLightsAndRef(RE::TESObjectREFR* a_ref, float a_flickeringDistance, float a_delta, float a_dimFactor = std::numeric_limits<float>::max());
-
-	// members
-	std::vector<REFR_LIGH> lights;
 };
