@@ -21,7 +21,6 @@ struct LightData
 	};
 
 	void AttachDebugMarker(RE::NiNode* a_node) const;
-	void ToggleAddonNodes(RE::TESObjectREFR* a_ref, bool a_enable) const;
 
 	bool        GetCastsShadows() const;
 	RE::NiColor GetDiffuse() const;
@@ -153,13 +152,13 @@ struct REFR_LIGH
 
 	bool IsAnimated() const;
 
-	bool DimLight(float a_dimmer) const;
+	void DimLight(float a_dimmer) const;
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	void ReattachLight() const;
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker(bool a_show) const;
 	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
-	void UpdateConditions(RE::TESObjectREFR* a_ref);
+	void UpdateConditions(RE::TESObjectREFR* a_ref, bool& a_shouldCullAddonNodes, bool& a_cullAddonNodesState);
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;
 
@@ -203,12 +202,12 @@ struct ProcessedREFRLights : Timer
 	std::vector<RE::RefHandle> emittanceLights;
 };
 
-struct ProcessedEffectLights
+struct ProcessedEffectLights : Timer
 {
 	ProcessedEffectLights() = default;
 
+	void UpdateLightsAndRef(RE::TESObjectREFR* a_ref, float a_flickeringDistance, float a_delta, float a_dimFactor = std::numeric_limits<float>::max());
+
 	// members
-	Timer                  flickerTimer;
-	Timer                  conditionalTimer;
 	std::vector<REFR_LIGH> lights;
 };

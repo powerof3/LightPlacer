@@ -86,15 +86,6 @@ void LightData::AttachDebugMarker(RE::NiNode* a_node) const
 	}
 }
 
-void LightData::ToggleAddonNodes(RE::TESObjectREFR* a_ref, bool a_enable) const
-{
-	if (flags.any(Flags::SyncAddonNodes)) {
-		if (const auto root = a_ref->Get3D()) {
-			RE::ToggleMasterParticleAddonNodes(root->AsNode(), a_enable);
-		}
-	}
-}
-
 bool LightData::GetCastsShadows() const
 {
 	return flags.any(Flags::Shadow) /*|| light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow)*/;
@@ -222,7 +213,6 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
 			niLight->SetAppCulled(true);
-			ToggleAddonNodes(a_ref, false);
 		}
 
 		if (Settings::GetSingleton()->CanShowDebugMarkers()) {
@@ -461,13 +451,11 @@ bool REFR_LIGH::IsAnimated() const
 	return data.light->GetNoFlicker() || data.conditions || colorController || fadeController || radiusController || positionController || rotationController;
 }
 
-bool REFR_LIGH::DimLight(const float a_dimmer) const
+void REFR_LIGH::DimLight(const float a_dimmer) const
 {
-	if (niLight && a_dimmer <= 1.0f) {
+	if (niLight) {
 		niLight->fade *= a_dimmer;
-		return true;
 	}
-	return false;
 }
 
 void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
@@ -559,7 +547,7 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 	}
 }
 
-void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref)
+void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, bool& a_shouldCullAddonNodes, bool& a_cullAddonNodesState)
 {
 	if (data.conditions && niLight) {
 		const bool cullState = data.conditions->IsTrue(a_ref, a_ref);
@@ -567,8 +555,10 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref)
 			lastCulledState = cullState;
 
 			niLight->SetAppCulled(!cullState);
-			data.ToggleAddonNodes(a_ref, cullState);
 			ShowDebugMarker(cullState);
+
+			a_shouldCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);
+			a_cullAddonNodesState |= cullState;
 		}
 	}
 }
@@ -703,4 +693,34 @@ void ProcessedREFRLights::erase(RE::RefHandle a_handle)
 {
 	stl::unique_erase(animatedLights, a_handle);
 	stl::unique_erase(emittanceLights, a_handle);
+}
+
+void ProcessedEffectLights::UpdateLightsAndRef(RE::TESObjectREFR* a_ref, float a_flickeringDistance, float a_delta, float a_dimFactor)
+{
+	const bool  updateConditions = UpdateTimer(a_delta, 0.25f);
+	const bool  withinFlickerDistance = a_ref->IsPlayerRef() || a_ref->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < a_flickeringDistance;
+	const float scale = withinFlickerDistance ? a_ref->GetScale() : 1.0f;
+
+	bool shouldCullAddonNodes = false;
+	bool cullAddonNodes = false;
+
+	for (auto& lightData : lights) {
+		if (a_dimFactor <= 1.0f) {
+			lightData.DimLight(a_dimFactor);
+			continue;
+		}
+		if (updateConditions) {
+			lightData.UpdateConditions(a_ref, shouldCullAddonNodes, cullAddonNodes);
+		}
+		lightData.UpdateAnimation(withinFlickerDistance, scale);
+		if (withinFlickerDistance) {
+			lightData.UpdateFlickering();
+		}
+	}
+
+	if (shouldCullAddonNodes) {
+		if (const auto root = a_ref->Get3D()) {
+			RE::ToggleMasterParticleAddonNodes(root->AsNode(), cullAddonNodes);
+		}
+	}
 }

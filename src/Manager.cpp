@@ -542,18 +542,27 @@ void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell
 						return true;
 					}
 
-					const bool  withinFlickerDistance = ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistanceSq;
+					const bool  withinFlickerDistance = ref->IsPlayerRef() || ref->GetPosition().GetSquaredDistance(pcPos) < flickeringDistanceSq;
 					const float scale = withinFlickerDistance ? ref->GetScale() : 1.0f;
 
-					ForEachLight(ref.get(), handle, [=](auto& lightREFRData) {
+					bool shouldCullAddonNodes = false;
+					bool cullAddonNodes = false;
+
+					ForEachLight(ref.get(), handle, [&](auto& lightREFRData) {
 						if (updateConditions) {
-							lightREFRData.UpdateConditions(ref.get());
+							lightREFRData.UpdateConditions(ref.get(), shouldCullAddonNodes, cullAddonNodes);
 						}
 						lightREFRData.UpdateAnimation(withinFlickerDistance, scale);
 						if (withinFlickerDistance) {
 							lightREFRData.UpdateFlickering();
 						}
 					});
+
+					if (shouldCullAddonNodes) {
+						if (const auto root = ref->Get3D()) {
+							RE::ToggleMasterParticleAddonNodes(root->AsNode(), cullAddonNodes);
+						}
+					}
 
 					return false;
 				});
@@ -602,33 +611,16 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 	gameVisualEffectLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_effect->effectID); it != map.end()) {
 			const auto ref = a_effect->target.get();
+			if (!ref) {
+				return;
+			}
 
 			constexpr auto MAX_WAIT_TIME = 3.0f;
 			const float    dimFactor = a_effect->finished ?
 			                               (a_effect->lifetime + MAX_WAIT_TIME - a_effect->age) / MAX_WAIT_TIME :
 			                               std::numeric_limits<float>::max();
 
-			auto& [flickerTimer, conditionTimer, lightDataVec] = it->second;
-
-			const bool  updateFlicker = flickerTimer.UpdateTimer(RE::BSTimer::GetSingleton()->delta * 2.0f);
-			const bool  updateConditions = conditionTimer.UpdateTimer(0.25f);
-			const bool  withinFlickerDistance = ref->IsPlayerRef() || ref->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < flickeringDistanceSq;
-			const float scale = withinFlickerDistance ? ref->GetScale() : 1.0f;
-
-			for (auto& lightData : lightDataVec) {
-				if (lightData.DimLight(dimFactor)) {
-					continue;
-				}
-				if (updateConditions) {
-					lightData.UpdateConditions(ref.get());
-				}
-				lightData.UpdateAnimation(withinFlickerDistance, scale);
-				if (updateFlicker) {
-					if (withinFlickerDistance) {
-						lightData.UpdateFlickering();
-					}
-				}
-			}
+			it->second.UpdateLightsAndRef(ref.get(), flickeringDistanceSq, RE::BSTimer::GetSingleton()->delta, dimFactor);
 		}
 	});
 }
@@ -650,21 +642,7 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 
 	gameActorMagicLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_actorMagicCaster->castingArtData.attachedArt); it != map.end()) {
-			auto& [flickerTimer, conditionTimer, lightDataVec] = it->second;
-
-			const bool  updateConditions = conditionTimer.UpdateTimer(a_delta, 0.25f);
-			const bool  withinFlickerDistance = actor->IsPlayerRef() || actor->GetPosition().GetSquaredDistance(RE::PlayerCharacter::GetSingleton()->GetPosition()) < flickeringDistanceSq;
-			const float scale = withinFlickerDistance ? actor->GetScale() : 1.0f;
-
-			for (auto& lightData : lightDataVec) {
-				if (updateConditions) {
-					lightData.UpdateConditions(actor);
-				}
-				lightData.UpdateAnimation(withinFlickerDistance, scale);
-				if (withinFlickerDistance) {
-					lightData.UpdateFlickering();
-				}
-			}
+			it->second.UpdateLightsAndRef(actor, flickeringDistanceSq, a_delta);
 		}
 	});
 }
