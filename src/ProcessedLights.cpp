@@ -58,8 +58,7 @@ void ProcessedLights::UpdateLightsAndRef(RE::TESObjectREFR* a_ref, const RE::NiP
 	const bool  withinFlickerDistance = a_ref->IsPlayerRef() || a_ref->GetPosition().GetSquaredDistance(a_pcPos) < a_flickeringDistance;
 	const float scale = withinFlickerDistance ? a_ref->GetScale() : 1.0f;
 
-	bool shouldCullAddonNodes = false;
-	bool cullAddonNodes = false;
+	REFR_LIGH::NodeVisibilityHelper nodeVisHelper;
 
 	for (auto& lightData : lights) {
 		if (a_dimFactor <= 1.0f) {
@@ -67,7 +66,7 @@ void ProcessedLights::UpdateLightsAndRef(RE::TESObjectREFR* a_ref, const RE::NiP
 			continue;
 		}
 		if (updateConditions) {
-			lightData.UpdateConditions(a_ref, shouldCullAddonNodes, cullAddonNodes);
+			lightData.UpdateConditions(a_ref, nodeVisHelper);
 		}
 		lightData.UpdateAnimation(withinFlickerDistance, scale);
 		if (withinFlickerDistance) {
@@ -75,17 +74,7 @@ void ProcessedLights::UpdateLightsAndRef(RE::TESObjectREFR* a_ref, const RE::NiP
 		}
 	}
 
-	if (shouldCullAddonNodes) {
-		RE::NiAVObject* node = nullptr;
-		if (a_nodeName.empty()) {
-			node = a_ref->Get3D();
-		} else {
-			node = a_ref->Get3D()->GetObjectByName(a_nodeName);
-		}
-		if (node) {
-			RE::ToggleMasterParticleAddonNodes(node->AsNode(), cullAddonNodes);
-		}
-	}
+	nodeVisHelper.UpdateNodeVisibility(a_ref, a_nodeName);
 }
 
 void ProcessedLights::UpdateEmittance() const

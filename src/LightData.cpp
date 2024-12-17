@@ -415,6 +415,31 @@ RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject*
 	return nullptr;
 }
 
+void REFR_LIGH::NodeVisibilityHelper::UpdateNodeVisibility(const RE::TESObjectREFR* a_ref, std::string_view a_nodeName) const
+{
+	if (canCullAddonNodes || canCullNodes) {
+		RE::NiAVObject* node = nullptr;
+		if (a_nodeName.empty()) {
+			node = a_ref->Get3D();
+		} else {
+			node = a_ref->Get3D()->GetObjectByName(a_nodeName);
+		}
+		if (node) {
+			if (canCullAddonNodes) {
+				RE::ToggleMasterParticleAddonNodes(node->AsNode(), isVisible);
+			}
+			if (canCullNodes) {
+				RE::BSVisit::TraverseScenegraphObjects(node, [&](RE::NiAVObject* a_obj) {
+					if (nodesToCull.contains(a_obj->name.c_str())) {
+						a_obj->SetAppCulled(!isVisible);
+					}
+					return RE::BSVisit::BSVisitControl::kContinue;
+				});
+			}
+		}
+	}
+}
+
 REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, float a_scale) :
 	data(a_lightSource.data),
 	bsLight(a_bsLight),
@@ -546,18 +571,24 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 	}
 }
 
-void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, bool& a_shouldCullAddonNodes, bool& a_cullAddonNodesState)
+void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisibilityHelper& a_nodeVisHelper)
 {
 	if (data.conditions && niLight) {
-		const bool cullState = data.conditions->IsTrue(a_ref, a_ref);
-		if (lastCulledState != cullState) {
-			lastCulledState = cullState;
+		const bool isVisible = data.conditions->IsTrue(a_ref, a_ref);
+		if (lastVisibleState != isVisible) {
+			lastVisibleState = isVisible;
 
-			niLight->SetAppCulled(!cullState);
-			ShowDebugMarker(cullState);
+			niLight->SetAppCulled(!isVisible);
+			ShowDebugMarker(isVisible);
 
-			a_shouldCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);
-			a_cullAddonNodesState |= cullState;
+			a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);
+			a_nodeVisHelper.canCullNodes |= !data.conditionalNodes.empty();
+
+			a_nodeVisHelper.isVisible |= isVisible;
+
+			if (!data.conditionalNodes.empty()) {
+				a_nodeVisHelper.nodesToCull.insert(data.conditionalNodes.begin(), data.conditionalNodes.end());
+			}
 		}
 	}
 }

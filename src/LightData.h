@@ -62,6 +62,7 @@ struct LightData
 #endif
 	RE::TESForm*                      emittanceForm{ nullptr };
 	std::shared_ptr<RE::TESCondition> conditions;
+	StringSet                         conditionalNodes;
 
 	constexpr static auto LP_LIGHT = "LP_Light"sv;
 	constexpr static auto LP_NODE = "LP_Node"sv;
@@ -128,6 +129,7 @@ struct glz::meta<LightSourceData>
 		"externalEmittance", &T::emittanceFormEDID,
 		"flags", &T::flags,
 		"conditions", &T::conditions,
+		"conditionalNodes", [](auto&& self) -> auto& { return self.data.conditionalNodes; },
 		"colorController", &T::colorController,
 		"radiusController", &T::radiusController,
 		"fadeController", &T::fadeController,
@@ -137,6 +139,18 @@ struct glz::meta<LightSourceData>
 
 struct REFR_LIGH
 {
+	// cull nodes based on condition state
+	struct NodeVisibilityHelper
+	{
+		void UpdateNodeVisibility(const RE::TESObjectREFR* a_ref, std::string_view a_nodeName) const;
+
+		// members
+		bool      isVisible{ false };
+		bool      canCullAddonNodes{ false };
+		bool      canCullNodes{ false };
+		StringSet nodesToCull;
+	};
+
 	REFR_LIGH() = default;
 	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, float a_scale);
 
@@ -158,7 +172,7 @@ struct REFR_LIGH
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker(bool a_show) const;
 	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
-	void UpdateConditions(RE::TESObjectREFR* a_ref, bool& a_shouldCullAddonNodes, bool& a_cullAddonNodesState);
+	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisibilityHelper& a_nodeVisHelper);
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;
 
@@ -172,7 +186,7 @@ struct REFR_LIGH
 	std::optional<PosController>    positionController;
 	std::optional<RotController>    rotationController;
 	float                           scale{ 1.0f };
-	std::optional<bool>             lastCulledState;
+	std::optional<bool>             lastVisibleState;
 
 private:
 	void UpdateLight() const;
