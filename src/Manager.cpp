@@ -352,7 +352,6 @@ void LightManager::DetachCastingLights(RE::RefAttachTechniqueInput& a_refAttachI
 	});
 }
 
-
 void LightManager::AttachLightsImpl(const SourceData& a_srcData)
 {
 	std::int32_t LP_INDEX = 0;
