@@ -54,7 +54,7 @@ bool ProcessedLights::UpdateTimer(float a_delta, float a_interval)
 
 void ProcessedLights::UpdateLightsAndRef(RE::TESObjectREFR* a_ref, const RE::NiPoint3& a_pcPos, float a_flickeringDistance, float a_delta, std::string_view a_nodeName, float a_dimFactor)
 {
-	const bool  updateConditions = UpdateTimer(a_delta, 0.25f);
+	const bool  updateConditions = UpdateTimer(a_delta, 1.0f);
 	const bool  withinFlickerDistance = a_ref->IsPlayerRef() || a_ref->GetPosition().GetSquaredDistance(a_pcPos) < a_flickeringDistance;
 	const float scale = withinFlickerDistance ? a_ref->GetScale() : 1.0f;
 
