@@ -58,8 +58,6 @@ void ProcessedLights::UpdateLightsAndRef(RE::TESObjectREFR* a_ref, const RE::NiP
 	const bool  withinFlickerDistance = a_ref->IsPlayerRef() || a_ref->GetPosition().GetSquaredDistance(a_pcPos) < a_flickeringDistance;
 	const float scale = withinFlickerDistance ? a_ref->GetScale() : 1.0f;
 
-	REFR_LIGH::NodeVisibilityHelper nodeVisHelper;
-
 	for (auto& lightData : lights) {
 		if (a_dimFactor <= 1.0f) {
 			lightData.DimLight(a_dimFactor);

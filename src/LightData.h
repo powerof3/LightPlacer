@@ -140,10 +140,11 @@ struct glz::meta<LightSourceData>
 struct REFR_LIGH
 {
 	// cull nodes based on condition state
-	struct NodeVisibilityHelper
+	struct NodeVisHelper
 	{
 		void InsertConditionalNodes(const StringSet& a_nodes, bool a_isVisble);
-		void UpdateNodeVisibility(const RE::TESObjectREFR* a_ref, std::string_view a_nodeName) const;
+		void UpdateNodeVisibility(const RE::TESObjectREFR* a_ref, std::string_view a_nodeName);
+		void Reset();
 
 		// members
 		bool            isVisible{ false };
@@ -173,7 +174,7 @@ struct REFR_LIGH
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker(bool a_show) const;
 	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
-	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisibilityHelper& a_nodeVisHelper);
+	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper);
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;
 

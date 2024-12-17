@@ -415,14 +415,14 @@ RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject*
 	return nullptr;
 }
 
-void REFR_LIGH::NodeVisibilityHelper::InsertConditionalNodes(const StringSet& a_nodes, bool a_isVisble)
+void REFR_LIGH::NodeVisHelper::InsertConditionalNodes(const StringSet& a_nodes, bool a_isVisble)
 {
 	for (const auto& nodeName : a_nodes) {
-		conditionalNodes.insert_or_assign(nodeName, a_isVisble);		
+		conditionalNodes.insert_or_assign(nodeName, a_isVisble);
 	}
 }
 
-void REFR_LIGH::NodeVisibilityHelper::UpdateNodeVisibility(const RE::TESObjectREFR* a_ref, std::string_view a_nodeName) const
+void REFR_LIGH::NodeVisHelper::UpdateNodeVisibility(const RE::TESObjectREFR* a_ref, std::string_view a_nodeName)
 {
 	if (canCullAddonNodes || canCullNodes) {
 		RE::NiAVObject* node = nullptr;
@@ -438,13 +438,21 @@ void REFR_LIGH::NodeVisibilityHelper::UpdateNodeVisibility(const RE::TESObjectRE
 			if (canCullNodes) {
 				RE::BSVisit::TraverseScenegraphObjects(node, [&](RE::NiAVObject* a_obj) {
 					if (const auto it = conditionalNodes.find(a_obj->name.c_str()); it != conditionalNodes.end()) {
-						a_obj->SetAppCulled(it->second);
+						a_obj->SetAppCulled(!it->second);
 					}
 					return RE::BSVisit::BSVisitControl::kContinue;
 				});
 			}
 		}
+		Reset();
 	}
+}
+
+void REFR_LIGH::NodeVisHelper::Reset()
+{
+	isVisible = false;
+	canCullAddonNodes = false;
+	canCullNodes = false;
 }
 
 REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, float a_scale) :
@@ -578,7 +586,7 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 	}
 }
 
-void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisibilityHelper& a_nodeVisHelper)
+void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper)
 {
 	if (data.conditions && niLight) {
 		const bool isVisible = data.conditions->IsTrue(a_ref, a_ref);

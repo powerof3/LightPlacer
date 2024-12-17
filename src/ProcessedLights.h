@@ -20,8 +20,9 @@ struct ProcessedLights
 	void UpdateEmittance() const;
 
 	// members
-	float                  lastUpdateTime{ 0.0f };
-	std::vector<REFR_LIGH> lights;
+	float                    lastUpdateTime{ 0.0f };
+	std::vector<REFR_LIGH>   lights;
+	REFR_LIGH::NodeVisHelper nodeVisHelper;
 };
 
 struct LightsToUpdate
