@@ -422,12 +422,12 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 {
 	const auto name = a_lightSource.data.GetName(a_srcData, a_index);
 
-	if (auto [bsLight, niLight] = a_lightSource.data.GenLight(a_srcData.ref, a_node, name, a_srcData.scale); bsLight && niLight) {
+	if (auto [bsLight, niLight, debugMarker] = a_lightSource.data.GenLight(a_srcData.ref, a_node, name, a_srcData.scale); bsLight && niLight) {
 		switch (a_srcData.type) {
 		case SOURCE_TYPE::kRef:
 			{
 				gameRefLights.write([&](auto& map) {
-					map[a_srcData.handle].emplace_back(a_srcData, a_lightSource, niLight, bsLight);
+					map[a_srcData.handle].emplace_back(a_srcData, a_lightSource, niLight, bsLight, debugMarker);
 				});
 			}
 			break;
@@ -441,7 +441,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 						auto& processedLights = nodeNameMap[nodeName];
 
 						if (processedLights.IsNewLight(niLight)) {
-							REFR_LIGH lightData(a_lightSource, bsLight, niLight, a_srcData.ref, a_srcData.scale);
+							REFR_LIGH lightData(a_lightSource, bsLight, niLight, debugMarker, a_srcData.ref, a_srcData.scale);
 							processedLights.emplace_back(lightData);
 
 							lightsToBeUpdated.write([&](auto& cellMap) {
@@ -457,14 +457,14 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 		case SOURCE_TYPE::kActorMagic:
 			{
 				gameActorMagicLights.write([&](auto& map) {
-					map[a_srcData.root].emplace_back(a_srcData, a_lightSource, niLight, bsLight);
+					map[a_srcData.root].emplace_back(a_srcData, a_lightSource, niLight, bsLight, debugMarker);
 				});
 			}
 			break;
 		case SOURCE_TYPE::kTempEffect:
 			{
 				gameVisualEffectLights.write([&](auto& map) {
-					map[a_srcData.effectID].emplace_back(a_srcData, a_lightSource, niLight, bsLight);
+					map[a_srcData.effectID].emplace_back(a_srcData, a_lightSource, niLight, bsLight, debugMarker);
 				});
 			}
 			break;

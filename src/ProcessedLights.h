@@ -8,8 +8,10 @@ struct ProcessedLights
 
 	bool IsNewLight(RE::NiPointLight* a_niLight);
 
-	bool emplace_back(const SourceData& a_srcData, const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight);
+	bool emplace_back(const SourceData& a_srcData, const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight, RE::NiAVObject* a_debugMarker);
 	void emplace_back(const REFR_LIGH& a_lightREFRData);
+
+	void ShowDebugMarkers(bool a_show) const;
 
 	void ReattachLights(RE::TESObjectREFR* a_ref);
 	void ReattachLights() const;

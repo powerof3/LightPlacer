@@ -39,34 +39,28 @@ public:
 	template <class F>
 	void ForAllLights(F&& func)
 	{
-		const auto for_each_light = [&](const std::vector<REFR_LIGH>& lightDataVec) {
-			for (auto& lightData : lightDataVec) {
-				func(lightData);
-			}
-		};
-
 		gameRefLights.read_unsafe([&](auto& map) {
 			for (auto& [handle, processedLight] : map) {
-				for_each_light(processedLight.lights);
+				func(processedLight);
 			}
 		});
 		gameActorWornLights.read_unsafe([&](auto& map) {
 			for (auto& [handle, nodes] : map) {
 				nodes.read_unsafe([&](auto& nodeMap) {
 					for (auto& [node, processedLight] : nodeMap) {
-						for_each_light(processedLight.lights);
+						func(processedLight);
 					}
 				});
 			}
 		});
 		gameActorMagicLights.read_unsafe([&](auto& map) {
 			for (auto& [node, processedLights] : map) {
-				for_each_light(processedLights.lights);
+				func(processedLights);
 			}
 		});
 		gameVisualEffectLights.read_unsafe([&](auto& map) {
 			for (auto& [effect, processedLights] : map) {
-				for_each_light(processedLights.lights);
+				func(processedLights);
 			}
 		});
 	}

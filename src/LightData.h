@@ -20,7 +20,7 @@ struct LightData
 		NoExternalEmittance = (1 << 30)
 	};
 
-	void AttachDebugMarker(RE::NiNode* a_node) const;
+	RE::NiAVObject* AttachDebugMarker(RE::NiNode* a_node, std::string_view a_lightName) const;
 
 	bool        GetCastsShadows() const;
 	RE::NiColor GetDiffuse() const;
@@ -33,18 +33,21 @@ struct LightData
 	float GetScaledRadius(float a_scale) const;
 	float GetScaledFade(float a_scale) const;
 
-	float                                    GetFOV() const;
-	float                                    GetFalloff() const;
-	float                                    GetNearDistance() const;
-	std::string                              GetName(const SourceData& a_srcData, std::uint32_t a_index) const;
-	static std::string                       GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
-	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
+	float GetFOV() const;
+	float GetFalloff() const;
+	float GetNearDistance() const;
+
+	static std::string GetDebugMarkerName(std::string_view a_lightName);
+	std::string        GetName(const SourceData& a_srcData, std::uint32_t a_index) const;
+	static std::string GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
+	static std::string GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
+
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
 	bool                                     GetPortalStrict() const;
 	bool                                     IsDynamicLight(RE::TESObjectREFR* a_ref) const;
 	bool                                     IsValid() const;
 
-	std::pair<RE::BSLight*, RE::NiPointLight*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;
+	std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const; // [bsLight, niLight, debugMarker]
 
 	// members
 	RE::TESObjectLIGH* light{ nullptr };
@@ -154,7 +157,7 @@ struct REFR_LIGH
 	};
 
 	REFR_LIGH() = default;
-	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, float a_scale);
+	REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::NiAVObject* a_debugMarker, RE::TESObjectREFR* a_ref, float a_scale);
 
 	bool operator==(const REFR_LIGH& rhs) const
 	{

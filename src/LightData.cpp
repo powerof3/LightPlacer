@@ -8,6 +8,11 @@ bool LightData::IsValid() const
 	return light != nullptr;
 }
 
+std::string LightData::GetDebugMarkerName(std::string_view a_lightName)
+{
+	return std::format("{}[{}]", LP_DEBUG, a_lightName);
+}
+
 std::string LightData::GetName(const SourceData& a_srcData, std::uint32_t a_index) const
 {
 	std::size_t seed = 0;
@@ -49,12 +54,12 @@ bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
 	return false;
 }
 
-void LightData::AttachDebugMarker(RE::NiNode* a_node) const
+RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_view a_lightName) const
 {
 	const auto settings = Settings::GetSingleton();
 
 	if (!settings->LoadDebugMarkers()) {
-		return;
+		return nullptr;
 	}
 
 	const auto get_marker = [this] {
@@ -76,14 +81,17 @@ void LightData::AttachDebugMarker(RE::NiNode* a_node) const
 			if (!settings->CanShowDebugMarkers()) {
 				clonedModel->SetAppCulled(true);
 			}
-			clonedModel->name = LP_DEBUG;
+			clonedModel->name = GetDebugMarkerName(a_lightName);
 			clonedModel->local.scale = scale;
 			if (flip) {
 				clonedModel->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(-180), 0, RE::deg_to_rad(-180));
 			}
 			RE::AttachNode(a_node, clonedModel);
+			return clonedModel;
 		}
 	}
+
+	return nullptr;
 }
 
 bool LightData::GetCastsShadows() const
@@ -179,17 +187,18 @@ bool LightData::GetPortalStrict() const
 	return flags.any(Flags::PortalStrict) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
 }
 
-std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const
+std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const
 {
 	RE::BSLight*      bsLight = nullptr;
 	RE::NiPointLight* niLight = nullptr;
+	RE::NiAVObject*   debugMarker = nullptr;
 
 	niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(a_lightName));
 	if (!niLight) {
 		niLight = RE::NiPointLight::Create();
 		niLight->name = a_lightName;
 		RE::AttachNode(a_node, niLight);
-		AttachDebugMarker(a_node);
+		debugMarker = AttachDebugMarker(a_node, a_lightName);
 	}
 
 	if (niLight) {
@@ -215,14 +224,15 @@ std::pair<RE::BSLight*, RE::NiPointLight*> LightData::GenLight(RE::TESObjectREFR
 			niLight->SetAppCulled(true);
 		}
 
-		if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-			if (const auto debugMarker = a_node->GetObjectByName(LP_DEBUG)) {
-				debugMarker->SetAppCulled(false);
-			}
+		if (!debugMarker) {
+			debugMarker = a_node->GetObjectByName(GetDebugMarkerName(a_lightName));
+		}
+		if (debugMarker && Settings::GetSingleton()->CanShowDebugMarkers()) {
+			debugMarker->SetAppCulled(false);
 		}
 	}
 
-	return { bsLight, niLight };
+	return { bsLight, niLight, debugMarker };
 }
 
 LightSourceData::LightSourceData(const RE::NiStringsExtraData* a_data)
@@ -455,10 +465,11 @@ void REFR_LIGH::NodeVisHelper::Reset()
 	canCullNodes = false;
 }
 
-REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::TESObjectREFR* a_ref, float a_scale) :
+REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::NiAVObject* a_debugMarker, RE::TESObjectREFR* a_ref, float a_scale) :
 	data(a_lightSource.data),
 	bsLight(a_bsLight),
 	niLight(a_niLight),
+	debugMarker(a_debugMarker),
 	scale(a_scale)
 {
 	if (!data.emittanceForm && data.flags.none(LightData::Flags::NoExternalEmittance)) {
@@ -479,10 +490,6 @@ REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLigh
 	INIT_CONTROLLER(positionController)
 	INIT_CONTROLLER(rotationController)
 #undef INIT_CONTROLLER
-
-	if (a_niLight && a_niLight->parent) {
-		debugMarker.reset(niLight->parent->GetObjectByName(LightData::LP_DEBUG));
-	}
 }
 
 bool REFR_LIGH::IsAnimated() const
@@ -499,10 +506,11 @@ void REFR_LIGH::DimLight(const float a_dimmer) const
 
 void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 {
-	auto lights = data.GenLight(a_ref, niLight->parent, niLight->name, scale);
+	auto [newBSLight, newNiLight, newDebugMarker] = data.GenLight(a_ref, niLight->parent, niLight->name, scale);
 
-	bsLight.reset(lights.first);
-	niLight.reset(lights.second);
+	bsLight.reset(newBSLight);
+	niLight.reset(newNiLight);
+	debugMarker.reset(newDebugMarker);
 }
 
 void REFR_LIGH::ReattachLight() const
@@ -541,18 +549,12 @@ void REFR_LIGH::ShowDebugMarker(bool a_show) const
 
 void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 {
-	if (!niLight) {
+	if (!niLight || !a_withinRange) {
 		return;
 	}
-
-	// update color but not transforms when out of vanilla flicker distance
 
 	if (colorController) {
 		niLight->diffuse = colorController->GetValue(RE::BSTimer::GetSingleton()->delta);
-	}
-
-	if (!a_withinRange) {
-		return;
 	}
 
 	scale = a_scalingFactor;
@@ -594,7 +596,9 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_node
 			lastVisibleState = isVisible;
 
 			niLight->SetAppCulled(!isVisible);
-			ShowDebugMarker(isVisible);
+			if (Settings::GetSingleton()->CanShowDebugMarkers()) {
+				ShowDebugMarker(isVisible);
+			}
 
 			a_nodeVisHelper.isVisible |= isVisible;
 			a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);
@@ -696,8 +700,8 @@ void REFR_LIGH::UpdateLight() const
 
 void REFR_LIGH::UpdateEmittance() const
 {
-	if (data.light && niLight && data.emittanceForm) {
-		RE::NiColor emittanceColor(1.0, 1.0, 1.0);
+	if (niLight && data.emittanceForm) {
+		auto emittanceColor = RE::COLOR_WHITE;
 		if (const auto lightForm = data.emittanceForm->As<RE::TESObjectLIGH>()) {
 			emittanceColor = lightForm->emittanceColor;
 		} else if (const auto region = data.emittanceForm->As<RE::TESRegion>()) {
