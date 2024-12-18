@@ -48,7 +48,7 @@ struct LightData
 	bool                                     IsDynamicLight(RE::TESObjectREFR* a_ref) const;
 	bool                                     IsValid() const;
 
-	std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const; // [bsLight, niLight, debugMarker]
+	std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;  // [bsLight, niLight, debugMarker]
 
 	// members
 	RE::TESObjectLIGH* light{ nullptr };
