@@ -23,7 +23,7 @@ public:
 
 	void AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectFormID);
 	void ReattachTempEffectLights(RE::ReferenceEffect* a_effect);
-	void DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clear);
+	void DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData);
 
 	void AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
 	void DetachCastingLights(RE::RefAttachTechniqueInput& a_refAttachInput);

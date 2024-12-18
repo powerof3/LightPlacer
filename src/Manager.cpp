@@ -101,7 +101,7 @@ std::vector<RE::TESObjectREFRPtr> LightManager::GetLightAttachedRefs()
 	std::vector<RE::TESObjectREFRPtr> refs;
 
 	gameRefLights.read_unsafe([&](auto& map) {
-		for (auto& [handle, lightDataVec] : map) {
+		for (auto& [handle, processedLights] : map) {
 			RE::TESObjectREFRPtr ref{};
 			RE::LookupReferenceByHandle(handle, ref);
 			if (ref) {
@@ -279,21 +279,17 @@ void LightManager::ReattachTempEffectLights(RE::ReferenceEffect* a_effect)
 {
 	gameVisualEffectLights.read([&](auto& map) {
 		if (auto it = map.find(a_effect->effectID); it != map.end()) {
-			for (auto& lightData : it->second.lights) {
-				lightData.ReattachLight();
-			}
+			it->second.ReattachLights();
 		}
 	});
 }
 
-void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clear)
+void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData)
 {
 	gameVisualEffectLights.write([&](auto& map) {
 		if (auto it = map.find(a_effect->effectID); it != map.end()) {
-			for (auto& lightData : it->second.lights) {
-				lightData.RemoveLight(a_clear);
-			}
-			if (a_clear) {
+			it->second.RemoveLights(a_clearData);
+			if (a_clearData) {
 				map.erase(it);
 			}
 		}
@@ -375,14 +371,7 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData)
 					}
 				}
 			}
-		} /* else if (auto xData = a_obj->GetExtraData<RE::NiStringsExtraData>("LIGHT_PLACER"); xData && xData->value && xData->size > 0) {
-			if (auto lightSource = LightSourceData(xData); lightSource.data.IsValid()) {
-				if (auto node = LightData::GetOrCreateNode(a_srcData.root->AsNode(), a_obj, LP_INDEX)) {
-					AttachLight(lightSource, a_srcData, node, a_type, LP_INDEX);
-				}
-				LP_INDEX++;
-			}
-		}*/
+		}
 		return RE::BSVisit::BSVisitControl::kContinue;
 	});
 }

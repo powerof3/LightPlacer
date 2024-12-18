@@ -75,7 +75,6 @@ struct LightData
 struct LightSourceData
 {
 	LightSourceData() = default;
-	LightSourceData(const RE::NiStringsExtraData* a_data);
 
 	void read_color(RE::NiColor a_value)
 	{
