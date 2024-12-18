@@ -141,7 +141,7 @@ private:
 	LockedMap<std::uint32_t, ProcessedLights>                         gameVisualEffectLights;  // effectID
 
 	LockedMap<RE::FormID, MutexGuard<LightsToUpdate>> lightsToBeUpdated;
-	bool                                              lastCellWasInterior{};
+	std::optional<bool>                               lastCellWasInterior;
 
 	float flickeringDistanceSq{ 0.0f };
 };

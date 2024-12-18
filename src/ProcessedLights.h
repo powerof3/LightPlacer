@@ -28,13 +28,15 @@ struct ProcessedLights
 	void RemoveLights(bool a_clearData) const;
 
 	bool UpdateTimer(float a_delta, float a_interval);
-	void UpdateLightsAndRef(const UpdateParams& a_params, bool a_forceUpdate = false);
+	void UpdateConditions(RE::TESObjectREFR* a_ref, std::string_view a_nodeName);
+	void UpdateLightsAndRef(const UpdateParams& a_params);
 	void UpdateEmittance() const;
 
 	// members
 	float                    lastUpdateTime{ 0.0f };
 	std::vector<REFR_LIGH>   lights;
 	REFR_LIGH::NodeVisHelper nodeVisHelper;
+	bool                     firstLoad{ true };
 };
 
 struct LightsToUpdate

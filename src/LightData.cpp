@@ -54,7 +54,7 @@ bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
 	return false;
 }
 
-RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_view a_lightName) const
+RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_view a_debugMarkerName) const
 {
 	const auto settings = Settings::GetSingleton();
 
@@ -81,7 +81,7 @@ RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_vie
 			if (!settings->CanShowDebugMarkers()) {
 				clonedModel->SetAppCulled(true);
 			}
-			clonedModel->name = GetDebugMarkerName(a_lightName);
+			clonedModel->name = a_debugMarkerName;
 			clonedModel->local.scale = scale;
 			if (flip) {
 				clonedModel->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(-180), 0, RE::deg_to_rad(-180));
@@ -193,12 +193,14 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 	RE::NiPointLight* niLight = nullptr;
 	RE::NiAVObject*   debugMarker = nullptr;
 
+	const auto debugMarkerName = GetDebugMarkerName(a_lightName);
+
 	niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(a_lightName));
 	if (!niLight) {
 		niLight = RE::NiPointLight::Create();
 		niLight->name = a_lightName;
 		RE::AttachNode(a_node, niLight);
-		debugMarker = AttachDebugMarker(a_node, a_lightName);
+		debugMarker = AttachDebugMarker(a_node, debugMarkerName);
 	}
 
 	if (niLight) {
@@ -220,12 +222,13 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 		niLight->SetLightAttenuation(lightRadius);
 		niLight->fade = GetScaledFade(a_scale);
 
+		// immediately update state on attach. waiting for cell update is too slow
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
 			niLight->SetAppCulled(true);
 		}
 
 		if (!debugMarker) {
-			debugMarker = a_node->GetObjectByName(GetDebugMarkerName(a_lightName));
+			debugMarker = a_node->GetObjectByName(debugMarkerName);
 		}
 		if (debugMarker && Settings::GetSingleton()->CanShowDebugMarkers()) {
 			debugMarker->SetAppCulled(false);
@@ -251,6 +254,10 @@ void LightSourceData::ReadFlags()
 				break;
 			case "Simple"_h:
 				data.flags.set(LightData::Flags::Simple);
+				break;
+
+			case "UpdateOnCellTransition"_h:
+				data.flags.set(LightData::Flags::UpdateOnCellTransition);
 				break;
 			case "SyncAddonNodes"_h:
 				data.flags.set(LightData::Flags::SyncAddonNodes);
@@ -524,11 +531,13 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 	}
 }
 
-void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, bool a_forceUpdate)
+void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, bool a_updateOnCellTransition)
 {
 	if (data.conditions && niLight) {
-		if (a_forceUpdate) {
+		if (a_updateOnCellTransition) {
 			lastVisibleState = std::nullopt;
+		} else if (data.flags.any(LightData::Flags::UpdateOnCellTransition)) {
+			return;
 		}
 
 		const bool isVisible = data.conditions->IsTrue(a_ref, a_ref);

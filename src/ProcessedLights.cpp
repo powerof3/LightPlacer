@@ -59,7 +59,18 @@ bool ProcessedLights::UpdateTimer(float a_delta, float a_interval)
 	return false;
 }
 
-void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params, bool a_forceUpdate)
+void ProcessedLights::UpdateConditions(RE::TESObjectREFR* a_ref, std::string_view a_nodeName)
+{
+	nodeVisHelper.Reset();
+
+	for (auto& lightData : lights) {
+		lightData.UpdateConditions(a_ref, nodeVisHelper, true);
+	}
+
+	nodeVisHelper.UpdateNodeVisibility(a_ref, a_nodeName);
+}
+
+void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 {
 	const bool  updateConditions = UpdateTimer(a_params.delta, 1.0f);
 	const bool  withinFlickerDistance = a_params.ref->IsPlayerRef() || a_params.ref->GetPosition().GetSquaredDistance(a_params.pcPos) < a_params.flickeringDistance;
@@ -70,8 +81,8 @@ void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params, bool a_fo
 			lightData.DimLight(a_params.dimFactor);
 			continue;
 		}
-		if (a_forceUpdate || updateConditions) {
-			lightData.UpdateConditions(a_params.ref, nodeVisHelper, a_forceUpdate);
+		if (firstLoad || updateConditions) {
+			lightData.UpdateConditions(a_params.ref, nodeVisHelper, firstLoad);
 		}
 		lightData.UpdateAnimation(withinFlickerDistance, scale);
 		if (withinFlickerDistance) {
@@ -80,6 +91,8 @@ void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params, bool a_fo
 	}
 
 	nodeVisHelper.UpdateNodeVisibility(a_params.ref, a_params.nodeName);
+
+	firstLoad = false;
 }
 
 void ProcessedLights::UpdateEmittance() const

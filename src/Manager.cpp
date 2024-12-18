@@ -1,5 +1,6 @@
 #include "Manager.h"
 #include "SourceData.h"
+#include "glaze/util/dragonbox.hpp"
 
 bool LightManager::ReadConfigs(bool a_reload)
 {
@@ -96,36 +97,6 @@ void LightManager::ProcessConfigs()
 					   } },
 			multiData);
 	}
-}
-
-RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*)
-{
-	if (!a_event || a_event->flags == RE::BGSActorCellEvent::CellFlag::kLeave) {
-		return RE::BSEventNotifyControl::kContinue;
-	}
-
-	auto cell = RE::TESForm::LookupByID<RE::TESObjectCELL>(a_event->cellID);
-	if (!cell) {
-		return RE::BSEventNotifyControl::kContinue;
-	}
-
-	const bool currentCellIsInterior = cell->IsInteriorCell();
-
-	if (lastCellWasInterior != currentCellIsInterior) {
-		ProcessedLights::UpdateParams params;
-		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
-		params.flickeringDistance = flickeringDistanceSq;
-		params.delta = RE::BSTimer::GetSingleton()->delta;
-
-		ForEachValidLight([&](const auto& ref, const auto& nodeName, auto& processedLights) {
-			params.ref = ref;
-			params.nodeName = nodeName;
-			processedLights.UpdateLightsAndRef(params, true);
-		});
-	}
-	lastCellWasInterior = currentCellIsInterior;
-
-	return RE::BSEventNotifyControl::kContinue;
 }
 
 std::vector<RE::TESObjectREFRPtr> LightManager::GetLightAttachedRefs()
@@ -525,6 +496,28 @@ void LightManager::AddLightsToUpdateQueue(const RE::TESObjectCELL* a_cell, RE::T
 			});
 		});
 	});
+}
+
+RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*)
+{
+	if (!a_event || a_event->flags == RE::BGSActorCellEvent::CellFlag::kLeave) {
+		return RE::BSEventNotifyControl::kContinue;
+	}
+
+	auto cell = RE::TESForm::LookupByID<RE::TESObjectCELL>(a_event->cellID);
+	if (!cell) {
+		return RE::BSEventNotifyControl::kContinue;
+	}
+
+	const bool currentCellIsInterior = cell->IsInteriorCell();
+	if (lastCellWasInterior != currentCellIsInterior) {
+		ForEachValidLight([&](const auto& ref, const auto& nodeName, auto& processedLights) {
+			processedLights.UpdateConditions(ref, nodeName);
+		});
+	}
+	lastCellWasInterior = currentCellIsInterior;
+
+	return RE::BSEventNotifyControl::kContinue;
 }
 
 void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell)
