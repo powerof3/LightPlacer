@@ -220,7 +220,7 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 		}
 
 		niLight->SetLightAttenuation(lightRadius);
-		niLight->fade = GetScaledFade(a_scale);
+		niLight->fade = GetFade();
 
 		// immediately update state on attach. waiting for cell update is too slow
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
@@ -510,7 +510,7 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 		niLight->SetLightAttenuation(newRadius);
 	}
 	if (fadeController) {
-		niLight->fade = data.GetScaledFade(fadeController->GetValue(RE::BSTimer::GetSingleton()->delta), scale);
+		niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta);
 	}
 	if (auto parentNode = niLight->parent) {
 		if (positionController) {
@@ -609,7 +609,7 @@ void REFR_LIGH::UpdateLight() const
 														 RE::NiSinQImpl(quadraticAttenOffset * 3.0f * (512.0f / RE::NI_TWO_PI) + 73.3386f) * 0.2f,
 				-1.0f, 1.0f);
 
-			niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * data.GetScaledFade(scale);
+			niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * data.GetFade();
 		}
 
 	} else {
@@ -625,7 +625,7 @@ void REFR_LIGH::UpdateLight() const
 
 		if (!fadeController) {
 			const auto halfIntensityAmplitude = data.light->data.flickerIntensityAmplitude * 0.5f;
-			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * data.GetScaledFade(scale);
+			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * data.GetFade();
 		}
 
 		if (!positionController) {
