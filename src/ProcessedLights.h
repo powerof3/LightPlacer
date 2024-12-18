@@ -6,6 +6,16 @@ struct ProcessedLights
 {
 	ProcessedLights() = default;
 
+	struct UpdateParams
+	{
+		RE::TESObjectREFR* ref;
+		RE::NiPoint3       pcPos;
+		float              flickeringDistance;
+		float              delta;
+		std::string_view   nodeName{ ""sv };
+		float              dimFactor{ std::numeric_limits<float>::max() };
+	};
+
 	bool IsNewLight(RE::NiPointLight* a_niLight);
 
 	bool emplace_back(const SourceData& a_srcData, const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight, RE::NiAVObject* a_debugMarker);
@@ -18,7 +28,7 @@ struct ProcessedLights
 	void RemoveLights(bool a_clearData) const;
 
 	bool UpdateTimer(float a_delta, float a_interval);
-	void UpdateLightsAndRef(RE::TESObjectREFR* a_ref, const RE::NiPoint3& a_pcPos, float a_flickeringDistance, float a_delta, std::string_view a_nodeName = ""sv, float a_dimFactor = std::numeric_limits<float>::max());
+	void UpdateLightsAndRef(const UpdateParams& a_params, bool a_forceUpdate = false);
 	void UpdateEmittance() const;
 
 	// members

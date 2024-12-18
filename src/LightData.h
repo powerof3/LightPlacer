@@ -176,7 +176,7 @@ struct REFR_LIGH
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker(bool a_show) const;
 	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
-	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper);
+	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, bool a_forceUpdate);
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;
 

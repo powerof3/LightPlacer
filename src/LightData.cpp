@@ -524,9 +524,13 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 	}
 }
 
-void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper)
+void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, bool a_forceUpdate)
 {
 	if (data.conditions && niLight) {
+		if (a_forceUpdate) {
+			lastVisibleState = std::nullopt;
+		}
+
 		const bool isVisible = data.conditions->IsTrue(a_ref, a_ref);
 		if (lastVisibleState != isVisible) {
 			lastVisibleState = isVisible;

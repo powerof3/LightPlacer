@@ -51,6 +51,8 @@ void LightManager::OnDataLoad()
 	logger::info("Models : {} entries", gameModels.size());
 	logger::info("VisualEffects : {} entries", gameVisualEffects.size());
 	logger::info("AddonNodes : {} entries", gameAddonNodes.size());
+
+	RE::PlayerCharacter::GetSingleton()->AddEventSink<RE::BGSActorCellEvent>(GetSingleton());
 }
 
 void LightManager::ReloadConfigs()
@@ -94,6 +96,36 @@ void LightManager::ProcessConfigs()
 					   } },
 			multiData);
 	}
+}
+
+RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*)
+{
+	if (!a_event || a_event->flags == RE::BGSActorCellEvent::CellFlag::kLeave) {
+		return RE::BSEventNotifyControl::kContinue;
+	}
+
+	auto cell = RE::TESForm::LookupByID<RE::TESObjectCELL>(a_event->cellID);
+	if (!cell) {
+		return RE::BSEventNotifyControl::kContinue;
+	}
+
+	const bool currentCellIsInterior = cell->IsInteriorCell();
+
+	if (lastCellWasInterior != currentCellIsInterior) {
+		ProcessedLights::UpdateParams params;
+		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+		params.flickeringDistance = flickeringDistanceSq;
+		params.delta = RE::BSTimer::GetSingleton()->delta;
+
+		ForEachValidLight([&](const auto& ref, const auto& nodeName, auto& processedLights) {
+			params.ref = ref;
+			params.nodeName = nodeName;
+			processedLights.UpdateLightsAndRef(params, true);
+		});
+	}
+	lastCellWasInterior = currentCellIsInterior;
+
+	return RE::BSEventNotifyControl::kContinue;
 }
 
 std::vector<RE::TESObjectREFRPtr> LightManager::GetLightAttachedRefs()
@@ -486,7 +518,7 @@ void LightManager::AddLightsToUpdateQueue(const RE::TESObjectCELL* a_cell, RE::T
 	auto handle = a_ref->CreateRefHandle().native_handle();
 	auto isObject = a_ref->IsNot(RE::FormType::ActorCharacter);
 
-	ForEachLight(a_ref, handle, [&](const auto& processedLight) {
+	ForEachLight(a_ref, handle, [&](const auto&, const auto& processedLight) {
 		lightsToBeUpdated.write([&](auto& map) {
 			map[cellFormID].write([&](auto& innerMap) {
 				innerMap.emplace(processedLight, handle, isObject);
@@ -499,7 +531,12 @@ void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell
 {
 	lightsToBeUpdated.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {
-			const auto pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+			const auto pc = RE::PlayerCharacter::GetSingleton();
+
+			ProcessedLights::UpdateParams params;
+			params.pcPos = pc->GetPosition();
+			params.flickeringDistance = flickeringDistanceSq;
+			params.delta = RE::BSTimer::GetSingleton()->delta;
 
 			it->second.write([&](auto& innerMap) {
 				std::erase_if(innerMap.animatedLights, [&](auto& handle) {
@@ -510,8 +547,11 @@ void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell
 						return true;
 					}
 
-					ForEachLightAndNode(ref.get(), handle, [&](const auto& a_nodeName, auto& processedLight) {
-						processedLight.UpdateLightsAndRef(ref.get(), pcPos, flickeringDistanceSq, RE::BSTimer::GetSingleton()->delta, a_nodeName);
+					params.ref = ref.get();
+
+					ForEachLight(ref.get(), handle, [&](const auto& a_nodeName, auto& processedLight) {
+						params.nodeName = a_nodeName;
+						processedLight.UpdateLightsAndRef(params);
 					});
 
 					return false;
@@ -534,8 +574,10 @@ void LightManager::UpdateEmittance(const RE::TESObjectCELL* a_cell)
 						return true;
 					}
 
-					ForEachLight(handle, [](const auto& processedLights) {
-						processedLights.UpdateEmittance();
+					gameRefLights.read_unsafe([handle](auto& map) {
+						if (auto lIt = map.find(handle); lIt != map.end()) {
+							lIt->second.UpdateEmittance();
+						}
 					});
 
 					return false;
@@ -570,7 +612,14 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 			                               (a_effect->lifetime + MAX_WAIT_TIME - a_effect->age) / MAX_WAIT_TIME :
 			                               std::numeric_limits<float>::max();
 
-			it->second.UpdateLightsAndRef(ref.get(), RE::PlayerCharacter::GetSingleton()->GetPosition(), flickeringDistanceSq, RE::BSTimer::GetSingleton()->delta, ""sv, dimFactor);
+			ProcessedLights::UpdateParams params;
+			params.ref = ref.get();
+			params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+			params.flickeringDistance = flickeringDistanceSq;
+			params.delta = RE::BSTimer::GetSingleton()->delta;
+			params.dimFactor = dimFactor;
+
+			it->second.UpdateLightsAndRef(params);
 		}
 	});
 }
@@ -588,7 +637,13 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 
 	gameActorMagicLights.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_actorMagicCaster->castingArtData.attachedArt); it != map.end()) {
-			it->second.UpdateLightsAndRef(actor, RE::PlayerCharacter::GetSingleton()->GetPosition(), flickeringDistanceSq, a_delta);
+			ProcessedLights::UpdateParams params;
+			params.ref = actor;
+			params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+			params.flickeringDistance = flickeringDistanceSq;
+			params.delta = a_delta;
+
+			it->second.UpdateLightsAndRef(params);
 		}
 	});
 }

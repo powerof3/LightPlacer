@@ -59,19 +59,19 @@ bool ProcessedLights::UpdateTimer(float a_delta, float a_interval)
 	return false;
 }
 
-void ProcessedLights::UpdateLightsAndRef(RE::TESObjectREFR* a_ref, const RE::NiPoint3& a_pcPos, float a_flickeringDistance, float a_delta, std::string_view a_nodeName, float a_dimFactor)
+void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params, bool a_forceUpdate)
 {
-	const bool  updateConditions = UpdateTimer(a_delta, 1.0f);
-	const bool  withinFlickerDistance = a_ref->IsPlayerRef() || a_ref->GetPosition().GetSquaredDistance(a_pcPos) < a_flickeringDistance;
-	const float scale = withinFlickerDistance ? a_ref->GetScale() : 1.0f;
+	const bool  updateConditions = UpdateTimer(a_params.delta, 1.0f);
+	const bool  withinFlickerDistance = a_params.ref->IsPlayerRef() || a_params.ref->GetPosition().GetSquaredDistance(a_params.pcPos) < a_params.flickeringDistance;
+	const float scale = withinFlickerDistance ? a_params.ref->GetScale() : 1.0f;
 
 	for (auto& lightData : lights) {
-		if (a_dimFactor <= 1.0f) {
-			lightData.DimLight(a_dimFactor);
+		if (a_params.dimFactor <= 1.0f) {
+			lightData.DimLight(a_params.dimFactor);
 			continue;
 		}
-		if (updateConditions) {
-			lightData.UpdateConditions(a_ref, nodeVisHelper);
+		if (a_forceUpdate || updateConditions) {
+			lightData.UpdateConditions(a_params.ref, nodeVisHelper, a_forceUpdate);
 		}
 		lightData.UpdateAnimation(withinFlickerDistance, scale);
 		if (withinFlickerDistance) {
@@ -79,7 +79,7 @@ void ProcessedLights::UpdateLightsAndRef(RE::TESObjectREFR* a_ref, const RE::NiP
 		}
 	}
 
-	nodeVisHelper.UpdateNodeVisibility(a_ref, a_nodeName);
+	nodeVisHelper.UpdateNodeVisibility(a_params.ref, a_params.nodeName);
 }
 
 void ProcessedLights::UpdateEmittance() const

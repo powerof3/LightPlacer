@@ -4,7 +4,9 @@
 #include "LightData.h"
 #include "ProcessedLights.h"
 
-class LightManager : public ISingleton<LightManager>
+class LightManager :
+	public ISingleton<LightManager>,
+	public RE::BSTEventSink<RE::BGSActorCellEvent>
 {
 public:
 	bool ReadConfigs(bool a_reload = false);
@@ -66,17 +68,7 @@ public:
 	}
 
 	template <class F>
-	void ForEachLight(RE::RefHandle a_handle, F&& func)
-	{
-		gameRefLights.read_unsafe([&](auto& map) {
-			if (auto it = map.find(a_handle); it != map.end()) {
-				func(it->second);
-			}
-		});
-	}
-
-	template <class F>
-	void ForEachLightAndNode(RE::TESObjectREFR* a_ref, RE::RefHandle a_handle, F&& func)
+	void ForEachLight(RE::TESObjectREFR* a_ref, RE::RefHandle a_handle, F&& func)
 	{
 		if (RE::IsActor(a_ref)) {
 			gameActorWornLights.read_unsafe([&](auto& map) {
@@ -98,29 +90,39 @@ public:
 	}
 
 	template <class F>
-	void ForEachLight(RE::TESObjectREFR* a_ref, RE::RefHandle a_handle, F&& func)
+	void ForEachValidLight(F&& func)
 	{
-		if (RE::IsActor(a_ref)) {
-			gameActorWornLights.read_unsafe([&](auto& map) {
-				if (auto it = map.find(a_handle); it != map.end()) {
-					it->second.read_unsafe([&](auto& nodeMap) {
-						for (auto& [node, processedLights] : nodeMap) {
-							func(processedLights);
-						}
-					});
+		gameRefLights.read_unsafe([&](auto& map) {
+			for (auto& [handle, processedLights] : map) {
+				RE::TESObjectREFRPtr ref{};
+				RE::LookupReferenceByHandle(handle, ref);
+				if (!ref) {
+					continue;
 				}
-			});
-		} else {
-			gameRefLights.read_unsafe([&](auto& map) {
-				if (auto it = map.find(a_handle); it != map.end()) {
-					func(it->second);
+				func(ref.get(), ""sv, processedLights);
+			}
+		});
+
+		gameActorWornLights.read_unsafe([&](auto& map) {
+			for (auto& [handle, nodes] : map) {
+				RE::TESObjectREFRPtr ref{};
+				RE::LookupReferenceByHandle(handle, ref);
+				if (!ref) {
+					continue;
 				}
-			});
-		}
+				nodes.read_unsafe([&](auto& nodeMap) {
+					for (auto& [nodeName, processedLights] : nodeMap) {
+						func(ref.get(), nodeName, processedLights);
+					}
+				});
+			}
+		});
 	}
 
 private:
 	void ProcessConfigs();
+
+	RE::BSEventNotifyControl ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*) override;
 
 	void AttachLightsImpl(const SourceData& a_srcData);
 	void AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index);
@@ -139,6 +141,7 @@ private:
 	LockedMap<std::uint32_t, ProcessedLights>                         gameVisualEffectLights;  // effectID
 
 	LockedMap<RE::FormID, MutexGuard<LightsToUpdate>> lightsToBeUpdated;
+	bool                                              lastCellWasInterior{};
 
 	float flickeringDistanceSq{ 0.0f };
 };
