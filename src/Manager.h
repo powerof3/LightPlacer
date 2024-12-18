@@ -61,7 +61,7 @@ public:
 			}
 		});
 		gameVisualEffectLights.read_unsafe([&](auto& map) {
-			for (auto& [effect, processedLights] : map) {
+			for (auto& [effectID, processedLights] : map) {
 				func(processedLights);
 			}
 		});
@@ -115,6 +115,16 @@ public:
 						func(ref.get(), nodeName, processedLights);
 					}
 				});
+			}
+		});
+	}
+
+	template <class F>
+	void ForEachFXLight(F&& func)
+	{
+		gameVisualEffectLights.read_unsafe([&](auto& map) {
+			for (auto& [effectID, processedLights] : map) {
+				func(processedLights);
 			}
 		});
 	}

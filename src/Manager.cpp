@@ -514,6 +514,9 @@ RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::BGSActorCellEvent*
 		ForEachValidLight([&](const auto& ref, const auto& nodeName, auto& processedLights) {
 			processedLights.UpdateConditions(ref, nodeName);
 		});
+		ForEachFXLight([&](auto& processedLights) {
+			processedLights.ReattachLights();
+		});
 	}
 	lastCellWasInterior = currentCellIsInterior;
 
