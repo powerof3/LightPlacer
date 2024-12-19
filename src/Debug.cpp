@@ -99,7 +99,7 @@ namespace Debug
 
 			std::string details{};
 			if (auto light = netimmerse_cast<RE::NiPointLight*>(a_currentNode)) {
-				details = std::format(" (radius: {},fade: {})", light->radius.x, light->fade);
+				details = std::format(" (radius: {},fade: {} [{}])", light->radius.x, light->fade, light->GetAppCulled() ? "hidden" : "visible");
 			}
 			a_output.emplace_back(std::format("{}> {}{}", a_indent, a_currentNode->name.c_str(), details));
 
@@ -133,8 +133,8 @@ namespace Debug
 			settings->ToggleDebugMarkers();
 
 			bool showDebugMarkers = settings->CanShowDebugMarkers();
-			LightManager::GetSingleton()->ForAllLights([&](const auto& lightData) {
-				lightData.ShowDebugMarker(showDebugMarkers);
+			LightManager::GetSingleton()->ForAllLights([&](const auto& processedLights) {
+				processedLights.ShowDebugMarkers(showDebugMarkers);
 			});
 
 			RE::ConsoleLog::GetSingleton()->Print("Light Placer Markers %s", showDebugMarkers ? "ON" : "OFF");

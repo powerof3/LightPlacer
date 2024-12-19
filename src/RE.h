@@ -34,7 +34,9 @@ struct glz::meta<RE::NiColor>
 
 namespace RE
 {
-	static constexpr NiColor   COLOR_BLACK{};
+	static constexpr NiColor COLOR_BLACK{ 0.0f, 0.0f, 0.0f };
+	static constexpr NiColor COLOR_WHITE{ 1.0f, 1.0f, 1.0f };
+
 	static constexpr NiMatrix3 MATRIX_ZERO{};
 
 	template <class T>
@@ -48,7 +50,6 @@ namespace RE
 	}
 
 	FormID GetFormID(const std::string& a_str);
-
 	template <class T>
 	T* GetFormFromID(const std::string& a_str)
 	{
@@ -62,16 +63,13 @@ namespace RE
 #endif
 
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
-
-	BGSArtObject* GetCastingArt(const MagicItem* a_magicItem);
-	BGSArtObject* GetCastingArt(const ActorMagicCaster* a_actorMagicCaster);
-
-	bool IsActor(const TESObjectREFR* a_ref);
-
-	float NiSinQImpl(float a_value);
-	float NiCosQImpl(float a_value);
-	float NiSinQ(float a_radians);
-	float NiCosQ(float a_radians);
-
-	void UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer);
+	BGSArtObject*   GetCastingArt(const MagicItem* a_magicItem);
+	BGSArtObject*   GetCastingArt(const ActorMagicCaster* a_actorMagicCaster);
+	bool            IsActor(const TESObjectREFR* a_ref);
+	float           NiSinQImpl(float a_value);
+	float           NiCosQImpl(float a_value);
+	float           NiSinQ(float a_radians);
+	float           NiCosQ(float a_radians);
+	bool            ToggleMasterParticleAddonNodes(const NiNode* a_node, bool a_enable);
+	void            UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer);
 }

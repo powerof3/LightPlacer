@@ -24,7 +24,7 @@ namespace Hooks::Misc
 				return;
 			}
 
-			a_ref->formFlags = a_ref->formFlags | RE::TESObjectREFR::RecordFlags::kInitiallyDisabled;
+			a_ref->formFlags |= RE::TESObjectREFR::RecordFlags::kInitiallyDisabled;
 			a_ref->data.location.z -= 30000.0f;
 		}
 		static inline REL::Relocation<decltype(thunk)> func;

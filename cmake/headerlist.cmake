@@ -12,6 +12,7 @@ set(headers ${headers}
 	src/LightData.h
 	src/Manager.h
 	src/PCH.h
+	src/ProcessedLights.h
 	src/RE.h
 	src/Settings.h
 	src/SourceData.h

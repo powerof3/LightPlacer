@@ -39,7 +39,7 @@ namespace Hooks::Update
 		static bool CheckUsesExternalEmittance(RE::TESObjectREFR* a_ref, RE::TESObjectCELL* a_cell)
 		{
 			if (a_cell && a_cell->loadedData && a_ref && a_ref->Get3D()) {
-				LightManager::GetSingleton()->AddLightsToProcessQueue(a_cell, a_ref);
+				LightManager::GetSingleton()->AddLightsToUpdateQueue(a_cell, a_ref);
 			}
 			return _CheckUsesExternalEmittance(a_ref);
 		}
@@ -117,7 +117,7 @@ namespace Hooks::Update
 			func(a_cell, a_handle);
 
 			if (a_cell && a_cell->loadedData) {
-				LightManager::GetSingleton()->RemoveLightsFromProcessQueue(a_cell, a_handle);
+				LightManager::GetSingleton()->RemoveLightsFromUpdateQueue(a_cell, a_handle);
 			}
 		}
 		static inline REL::Relocation<decltype(thunk)> func;

@@ -23,7 +23,11 @@ private:
 	bool showDebugMarkers{ false };
 	bool loadDebugMarkers{ false };
 
-	bool                disableAllGameLights{ false };
+	bool disableAllGameLights{ false };
+
 	StringSet           blackListedLights;
 	FlatSet<RE::FormID> blackListedLightsRefs;
+
+	StringSet           whiteListedLights;
+	FlatSet<RE::FormID> whiteListedLightsRefs;
 };

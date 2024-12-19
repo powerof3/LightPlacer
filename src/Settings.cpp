@@ -22,21 +22,27 @@ void Settings::LoadSettings()
 	logger::info("bShowMarkers : {}", showDebugMarkers);
 	logger::info("bDisableAllGameLights : {}", disableAllGameLights);
 	logger::info("LightBlackList : {} entries", blackListedLights.size());
+	logger::info("LightWhiteList : {} entries", whiteListedLights.size());
 
 	loadDebugMarkers = showDebugMarkers;
 }
 
 void Settings::OnDataLoad()
 {
-	erase_if(blackListedLights, [this](const auto& str) {
-		if (!str.starts_with("0x")) {  // assume formid
-			return false;
-		}
-		if (auto formID = RE::GetFormID(str); formID != 0) {
-			this->blackListedLightsRefs.emplace(formID);
-		}
-		return true;
-	});
+	constexpr auto post_process = [](StringSet& a_strSet, FlatSet<RE::FormID>& a_formSet) {
+		erase_if(a_strSet, [&](const auto& str) {
+			if (!str.starts_with("0x")) {  // assume formid
+				return false;
+			}
+			if (auto formID = RE::GetFormID(str); formID != 0) {
+				a_formSet.emplace(formID);
+			}
+			return true;
+		});
+	};
+
+	post_process(blackListedLights, blackListedLightsRefs);
+	post_process(whiteListedLights, whiteListedLightsRefs);
 }
 
 bool Settings::CanShowDebugMarkers() const
@@ -62,7 +68,7 @@ bool Settings::ShouldDisableLights() const
 bool Settings::GetGameLightDisabled(const RE::TESObjectREFR* a_ref) const
 {
 	if (disableAllGameLights) {
-		return true;
+		return !whiteListedLights.contains(a_ref->GetFile(0)->fileName) && !whiteListedLightsRefs.contains(a_ref->GetFormID());
 	}
 
 	return blackListedLights.contains(a_ref->GetFile(0)->fileName) || blackListedLightsRefs.contains(a_ref->GetFormID());
@@ -85,10 +91,14 @@ void Settings::ReadSettings(std::string_view a_path)
 		disableAllGameLights = ini.GetBoolValue("Settings", "bDisableAllGameLights", false);
 	}
 
-	CSimpleIniA::TNamesDepend keys;
-	ini.GetAllKeys("LightBlackList", keys);
+	const auto add_to_list = [&](std::string_view a_listName, StringSet& a_list) {
+		CSimpleIniA::TNamesDepend keys;
+		ini.GetAllKeys(a_listName.data(), keys);
+		for (const auto& key : keys) {
+			a_list.emplace(string::trim_copy(key.pItem));
+		}
+	};
 
-	for (const auto& key : keys) {
-		blackListedLights.emplace(string::trim_copy(key.pItem));
-	}
+	add_to_list("LightBlackList"sv, blackListedLights);
+	add_to_list("LightWhiteList"sv, whiteListedLights);
 }
