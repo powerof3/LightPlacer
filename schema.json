@@ -1,6 +1,6 @@
 {
     "type": "array",
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$schema": "https://json-schema.org/draft-07/schema",
     "description": "",
     "minItems": 1,
     "uniqueItems": true,
@@ -23,7 +23,7 @@
                         "description": "Full model path to object"
                     },
                     "lights": {
-                        "$ref": "#/$defs/lightsArray"
+                        "$ref": "#/definitions/lightsArray"
                     }
                 }
             },
@@ -43,7 +43,7 @@
                         "description": "addon node index"
                     },
                     "lights": {
-                        "$ref": "#/$defs/lightsArray"
+                        "$ref": "#/definitions/lightsArray"
                     }
                 }
             },
@@ -64,13 +64,13 @@
                         "description": "effectshader/art object formID/editorID"
                     },
                     "lights": {
-                        "$ref": "#/$defs/lightsArray"
+                        "$ref": "#/definitions/lightsArray"
                     }
                 }
             }
         ]
     },
-    "$defs": {
+    "definitions": {
         "lightsArray": {
             "type": "array",
             "uniqueItems": true,
@@ -81,7 +81,7 @@
                     "points": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/$defs/pos"
+                            "$ref": "#/definitions/pos"
                         },
                         "minItems": 1,
                         "description": "Lights can be attached to points (using their name) inside the nif."
@@ -114,7 +114,7 @@
                         "description": "blacklist lights from attaching to an object reference based on \n1. Model Path (only for addonNodes or visualEffects)\n2.Reference ID\n3.Base Object ID\n4.Parent cell ID\n5.Worldspace ID\n6.Location ID"
                     },
                     "data": {
-                        "$ref": "#/$defs/lightData"
+                        "$ref": "#/definitions/lightData"
                     }
                 },
                 "required": [
@@ -149,7 +149,7 @@
                     "description": "EditorID of the lightbulb to be attached. Multiple editorIDs can be chained using \"|\" eg. (\"DefaultGreen01NS|WRCandleFlickerNS\"). The first valid form will be picked."
                 },
                 "color": {
-                    "$ref": "#/$defs/color"
+                    "$ref": "#/definitions/color"
                 },
                 "fade": {
                     "type": "number",
@@ -170,11 +170,11 @@
                     "description": "Controls shadow depth bias"
                 },
                 "offset": {
-                    "$ref": "#/$defs/pos",
+                    "$ref": "#/definitions/pos",
                     "description": "Offset light position from the current point/node it is attached to."
                 },
                 "rotation": {
-                    "$ref": "#/$defs/rot"
+                    "$ref": "#/definitions/rot"
                 },
                 "emittanceForm": {
                     "type": "string",
@@ -199,10 +199,17 @@
                     "minItems": 1
                 },
                 "flags": {
+                    "anyOf": [
+                        {
+                            "enum": ["PortalStrict","Simple","Shadow","SyncAddonNodes","IgnoreScale","RandomAnimStart","NoExternalEmittance","UpdateOnCellTransition","UpdateOnWaiting"]
+                        },
+                        {
+                            "pattern": "^PortalStrict|Simple|Shadow|SyncAddonNodes|IgnoreScale|RandomAnimStart|NoExternalEmittance|UpdateOnCellTransition|UpdateOnWaiting"
+                        }
+                    ],
                     "type": "string",
-                    "pattern": "^PortalStrict|Simple|Shadow|SyncAddonNodes|IgnoreScale|RandomAnimStart|NoExternalEmittance|UpdateOnCellTransition",
                     "minLength": 1,
-                    "description": "Set of flags used to mark lights for rendering purposes. Can be multiple separated with \"|\" Flags should be written exactly as shown. \nPortalStrict"
+                    "description": "Set of flags used to mark lights for rendering purposes. Can be multiple separated with \"|\" Flags should be written exactly as shown. \n- PortalStrict\n- Simple\n- Shadow\n- SyncAddonNodes\n- IgnoreScale\n- RandomAnimStart\n- NoExternalEmittance\n- UpdateOnCellTransition\n- UpdateOnWaiting"
                 },
                 "colorController": {
                     "type": "object",
@@ -224,13 +231,13 @@
                                         "type": "number"
                                     },
                                     "color": {
-                                        "$ref": "#/$defs/color"
+                                        "$ref": "#/definitions/color"
                                     },
                                     "forward": {
-                                        "$ref": "#/$defs/color"
+                                        "$ref": "#/definitions/color"
                                     },
                                     "backward": {
-                                        "$ref": "#/$defs/color"
+                                        "$ref": "#/definitions/color"
                                     }
                                 },
                                 "required": [
@@ -249,10 +256,10 @@
                     "description": "Lights can be animated similar to how nif animation controllers work. Animation will cycle between each keyframe and loop back when the final key is reached."
                 },
                 "radiusController": {
-                    "$ref": "#/$defs/floatController"
+                    "$ref": "#/definitions/floatController"
                 },
                 "fadeController": {
-                    "$ref": "#/$defs/floatController"
+                    "$ref": "#/definitions/floatController"
                 },
                 "positionController": {
                     "type": "object",
@@ -274,13 +281,13 @@
                                         "type": "number"
                                     },
                                     "translation": {
-                                        "$ref": "#/$defs/pos"
+                                        "$ref": "#/definitions/pos"
                                     },
                                     "forward": {
-                                        "$ref": "#/$defs/pos"
+                                        "$ref": "#/definitions/pos"
                                     },
                                     "backward": {
-                                        "$ref": "#/$defs/pos"
+                                        "$ref": "#/definitions/pos"
                                     }
                                 },
                                 "required": [
@@ -318,13 +325,13 @@
                                         "type": "number"
                                     },
                                     "rotation": {
-                                        "$ref": "#/$defs/rot"
+                                        "$ref": "#/definitions/rot"
                                     },
                                     "forward": {
-                                        "$ref": "#/$defs/rot"
+                                        "$ref": "#/definitions/rot"
                                     },
                                     "backward": {
-                                        "$ref": "#/$defs/rot"
+                                        "$ref": "#/definitions/rot"
                                     }
                                 },
                                 "required": [
@@ -354,7 +361,7 @@
                     {
                         "type": "number",
                         "maximum": 1.0,
-                        "minimum": 0.0
+                        "minimum": -1.0
                     },
                     {
                         "type": "integer",

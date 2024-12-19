@@ -54,22 +54,18 @@ struct LightData
 	std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;  // [bsLight, niLight, debugMarker]
 
 	// members
-	RE::TESObjectLIGH* light{ nullptr };
-	RE::NiColor        color{ RE::COLOR_BLACK };
-	float              radius{ 0.0f };
-	float              fade{ 0.0f };
-	float              fov{ 0.0f };
-	float              shadowDepthBias{ 1.0f };
-	RE::NiPoint3       offset;
-	RE::NiMatrix3      rotation;
-#if defined(SKYRIMVR)
-	stl::enumeration<Flags, std::uint32_t> flags{ Flags::None };
-#else
+	RE::TESObjectLIGH*                 light{ nullptr };
+	RE::NiColor                        color{ RE::COLOR_BLACK };
+	float                              radius{ 0.0f };
+	float                              fade{ 0.0f };
+	float                              fov{ 0.0f };
+	float                              shadowDepthBias{ 1.0f };
+	RE::NiPoint3                       offset;
+	RE::NiMatrix3                      rotation;
 	REX::EnumSet<Flags, std::uint32_t> flags{ Flags::None };
-#endif
-	RE::TESForm*                      emittanceForm{ nullptr };
-	std::shared_ptr<RE::TESCondition> conditions;
-	StringSet                         conditionalNodes;
+	RE::TESForm*                       emittanceForm{ nullptr };
+	std::shared_ptr<RE::TESCondition>  conditions;
+	StringSet                          conditionalNodes;
 
 	constexpr static auto LP_LIGHT = "LP_Light"sv;
 	constexpr static auto LP_NODE = "LP_Node"sv;
