@@ -54,6 +54,7 @@ void LightManager::OnDataLoad()
 	logger::info("AddonNodes : {} entries", gameAddonNodes.size());
 
 	RE::PlayerCharacter::GetSingleton()->AddEventSink<RE::BGSActorCellEvent>(GetSingleton());
+	RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESWaitStopEvent>(GetSingleton());
 }
 
 void LightManager::ReloadConfigs()
@@ -512,13 +513,24 @@ RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::BGSActorCellEvent*
 	const bool currentCellIsInterior = cell->IsInteriorCell();
 	if (lastCellWasInterior != currentCellIsInterior) {
 		ForEachValidLight([&](const auto& ref, const auto& nodeName, auto& processedLights) {
-			processedLights.UpdateConditions(ref, nodeName);
+			processedLights.UpdateConditions(ref, nodeName, ConditionUpdateFlags::CellTransition);
 		});
 		ForEachFXLight([&](auto& processedLights) {
 			processedLights.ReattachLights();
 		});
 	}
 	lastCellWasInterior = currentCellIsInterior;
+
+	return RE::BSEventNotifyControl::kContinue;
+}
+
+RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::TESWaitStopEvent* a_event, RE::BSTEventSource<RE::TESWaitStopEvent>*)
+{
+	if (a_event) {
+		ForEachValidLight([&](const auto& ref, const auto& nodeName, auto& processedLights) {
+			processedLights.UpdateConditions(ref, nodeName, ConditionUpdateFlags::Waiting);
+		});
+	}
 
 	return RE::BSEventNotifyControl::kContinue;
 }

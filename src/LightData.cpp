@@ -256,6 +256,9 @@ void LightSourceData::ReadFlags()
 				data.flags.set(LightData::Flags::Simple);
 				break;
 
+			case "UpdateOnWaiting"_h:
+				data.flags.set(LightData::Flags::UpdateOnWaiting);
+				break;
 			case "UpdateOnCellTransition"_h:
 				data.flags.set(LightData::Flags::UpdateOnCellTransition);
 				break;
@@ -490,6 +493,36 @@ void REFR_LIGH::ShowDebugMarker(bool a_show) const
 	}
 }
 
+bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
+{
+	if (!data.conditions || !niLight) {
+		return false;
+	}
+
+	if (a_flags == ConditionUpdateFlags::Forced) {
+		return true;
+	}
+
+	const bool requiresCellTransition = data.flags.any(LightData::Flags::UpdateOnCellTransition);
+	const bool requiresWaiting = data.flags.any(LightData::Flags::UpdateOnWaiting);
+
+	if (requiresCellTransition || requiresWaiting) {
+		if (requiresCellTransition && requiresWaiting) {
+			return (a_flags & ConditionUpdateFlags::UpdateRequired) != 0;
+		}
+
+		if (requiresCellTransition) {
+			return (a_flags & ConditionUpdateFlags::CellTransition) != 0;
+		}
+
+		if (requiresWaiting) {
+			return (a_flags & ConditionUpdateFlags::Waiting) != 0;
+		}
+	}
+
+	return true;
+}
+
 void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 {
 	if (!niLight || !a_withinRange) {
@@ -531,31 +564,31 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 	}
 }
 
-void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, bool a_updateOnCellTransition)
+void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags)
 {
-	if (data.conditions && niLight) {
-		if (a_updateOnCellTransition) {
-			lastVisibleState = std::nullopt;
-		} else if (data.flags.any(LightData::Flags::UpdateOnCellTransition)) {
-			return;
+	if (!ShouldUpdateConditions(a_flags)) {
+		return;
+	}
+
+	if (a_flags != ConditionUpdateFlags::Normal) {
+		lastVisibleState = std::nullopt;
+	}
+
+	const bool isVisible = data.conditions->IsTrue(a_ref, a_ref);
+	if (lastVisibleState != isVisible) {
+		lastVisibleState = isVisible;
+
+		niLight->SetAppCulled(!isVisible);
+		if (Settings::GetSingleton()->CanShowDebugMarkers()) {
+			ShowDebugMarker(isVisible);
 		}
 
-		const bool isVisible = data.conditions->IsTrue(a_ref, a_ref);
-		if (lastVisibleState != isVisible) {
-			lastVisibleState = isVisible;
+		a_nodeVisHelper.isVisible |= isVisible;
+		a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);
+		a_nodeVisHelper.canCullNodes |= !data.conditionalNodes.empty();
 
-			niLight->SetAppCulled(!isVisible);
-			if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-				ShowDebugMarker(isVisible);
-			}
-
-			a_nodeVisHelper.isVisible |= isVisible;
-			a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);
-			a_nodeVisHelper.canCullNodes |= !data.conditionalNodes.empty();
-
-			if (!data.conditionalNodes.empty()) {
-				a_nodeVisHelper.InsertConditionalNodes(data.conditionalNodes, isVisible);
-			}
+		if (!data.conditionalNodes.empty()) {
+			a_nodeVisHelper.InsertConditionalNodes(data.conditionalNodes, isVisible);
 		}
 	}
 }

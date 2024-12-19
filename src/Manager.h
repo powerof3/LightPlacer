@@ -6,7 +6,8 @@
 
 class LightManager :
 	public ISingleton<LightManager>,
-	public RE::BSTEventSink<RE::BGSActorCellEvent>
+	public RE::BSTEventSink<RE::BGSActorCellEvent>,
+	public RE::BSTEventSink<RE::TESWaitStopEvent>
 {
 public:
 	bool ReadConfigs(bool a_reload = false);
@@ -133,6 +134,7 @@ private:
 	void ProcessConfigs();
 
 	RE::BSEventNotifyControl ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*) override;
+	RE::BSEventNotifyControl ProcessEvent(const RE::TESWaitStopEvent* a_event, RE::BSTEventSource<RE::TESWaitStopEvent>*) override;
 
 	void AttachLightsImpl(const SourceData& a_srcData);
 	void AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index);

@@ -14,7 +14,10 @@ struct LightData
 		Shadow = (1 << 1),
 		Simple = (1 << 2),
 
+		UpdateOnWaiting = (1 << 25),
 		UpdateOnCellTransition = (1 << 26),
+		NeedsUpdate = UpdateOnWaiting | UpdateOnCellTransition,
+
 		SyncAddonNodes = (1 << 27),
 		IgnoreScale = (1 << 28),
 		RandomAnimStart = (1 << 29),
@@ -142,6 +145,19 @@ struct glz::meta<LightSourceData>
 
 struct REFR_LIGH
 {
+	struct Condition
+	{
+		enum UpdateFlags
+		{
+			Normal = 0,
+			Forced = (1 << 0),
+			CellTransition = (1 << 1),
+			Waiting = (1 << 2),
+			UpdateRequired = CellTransition | Waiting
+		};		
+	};
+	using ConditionUpdateFlags = Condition::UpdateFlags;
+
 	// cull nodes based on condition state
 	struct NodeVisHelper
 	{
@@ -176,8 +192,9 @@ struct REFR_LIGH
 	void ReattachLight() const;
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker(bool a_show) const;
+	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
 	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
-	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, bool a_updateOnCellTransition);
+	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
 	void UpdateFlickering() const;
 	void UpdateEmittance() const;
 
@@ -196,3 +213,5 @@ struct REFR_LIGH
 private:
 	void UpdateLight() const;
 };
+
+using ConditionUpdateFlags = REFR_LIGH::ConditionUpdateFlags;

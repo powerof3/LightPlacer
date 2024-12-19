@@ -28,7 +28,7 @@ struct ProcessedLights
 	void RemoveLights(bool a_clearData) const;
 
 	bool UpdateTimer(float a_delta, float a_interval);
-	void UpdateConditions(RE::TESObjectREFR* a_ref, std::string_view a_nodeName);
+	void UpdateConditions(RE::TESObjectREFR* a_ref, std::string_view a_nodeName, ConditionUpdateFlags a_flags);
 	void UpdateLightsAndRef(const UpdateParams& a_params);
 	void UpdateEmittance() const;
 
