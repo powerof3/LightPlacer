@@ -2,7 +2,7 @@
 
 namespace Animation
 {
-	enum class INTERPOLATION
+	enum class INTERPOLATION : std::uint8_t
 	{
 		kStep,
 		kLinear,

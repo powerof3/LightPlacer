@@ -1,6 +1,6 @@
 #pragma once
 
-enum class SOURCE_TYPE
+enum class SOURCE_TYPE : std::uint8_t
 {
 	kNone = 0,
 	kRef,
@@ -26,12 +26,11 @@ struct SourceData
 	RE::TESBoundObject* base{};
 	RE::TESObjectARMA*  arma{};
 	RE::NiNode*         root{};
-	RE::RefHandle       handle{};
 	std::string_view    modelPath;
+	RE::RefHandle       handle{};
 	float               scale{};
 	RE::FormID          cellID{ 0 };
 	RE::FormID          worldSpaceID{ 0 };
 	RE::FormID          locationID{ 0 };
-
-	std::uint32_t effectID{ std::numeric_limits<std::uint32_t>::max() };
+	std::uint32_t       effectID{ std::numeric_limits<std::uint32_t>::max() };
 };

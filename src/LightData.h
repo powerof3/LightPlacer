@@ -147,12 +147,13 @@ struct REFR_LIGH
 {
 	struct Condition
 	{
-		enum UpdateFlags
+		enum UpdateFlags : std::uint8_t
 		{
 			Normal = 0,
 			Forced = (1 << 0),
 			CellTransition = (1 << 1),
 			Waiting = (1 << 2),
+
 			UpdateRequired = CellTransition | Waiting
 		};		
 	};

@@ -227,9 +227,9 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 	gameActorWornLights.write([&](auto& map) {
 		if (auto it = map.find(handle); it != map.end()) {
 			it->second.write([&](auto& nodeMap) {
-				if (auto nIt = nodeMap.find(a_root->name.c_str()); nIt != nodeMap.end()) {
-					nIt->second.RemoveLights(true);
-					nodeMap.erase(nIt);
+				if (auto jt = nodeMap.find(a_root->name.c_str()); jt != nodeMap.end()) {
+					jt->second.RemoveLights(true);
+					nodeMap.erase(jt);
 				}
 			});
 		}
@@ -356,8 +356,8 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData)
 {
 	std::int32_t LP_INDEX = 0;
 
-	if (auto mIt = gameModels.find(a_srcData.modelPath); mIt != gameModels.end()) {
-		for (const auto [index, data] : std::views::enumerate(mIt->second)) {
+	if (auto it = gameModels.find(a_srcData.modelPath); it != gameModels.end()) {
+		for (const auto [index, data] : std::views::enumerate(it->second)) {
 			AttachConfigLights(a_srcData, data, static_cast<std::uint32_t>(index));
 			LP_INDEX++;
 		}
@@ -582,9 +582,9 @@ void LightManager::UpdateEmittance(const RE::TESObjectCELL* a_cell)
 						return true;
 					}
 
-					gameRefLights.read_unsafe([handle](auto& map) {
-						if (auto lIt = map.find(handle); lIt != map.end()) {
-							lIt->second.UpdateEmittance();
+					gameRefLights.read_unsafe([handle](auto& lightsMap) {
+						if (auto jt = lightsMap.find(handle); jt != lightsMap.end()) {
+							jt->second.UpdateEmittance();
 						}
 					});
 
