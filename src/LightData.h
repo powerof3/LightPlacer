@@ -196,8 +196,8 @@ struct REFR_LIGH
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
 	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
 	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
-	void UpdateFlickering() const;
 	void UpdateEmittance() const;
+	void UpdateVanillaFlickering() const;
 
 	LightData                       data;
 	RE::NiPointer<RE::BSLight>      bsLight;
@@ -210,9 +210,6 @@ struct REFR_LIGH
 	std::optional<RotController>    rotationController;
 	float                           scale{ 1.0f };
 	std::optional<bool>             lastVisibleState;
-
-private:
-	void UpdateLight() const;
 };
 
 using ConditionUpdateFlags = REFR_LIGH::ConditionUpdateFlags;

@@ -525,7 +525,7 @@ bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 
 void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 {
-	if (!niLight || !a_withinRange) {
+	if (!niLight || niLight->GetAppCulled() || !a_withinRange) {
 		return;
 	}
 
@@ -593,18 +593,25 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_node
 	}
 }
 
-void REFR_LIGH::UpdateFlickering() const
+void REFR_LIGH::UpdateEmittance() const
 {
-	if (data.light && niLight) {
-		if (niLight->GetAppCulled()) {
-			return;
+	if (niLight && data.emittanceForm) {
+		auto emittanceColor = RE::COLOR_WHITE;
+		if (const auto lightForm = data.emittanceForm->As<RE::TESObjectLIGH>()) {
+			emittanceColor = lightForm->emittanceColor;
+		} else if (const auto region = data.emittanceForm->As<RE::TESRegion>()) {
+			emittanceColor = region->emittanceColor;
 		}
-		UpdateLight();
+		niLight->diffuse = data.GetDiffuse() * emittanceColor;
 	}
 }
 
-void REFR_LIGH::UpdateLight() const
+void REFR_LIGH::UpdateVanillaFlickering() const
 {
+	if (!niLight || niLight->GetAppCulled()) {
+		return;
+	}
+
 	if (data.light->data.flags.any(RE::TES_LIGHT_FLAGS::kFlicker, RE::TES_LIGHT_FLAGS::kFlickerSlow)) {
 		const auto flickerDelta = RE::BSTimer::GetSingleton()->delta * data.light->data.flickerPeriodRecip;
 
@@ -677,18 +684,5 @@ void REFR_LIGH::UpdateLight() const
 			RE::NiUpdateData updateData;
 			niLight->Update(updateData);
 		}
-	}
-}
-
-void REFR_LIGH::UpdateEmittance() const
-{
-	if (niLight && data.emittanceForm) {
-		auto emittanceColor = RE::COLOR_WHITE;
-		if (const auto lightForm = data.emittanceForm->As<RE::TESObjectLIGH>()) {
-			emittanceColor = lightForm->emittanceColor;
-		} else if (const auto region = data.emittanceForm->As<RE::TESRegion>()) {
-			emittanceColor = region->emittanceColor;
-		}
-		niLight->diffuse = data.GetDiffuse() * emittanceColor;
 	}
 }
