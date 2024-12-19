@@ -155,7 +155,7 @@ struct REFR_LIGH
 			Waiting = (1 << 2),
 
 			UpdateRequired = CellTransition | Waiting
-		};		
+		};
 	};
 	using ConditionUpdateFlags = Condition::UpdateFlags;
 
