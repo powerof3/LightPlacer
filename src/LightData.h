@@ -83,7 +83,7 @@ struct LightSourceData
 	void read_color(RE::NiColor a_value)
 	{
 		for (std::size_t i = 0; i < RE::NiColor::kTotal; ++i) {
-			if (a_value[i] >= 0.0f && a_value[i] <= 1.0f) {
+			if (a_value[i] >= -1.0f && a_value[i] <= 1.0f) {
 				continue;
 			}
 			a_value[i] = a_value[i] / 255;
