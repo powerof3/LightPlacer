@@ -395,11 +395,11 @@ std::uint32_t LightManager::AttachConfigLights(const SourceData& a_srcData, cons
 					   auto& [filter, points, lightData] = pointData;
 					   if (!filter.IsInvalid(a_srcData)) {
 						   for (const auto [pointIdx, point] : std::views::enumerate(points)) {
-							   index += static_cast<std::uint32_t>(pointIdx);
 							   lightPlacerNode = lightData.GetOrCreateNode(rootNode, point, index);
 							   if (lightPlacerNode) {
 								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), index);
 							   }
+							   index++;
 						   }
 					   }
 				   },
@@ -407,11 +407,11 @@ std::uint32_t LightManager::AttachConfigLights(const SourceData& a_srcData, cons
 					   auto& [filter, nodes, lightData] = nodeData;
 					   if (!filter.IsInvalid(a_srcData)) {
 						   for (const auto [nodeIdx, nodeName] : std::views::enumerate(nodes)) {
-							   index += static_cast<std::uint32_t>(nodeIdx);
 							   lightPlacerNode = lightData.GetOrCreateNode(rootNode, nodeName, index);
 							   if (lightPlacerNode) {
 								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), index);
 							   }
+							   index++;
 						   }
 					   }
 				   } },
