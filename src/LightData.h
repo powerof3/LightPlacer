@@ -42,7 +42,7 @@ struct LightData
 	float GetNearDistance() const;
 
 	static std::string GetDebugMarkerName(std::string_view a_lightName);
-	std::string        GetName(const SourceData& a_srcData, std::uint32_t a_index) const;
+	static std::string GetName(const SourceData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index);
 	static std::string GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
 	static std::string GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 
