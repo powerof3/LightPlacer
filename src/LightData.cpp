@@ -13,17 +13,13 @@ std::string LightData::GetDebugMarkerName(std::string_view a_lightName)
 	return std::format("{}[{}]", LP_DEBUG, a_lightName);
 }
 
-std::string LightData::GetName(const SourceData& a_srcData, std::uint32_t a_index) const
+std::string LightData::GetName(const SourceData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index)
 {
-	std::size_t seed = 0;
-	boost::hash_combine(seed, light->GetFormID());
-	boost::hash_combine(seed, radius);
-	boost::hash_combine(seed, fade);
 	if (a_srcData.effectID != std::numeric_limits<std::uint32_t>::max()) {
-		boost::hash_combine(seed, a_srcData.effectID);
+		return std::format("{}[{}|{}]#{}", LP_LIGHT, a_srcData.effectID, a_lightEDID, a_index);
 	}
 
-	return std::format("{}[{}]#{}", LP_LIGHT, seed, a_index);
+	return std::format("{}[{}]#{}", LP_LIGHT, a_lightEDID, a_index);
 }
 
 std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index)

@@ -264,16 +264,18 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 	}
 	srcData.effectID = a_effect->effectID;
 
+	std::uint32_t LP_INDEX = 0;
+
 	if (auto it = gameVisualEffects.find(a_effectFormID); it != gameVisualEffects.end()) {
 		for (const auto [index, data] : std::views::enumerate(it->second)) {
-			AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index));
+			LP_INDEX += AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index));
 		}
 	}
 
 	if (base->Is(RE::FormType::ArtObject)) {
 		if (auto it = gameModels.find(srcData.modelPath); it != gameModels.end()) {
 			for (const auto [index, data] : std::views::enumerate(it->second)) {
-				AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index));
+				LP_INDEX += AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index) + LP_INDEX);
 			}
 		}
 	}
@@ -323,15 +325,17 @@ void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 		return;
 	}
 
+	std::uint32_t LP_INDEX = 0;
+
 	if (auto it = gameVisualEffects.find(art->GetFormID()); it != gameVisualEffects.end()) {
 		for (const auto [index, data] : std::views::enumerate(it->second)) {
-			AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index));
+			LP_INDEX += AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index));
 		}
 	}
 
 	if (auto it = gameModels.find(srcData.modelPath); it != gameModels.end()) {
 		for (const auto [index, data] : std::views::enumerate(it->second)) {
-			AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index));
+			LP_INDEX += AttachConfigLights(srcData, data, static_cast<std::uint32_t>(index) + LP_INDEX);
 		}
 	}
 }
@@ -354,12 +358,11 @@ void LightManager::DetachCastingLights(RE::RefAttachTechniqueInput& a_refAttachI
 
 void LightManager::AttachLightsImpl(const SourceData& a_srcData)
 {
-	std::int32_t LP_INDEX = 0;
+	std::uint32_t LP_INDEX = 0;
 
 	if (auto it = gameModels.find(a_srcData.modelPath); it != gameModels.end()) {
 		for (const auto [index, data] : std::views::enumerate(it->second)) {
-			AttachConfigLights(a_srcData, data, static_cast<std::uint32_t>(index));
-			LP_INDEX++;
+			LP_INDEX += AttachConfigLights(a_srcData, data, static_cast<std::uint32_t>(index));
 		}
 	}
 
@@ -380,19 +383,22 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData)
 	});
 }
 
-void LightManager::AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index)
+std::uint32_t LightManager::AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index)
 {
 	RE::NiAVObject* lightPlacerNode = nullptr;
 	const auto&     rootNode = a_srcData.GetRootNode();
+
+	std::uint32_t index = a_index;
 
 	std::visit(overload{
 				   [&](const Config::PointData& pointData) {
 					   auto& [filter, points, lightData] = pointData;
 					   if (!filter.IsInvalid(a_srcData)) {
 						   for (const auto [pointIdx, point] : std::views::enumerate(points)) {
-							   lightPlacerNode = lightData.GetOrCreateNode(rootNode, point, static_cast<std::uint32_t>(pointIdx));
+							   index += static_cast<std::uint32_t>(pointIdx);
+							   lightPlacerNode = lightData.GetOrCreateNode(rootNode, point, index);
 							   if (lightPlacerNode) {
-								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), static_cast<std::uint32_t>(pointIdx));
+								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), index);
 							   }
 						   }
 					   }
@@ -400,20 +406,23 @@ void LightManager::AttachConfigLights(const SourceData& a_srcData, const Config:
 				   [&](const Config::NodeData& nodeData) {
 					   auto& [filter, nodes, lightData] = nodeData;
 					   if (!filter.IsInvalid(a_srcData)) {
-						   for (const auto& nodeName : nodes) {
-							   lightPlacerNode = lightData.GetOrCreateNode(rootNode, nodeName, a_index);
+						   for (const auto [nodeIdx, nodeName] : std::views::enumerate(nodes)) {
+							   index += static_cast<std::uint32_t>(nodeIdx);
+							   lightPlacerNode = lightData.GetOrCreateNode(rootNode, nodeName, index);
 							   if (lightPlacerNode) {
-								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode());
+								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), index);
 							   }
 						   }
 					   }
 				   } },
 		a_lightData);
+
+	return index;
 }
 
 void LightManager::AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, std::uint32_t a_index)
 {
-	const auto name = a_lightSource.data.GetName(a_srcData, a_index);
+	const auto name = LightData::GetName(a_srcData, a_lightSource.lightEDID, a_index);
 
 	if (auto [bsLight, niLight, debugMarker] = a_lightSource.data.GenLight(a_srcData.ref, a_node, name, a_srcData.scale); bsLight && niLight) {
 		switch (a_srcData.type) {

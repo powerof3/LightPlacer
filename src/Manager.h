@@ -136,10 +136,10 @@ private:
 	RE::BSEventNotifyControl ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*) override;
 	RE::BSEventNotifyControl ProcessEvent(const RE::TESWaitStopEvent* a_event, RE::BSTEventSource<RE::TESWaitStopEvent>*) override;
 
-	void AttachLightsImpl(const SourceData& a_srcData);
-	void AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index);
-	void AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, std::uint32_t a_index = 0);
-	bool ReattachLightsImpl(const SourceData& a_srcData);
+	void          AttachLightsImpl(const SourceData& a_srcData);
+	std::uint32_t AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index);
+	void          AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, std::uint32_t a_index = 0);
+	bool          ReattachLightsImpl(const SourceData& a_srcData);
 
 	// members
 	std::vector<Config::Format>                         configs;

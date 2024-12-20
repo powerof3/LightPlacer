@@ -39,10 +39,13 @@ SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObj
 
 bool SourceData::IsValid() const
 {
+	const bool is_valid = !ref->IsDisabled() && !ref->IsDeleted() && root != nullptr && cellID != 0;
+
 	if (type == SOURCE_TYPE::kRef || type == SOURCE_TYPE::kActorWorn) {
-		return !ref->IsDisabled() && !ref->IsDeleted() && root && cellID != 0 && !modelPath.empty();
+		return is_valid && !modelPath.empty();
 	}
-	return !ref->IsDisabled() && !ref->IsDeleted() && root && cellID != 0;
+
+	return is_valid;
 }
 
 RE::NiNode* SourceData::GetRootNode() const
