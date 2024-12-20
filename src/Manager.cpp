@@ -264,7 +264,6 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 	}
 	srcData.effectID = a_effect->effectID;
 
-
 	std::uint32_t LP_INDEX = 0;
 
 	if (auto it = gameVisualEffects.find(a_effectFormID); it != gameVisualEffects.end()) {
@@ -371,7 +370,8 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData)
 		if (auto addonNode = netimmerse_cast<RE::BSValueNode*>(a_obj)) {
 			if (auto it = gameAddonNodes.find(addonNode->value); it != gameAddonNodes.end()) {
 				for (const auto& [filter, lightData] : it->second) {
-					if (!filter.IsInvalid(a_srcData)) {;
+					if (!filter.IsInvalid(a_srcData)) {
+						;
 						if (auto lightPlacerNode = lightData.GetOrCreateNode(a_srcData.root, addonNode, LP_INDEX)) {
 							AttachLight(lightData, a_srcData, lightPlacerNode, LP_INDEX);
 						}

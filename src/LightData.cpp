@@ -16,7 +16,7 @@ std::string LightData::GetDebugMarkerName(std::string_view a_lightName)
 std::string LightData::GetName(const SourceData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index)
 {
 	if (a_srcData.effectID != std::numeric_limits<std::uint32_t>::max()) {
-		return std::format("{}[{}|{}]#{}", LP_LIGHT, a_srcData.effectID, a_lightEDID, a_index);		
+		return std::format("{}[{}|{}]#{}", LP_LIGHT, a_srcData.effectID, a_lightEDID, a_index);
 	}
 
 	return std::format("{}[{}]#{}", LP_LIGHT, a_lightEDID, a_index);
