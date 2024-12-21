@@ -13,8 +13,7 @@ struct glz::meta<RE::NiMatrix3>
 	static constexpr auto read = [](RE::NiMatrix3& input, const std::array<float, 3>& vec) {
 		input.SetEulerAnglesXYZ(RE::deg_to_rad(vec[0]), RE::deg_to_rad(vec[1]), RE::deg_to_rad(vec[2]));
 	};
-	static constexpr auto write = [](auto& input) -> auto
-	{
+	static constexpr auto write = [](auto& input) -> auto {
 		std::array<float, 3> vec{};
 		input.ToEulerAnglesXYZ(vec[0], vec[1], vec[2]);
 		vec[0] = RE::rad_to_deg(vec[0]);
@@ -22,14 +21,25 @@ struct glz::meta<RE::NiMatrix3>
 		vec[2] = RE::rad_to_deg(vec[2]);
 		return vec;
 	};
-	static constexpr auto value = array(custom<read, write>);
+	static constexpr auto value = custom<read, write>;
 };
 
 template <>
 struct glz::meta<RE::NiColor>
 {
-	using T = RE::NiColor;
-	static constexpr auto value = array(&T::red, &T::green, &T::blue);
+	static constexpr auto read = [](RE::NiColor& input, const std::array<float, 3>& vec) {
+		for (std::size_t i = 0; i < RE::NiColor::kTotal; ++i) {
+			if (vec[i] >= -1.0f && vec[i] <= 1.0f) {
+				input[i] = vec[i];
+			} else {
+				input[i] = vec[i] / 255;
+			}
+		}
+	};
+	static constexpr auto write = [](auto const& input) -> auto {
+		return std::array{ input.red, input.green, input.blue };
+	};
+	static constexpr auto value = custom<read, write>;
 };
 
 namespace RE

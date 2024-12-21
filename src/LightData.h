@@ -76,22 +76,6 @@ struct LightSourceData
 {
 	LightSourceData() = default;
 
-	void read_color(RE::NiColor a_value)
-	{
-		for (std::size_t i = 0; i < RE::NiColor::kTotal; ++i) {
-			if (a_value[i] >= -1.0f && a_value[i] <= 1.0f) {
-				continue;
-			}
-			a_value[i] = a_value[i] / 255;
-		}
-		data.color = a_value;
-	}
-
-	RE::NiColor write_color() const
-	{
-		return data.color;
-	}
-
 	void ReadFlags();
 	void ReadConditions();
 	bool PostProcess();
@@ -121,7 +105,7 @@ struct glz::meta<LightSourceData>
 	using T = LightSourceData;
 	static constexpr auto value = object(
 		"light", &T::lightEDID,
-		"color", "color", custom<&T::read_color, &T::write_color>,
+		"color", [](auto&& self) -> auto& { return self.data.color; },
 		"radius", [](auto&& self) -> auto& { return self.data.radius; },
 		"fade", [](auto&& self) -> auto& { return self.data.fade; },
 		"fov", [](auto&& self) -> auto& { return self.data.fov; },

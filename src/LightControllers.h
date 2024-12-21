@@ -12,25 +12,6 @@ namespace Animation
 	template <class T, std::uint32_t index = 0>  // specialize between same types
 	struct Keyframe
 	{
-		void read_value(T a_value)
-		{
-			if constexpr (std::is_same_v<T, RE::NiColor>) {
-				for (std::size_t i = 0; i < RE::NiColor::kTotal; ++i) {
-					if (a_value[i] >= 0.0f && a_value[i] <= 1.0f) {
-						continue;
-					}
-					a_value[i] = a_value[i] / 255;
-				}
-			}
-
-			value = a_value;
-		}
-
-		T write_value()
-		{
-			return value;
-		}
-
 		// members
 		float time{};
 		T     value{};
@@ -126,21 +107,14 @@ namespace Animation
 	};
 }
 
+template <>
+struct glz::meta<Animation::INTERPOLATION>
+{
+	using enum Animation::INTERPOLATION;
+	static constexpr auto value = enumerate("Step", kStep, "Linear", kLinear, "Cubic", kCubic);
+};
+
 using PosKeyframe = Animation::Keyframe<RE::NiPoint3, 0>;
-using RotKeyframe = Animation::Keyframe<RE::NiPoint3, 1>;
-using ColorKeyframe = Animation::Keyframe<RE::NiColor>;
-using FloatKeyframe = Animation::Keyframe<float>;
-
-using PosKeyframeSequence = Animation::KeyframeSequence<RE::NiPoint3, 0>;
-using RotKeyframeSequence = Animation::KeyframeSequence<RE::NiPoint3, 1>;
-using ColorKeyframeSequence = Animation::KeyframeSequence<RE::NiColor>;
-using FloatKeyframeSequence = Animation::KeyframeSequence<float>;
-
-using PosController = Animation::LightController<RE::NiPoint3, 0>;
-using RotController = Animation::LightController<RE::NiPoint3, 1>;
-using ColorController = Animation::LightController<RE::NiColor>;
-using FloatController = Animation::LightController<float>;
-
 template <>
 struct glz::meta<PosKeyframe>
 {
@@ -153,6 +127,7 @@ struct glz::meta<PosKeyframe>
 		"backward", &T::backward);
 };
 
+using RotKeyframe = Animation::Keyframe<RE::NiPoint3, 1>;
 template <>
 struct glz::meta<RotKeyframe>
 {
@@ -165,6 +140,7 @@ struct glz::meta<RotKeyframe>
 		"backward", &T::backward);
 };
 
+using ColorKeyframe = Animation::Keyframe<RE::NiColor>;
 template <>
 struct glz::meta<ColorKeyframe>
 {
@@ -172,11 +148,12 @@ struct glz::meta<ColorKeyframe>
 
 	static constexpr auto value = object(
 		"time", &T::time,
-		"color", custom<&T::read_value, &T::write_value>,
+		"color", &T::value,
 		"forward", &T::forward,
 		"backward", &T::backward);
 };
 
+using FloatKeyframe = Animation::Keyframe<float>;
 template <>
 struct glz::meta<FloatKeyframe>
 {
@@ -189,9 +166,12 @@ struct glz::meta<FloatKeyframe>
 		"backward", &T::backward);
 };
 
-template <>
-struct glz::meta<Animation::INTERPOLATION>
-{
-	using enum Animation::INTERPOLATION;
-	static constexpr auto value = enumerate("Step", kStep, "Linear", kLinear, "Cubic", kCubic);
-};
+using PosKeyframeSequence = Animation::KeyframeSequence<RE::NiPoint3, 0>;
+using RotKeyframeSequence = Animation::KeyframeSequence<RE::NiPoint3, 1>;
+using ColorKeyframeSequence = Animation::KeyframeSequence<RE::NiColor>;
+using FloatKeyframeSequence = Animation::KeyframeSequence<float>;
+
+using PosController = Animation::LightController<RE::NiPoint3, 0>;
+using RotController = Animation::LightController<RE::NiPoint3, 1>;
+using ColorController = Animation::LightController<RE::NiColor>;
+using FloatController = Animation::LightController<float>;
