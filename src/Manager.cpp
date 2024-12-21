@@ -1,6 +1,5 @@
 #include "Manager.h"
 #include "SourceData.h"
-#include "glaze/util/dragonbox.hpp"
 
 bool LightManager::ReadConfigs(bool a_reload)
 {

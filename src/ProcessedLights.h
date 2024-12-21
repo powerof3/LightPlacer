@@ -13,7 +13,7 @@ struct ProcessedLights
 		float              flickeringDistance;
 		float              delta;
 		std::string_view   nodeName{ ""sv };
-		float              dimFactor{ std::numeric_limits<float>::max() };
+		float              dimFactor{ RE::NI_INFINITY };
 	};
 
 	bool IsNewLight(RE::NiPointLight* a_niLight);

@@ -9,6 +9,46 @@ namespace Animation
 		kCubic
 	};
 
+	// all-in-one controller
+	struct LightData
+	{
+		LightData operator+(const LightData& a_rhs) const;
+		LightData operator-(const LightData& a_rhs) const;
+		LightData operator*(float a_scalar) const;
+
+		friend LightData operator*(float a_scalar, const LightData& data);
+
+		bool GetValidColor() const;
+		bool GetValidFade() const;
+		bool GetValidRadius() const;
+		bool GetValidTranslation() const;
+		bool GetValidRotation() const;
+
+		void Update(const RE::NiPointer<RE::NiPointLight>& a_niLight, float a_scale) const;
+
+		// members
+		RE::NiColor  color{ RE::COLOR_MAX };
+		float        radius{ RE::NI_INFINITY };
+		float        fade{ RE::NI_INFINITY };
+		RE::NiPoint3 translation{ RE::POINT_MAX };
+		RE::NiPoint3 rotation{ RE::POINT_MAX };
+
+	private:
+		template <typename T>
+		static bool IsValid(const T& value)
+		{
+			if constexpr (std::is_same_v<float, T>) {
+				return value != RE::NI_INFINITY;
+			} else if constexpr (std::is_same_v<RE::NiColor, T>) {
+				return value.red != RE::NI_INFINITY;
+			} else if constexpr (std::is_same_v<RE::NiPoint3, T>) {
+				return value.x != RE::NI_INFINITY;
+			} else {
+				return false;
+			}
+		}
+	};
+
 	template <class T, std::uint32_t index = 0>  // specialize between same types
 	struct Keyframe
 	{
@@ -99,12 +139,26 @@ namespace Animation
 			return sequence.GetValue(currentTime);
 		}
 
+		bool GetValidFade() const { return false; }
+		bool GetValidTranslation() const { return false; }
+
 	private:
 		// members
 		KeyframeSequence<T, index> sequence;
 		float                      cycleDuration{ -1.0f };
 		float                      currentTime{ 0.0f };
 	};
+
+	template <>
+	inline bool LightController<LightData>::GetValidFade() const
+	{
+		return sequence.keys.front().value.GetValidFade();
+}
+	template <>
+	inline bool LightController<LightData>::GetValidTranslation() const
+	{
+		return sequence.keys.front().value.GetValidTranslation();
+	}
 }
 
 template <>
@@ -114,11 +168,23 @@ struct glz::meta<Animation::INTERPOLATION>
 	static constexpr auto value = enumerate("Step", kStep, "Linear", kLinear, "Cubic", kCubic);
 };
 
-using PosKeyframe = Animation::Keyframe<RE::NiPoint3, 0>;
 template <>
-struct glz::meta<PosKeyframe>
+struct glz::meta<Animation::Keyframe<Animation::LightData>>
 {
-	using T = PosKeyframe;
+	using T = Animation::Keyframe<Animation::LightData>;
+
+	static constexpr auto value = object(
+		"time", &T::time,
+		"data", &T::value,
+		"forward", &T::forward,
+		"backward", &T::backward);
+};
+
+// translation
+template <>
+struct glz::meta<Animation::Keyframe<RE::NiPoint3>>
+{
+	using T = Animation::Keyframe<RE::NiPoint3>;
 
 	static constexpr auto value = object(
 		"time", &T::time,
@@ -127,11 +193,11 @@ struct glz::meta<PosKeyframe>
 		"backward", &T::backward);
 };
 
-using RotKeyframe = Animation::Keyframe<RE::NiPoint3, 1>;
+// rotation
 template <>
-struct glz::meta<RotKeyframe>
+struct glz::meta<Animation::Keyframe<RE::NiPoint3, 1>>
 {
-	using T = RotKeyframe;
+	using T = Animation::Keyframe<RE::NiPoint3, 1>;
 
 	static constexpr auto value = object(
 		"time", &T::time,
@@ -140,11 +206,11 @@ struct glz::meta<RotKeyframe>
 		"backward", &T::backward);
 };
 
-using ColorKeyframe = Animation::Keyframe<RE::NiColor>;
+// color
 template <>
-struct glz::meta<ColorKeyframe>
+struct glz::meta<Animation::Keyframe<RE::NiColor>>
 {
-	using T = ColorKeyframe;
+	using T = Animation::Keyframe<RE::NiColor>;
 
 	static constexpr auto value = object(
 		"time", &T::time,
@@ -153,11 +219,11 @@ struct glz::meta<ColorKeyframe>
 		"backward", &T::backward);
 };
 
-using FloatKeyframe = Animation::Keyframe<float>;
+// generic
 template <>
-struct glz::meta<FloatKeyframe>
+struct glz::meta<Animation::Keyframe<float>>
 {
-	using T = FloatKeyframe;
+	using T = Animation::Keyframe<float>;
 
 	static constexpr auto value = object(
 		"time", &T::time,
@@ -166,12 +232,14 @@ struct glz::meta<FloatKeyframe>
 		"backward", &T::backward);
 };
 
-using PosKeyframeSequence = Animation::KeyframeSequence<RE::NiPoint3, 0>;
-using RotKeyframeSequence = Animation::KeyframeSequence<RE::NiPoint3, 1>;
+using AIOKeyframeSequence = Animation::KeyframeSequence<Animation::LightData>;
+using PositionKeyframeSequence = Animation::KeyframeSequence<RE::NiPoint3, 0>;
+using RotationKeyframeSequence = Animation::KeyframeSequence<RE::NiPoint3, 1>;
 using ColorKeyframeSequence = Animation::KeyframeSequence<RE::NiColor>;
 using FloatKeyframeSequence = Animation::KeyframeSequence<float>;
 
-using PosController = Animation::LightController<RE::NiPoint3, 0>;
-using RotController = Animation::LightController<RE::NiPoint3, 1>;
+using AIOController = Animation::LightController<Animation::LightData>;
+using PositionController = Animation::LightController<RE::NiPoint3, 0>;
+using RotationController = Animation::LightController<RE::NiPoint3, 1>;
 using ColorController = Animation::LightController<RE::NiColor>;
 using FloatController = Animation::LightController<float>;

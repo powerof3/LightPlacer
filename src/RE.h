@@ -44,8 +44,11 @@ struct glz::meta<RE::NiColor>
 
 namespace RE
 {
+	static constexpr NiPoint3 POINT_MAX{ NI_INFINITY, NI_INFINITY, NI_INFINITY };
+
 	static constexpr NiColor COLOR_BLACK{ 0.0f, 0.0f, 0.0f };
 	static constexpr NiColor COLOR_WHITE{ 1.0f, 1.0f, 1.0f };
+	static constexpr NiColor COLOR_MAX{ NI_INFINITY, NI_INFINITY, NI_INFINITY };
 
 	static constexpr NiMatrix3 MATRIX_ZERO{};
 

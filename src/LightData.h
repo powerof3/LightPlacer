@@ -95,8 +95,9 @@ struct LightSourceData
 	ColorKeyframeSequence    colorController;
 	FloatKeyframeSequence    radiusController;
 	FloatKeyframeSequence    fadeController;
-	PosKeyframeSequence      positionController;
-	RotKeyframeSequence      rotationController;
+	PositionKeyframeSequence positionController;
+	RotationKeyframeSequence rotationController;
+	AIOKeyframeSequence      lightController;
 };
 
 template <>
@@ -120,7 +121,8 @@ struct glz::meta<LightSourceData>
 		"radiusController", &T::radiusController,
 		"fadeController", &T::fadeController,
 		"positionController", &T::positionController,
-		"rotationController", &T::rotationController);
+		"rotationController", &T::rotationController,
+		"lightController", &T::lightController);
 };
 
 struct REFR_LIGH
@@ -174,22 +176,27 @@ struct REFR_LIGH
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker(bool a_show) const;
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
-	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
+	void UpdateAnimation(float a_scalingFactor);
 	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
 	void UpdateEmittance() const;
 	void UpdateVanillaFlickering() const;
 
-	LightData                       data;
-	RE::NiPointer<RE::BSLight>      bsLight;
-	RE::NiPointer<RE::NiPointLight> niLight;
-	RE::NiPointer<RE::NiAVObject>   debugMarker;
-	std::optional<ColorController>  colorController;
-	std::optional<FloatController>  radiusController;
-	std::optional<FloatController>  fadeController;
-	std::optional<PosController>    positionController;
-	std::optional<RotController>    rotationController;
-	float                           scale{ 1.0f };
-	std::optional<bool>             lastVisibleState;
+	LightData                         data;
+	RE::NiPointer<RE::BSLight>        bsLight;
+	RE::NiPointer<RE::NiPointLight>   niLight;
+	RE::NiPointer<RE::NiAVObject>     debugMarker;
+	std::optional<ColorController>    colorController;
+	std::optional<FloatController>    radiusController;
+	std::optional<FloatController>    fadeController;
+	std::optional<PositionController> positionController;
+	std::optional<RotationController> rotationController;
+	std::optional<AIOController>      lightController;
+	float                             scale{ 1.0f };
+	std::optional<bool>               lastVisibleState;
+	bool                              culled{};
+
+private:
+	void UpdateIndividualAnimations();
 };
 
 using ConditionUpdateFlags = REFR_LIGH::ConditionUpdateFlags;
