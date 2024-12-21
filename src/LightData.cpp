@@ -13,7 +13,7 @@ std::string LightData::GetDebugMarkerName(std::string_view a_lightName)
 	return std::format("{}[{}]", LP_DEBUG, a_lightName);
 }
 
-std::string LightData::GetName(const SourceData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index)
+std::string LightData::GetLightName(const SourceData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index)
 {
 	if (a_srcData.effectID != std::numeric_limits<std::uint32_t>::max()) {
 		return std::format("{}[{}|{}]#{}", LP_LIGHT, a_srcData.effectID, a_lightEDID, a_index);
@@ -52,36 +52,18 @@ bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
 
 RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_view a_debugMarkerName) const
 {
-	const auto settings = Settings::GetSingleton();
-
-	if (!settings->LoadDebugMarkers()) {
+	if (!Settings::GetSingleton()->LoadDebugMarkers()) {
 		return nullptr;
 	}
-
-	const auto get_marker = [this] {
-		if (GetCastsShadows()) {
-			if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
-				return std::make_tuple("marker_spotlight.nif", 1.0f, true);
-			}
-			return std::make_tuple("marker_lightshadow.nif", 0.25f, false);
-		}
-		return std::make_tuple("marker_light.nif", 0.25f, false);
-	};
 
 	RE::NiPointer<RE::NiNode>                   loadedModel;
 	constexpr RE::BSModelDB::DBTraits::ArgsType args{};
 
-	auto [model, scale, flip] = get_marker();
-	if (const auto error = Demand(model, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
+	const auto create_params = GetDebugMarkerParams();
+
+	if (const auto error = Demand(create_params.modelName, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
 		if (const auto clonedModel = loadedModel->Clone()) {
-			if (!settings->CanShowDebugMarkers()) {
-				clonedModel->SetAppCulled(true);
-			}
-			clonedModel->name = a_debugMarkerName;
-			clonedModel->local.scale = scale;
-			if (flip) {
-				clonedModel->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(-180), 0, RE::deg_to_rad(-180));
-			}
+			PostProcessDebugMarker(clonedModel, create_params, a_debugMarkerName);
 			RE::AttachNode(a_node, clonedModel);
 			return clonedModel;
 		}
@@ -221,6 +203,7 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 		// immediately update state on attach. waiting for cell update is too slow
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
 			niLight->SetAppCulled(true);
+			niLight->ambient.blue = static_cast<float>(CullFlags::Hidden);
 		}
 
 		if (!debugMarker) {
@@ -232,6 +215,53 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 	}
 
 	return { bsLight, niLight, debugMarker };
+}
+
+void LightData::PostProcessDebugMarker(RE::NiAVObject* a_obj, const MARKER_CREATE_PARAMS& a_params, std::string_view a_debugMarkerName)
+{
+	if (!Settings::GetSingleton()->CanShowDebugMarkers()) {
+		a_obj->SetAppCulled(true);
+	}
+
+	a_obj->name = a_debugMarkerName;
+	a_obj->local.scale = a_params.scale;
+	if (a_params.flipModel) {
+		a_obj->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(-180), 0, RE::deg_to_rad(-180));
+	}
+
+	if (const auto shape = a_obj->GetObjectByName(a_params.shapeName); shape && shape->AsGeometry()) {
+		shape->name = "MarkerGeo"sv;
+
+		// make material unique so each bulb can turn red independently
+		if (const auto effectProp = netimmerse_cast<RE::BSEffectShaderProperty*>(shape->AsGeometry()->properties[RE::BSGeometry::States::kEffect].get())) {
+			effectProp->SetFlags(RE::BSShaderProperty::EShaderPropertyFlag8::kVertexColors, false);
+
+			if (const auto effectMaterial = static_cast<RE::BSEffectShaderMaterial*>(effectProp->material)) {
+				if (const auto newMaterial = static_cast<RE::BSEffectShaderMaterial*>(effectMaterial->Create())) {
+					newMaterial->CopyMembers(effectMaterial);
+
+					effectProp->lastRenderPassState = std::numeric_limits<std::int32_t>::max();
+					effectProp->SetMaterial(newMaterial, true);
+					effectProp->SetupGeometry(shape->AsGeometry());
+					effectProp->FinishSetupGeometry(shape->AsGeometry());
+
+					newMaterial->~BSEffectShaderMaterial();
+					RE::free(newMaterial);
+				}
+			}
+		}
+	}
+}
+
+LightData::MARKER_CREATE_PARAMS LightData::GetDebugMarkerParams() const
+{
+	if (GetCastsShadows()) {
+		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
+			return { "marker_spotlight.nif", "marker_spotlight:0", 1.0f, true };
+		}
+		return { "marker_lightshadow.nif", "marker_lightshadow:0", 0.25f, false };
+	}
+	return { "marker_light.nif", "marker_light:0", 0.25f, false };
 }
 
 void LightSourceData::ReadFlags()
@@ -435,16 +465,53 @@ REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLigh
 #undef INIT_CONTROLLER
 }
 
-bool REFR_LIGH::IsAnimated() const
+bool REFR_LIGH::IsOutsideFrustum()
 {
-	return data.light->GetNoFlicker() || data.conditions || colorController || fadeController || radiusController || positionController || rotationController;
+	const RE::NiBound bound{ niLight->world.translate, niLight->radius.x };
+	if (!RE::NiCamera::BoundInFrustum(bound, RE::Main::WorldRootCamera())) {
+		if (!culled) {
+			culled = true;
+			CullLight(true, LightData::CullFlags::Culled);
+		}
+		return true;
+	}
+
+	if (culled) {
+		culled = false;
+		if (!data.conditions || lastVisibleState == std::nullopt || lastVisibleState == true) {
+			CullLight(false, LightData::CullFlags::Culled);
+		}
+	}
+
+	return false;
 }
 
-void REFR_LIGH::DimLight(const float a_dimmer) const
+const RE::NiPointer<RE::NiPointLight>& REFR_LIGH::GetLight() const
 {
-	if (niLight) {
-		niLight->fade *= a_dimmer;
+	return niLight;
+}
+
+void REFR_LIGH::CullLight(bool a_cull, LightData::CullFlags a_flags) const
+{
+	niLight->SetAppCulled(a_cull);
+	if (a_cull) {
+		niLight->ambient.blue = static_cast<float>(std::to_underlying(a_flags));
+	} else {
+		niLight->ambient.blue = 0.0f;
 	}
+	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
+		a_flags == LightData::CullFlags::Hidden ? ShowDebugMarker(!a_cull) : CullDebugMarker(a_cull);
+	}
+}
+
+bool REFR_LIGH::DimLight(const float a_dimmer) const
+{
+	if (a_dimmer <= 1.0f) {
+		niLight->fade *= a_dimmer;
+		return true;
+	}
+
+	return false;
 }
 
 void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
@@ -490,9 +557,31 @@ void REFR_LIGH::ShowDebugMarker(bool a_show) const
 	}
 }
 
+void REFR_LIGH::CullDebugMarker(bool a_cull) const
+{
+	constexpr auto COLOR_RED = RE::NiColorA(1.0f, 0.0f, 0.0f, 1.0f);
+	constexpr auto COLOR_GREY = RE::NiColorA(0.682f, 0.682f, 0.682f, 1.0f);
+
+	if (debugMarker) {
+		const auto obj = debugMarker->GetObjectByName("MarkerGeo");
+		const auto shape = obj ? obj->AsGeometry() : nullptr;
+
+		if (!shape) {
+			return;
+		}
+
+		const auto effectProp = netimmerse_cast<RE::BSEffectShaderProperty*>(shape->properties[RE::BSGeometry::States::kEffect].get());
+		const auto effectMaterial = effectProp ? static_cast<RE::BSEffectShaderMaterial*>(effectProp->material) : nullptr;
+
+		if (effectMaterial) {
+			effectMaterial->baseColor = a_cull ? COLOR_RED : COLOR_GREY;
+		}
+	}
+}
+
 bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 {
-	if (!data.conditions || !niLight) {
+	if (!data.conditions || a_flags == ConditionUpdateFlags::Skip) {
 		return false;
 	}
 
@@ -520,7 +609,7 @@ bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 	return true;
 }
 
-void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
+void REFR_LIGH::UpdateAnimation(float a_scalingFactor)
 {
 	scale = data.flags.any(LightData::Flags::IgnoreScale) ? 1.0f : a_scalingFactor;
 
@@ -577,10 +666,7 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_node
 	if (lastVisibleState != isVisible) {
 		lastVisibleState = isVisible;
 
-		niLight->SetAppCulled(!isVisible);
-		if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-			ShowDebugMarker(isVisible);
-		}
+		CullLight(!isVisible, LightData::CullFlags::Hidden);
 
 		a_nodeVisHelper.isVisible |= isVisible;
 		a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);

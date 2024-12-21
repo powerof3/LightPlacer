@@ -153,7 +153,7 @@ namespace Animation
 	inline bool LightController<LightData>::GetValidFade() const
 	{
 		return sequence.keys.front().value.GetValidFade();
-}
+	}
 	template <>
 	inline bool LightController<LightData>::GetValidTranslation() const
 	{

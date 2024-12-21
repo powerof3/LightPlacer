@@ -44,11 +44,11 @@ struct LightsToUpdate
 	LightsToUpdate() = default;
 
 	void emplace(const ProcessedLights& a_processedLights, RE::RefHandle a_handle, bool a_isObject);
-	void emplace(const REFR_LIGH& a_lightData, RE::RefHandle a_handle);
+	void emplace(RE::RefHandle a_handle);
 
 	void erase(RE::RefHandle a_handle);
 
 	// members
-	std::vector<RE::RefHandle> animatedLights;
+	std::vector<RE::RefHandle> updatingLights;
 	std::vector<RE::RefHandle> emittanceLights;
 };

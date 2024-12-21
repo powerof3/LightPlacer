@@ -32,7 +32,7 @@ public:
 	void DetachCastingLights(RE::RefAttachTechniqueInput& a_refAttachInput);
 
 	void AddLightsToUpdateQueue(const RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
-	void UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell);
+	void UpdateLights(const RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(const RE::TESObjectCELL* a_cell);
 	void RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
 

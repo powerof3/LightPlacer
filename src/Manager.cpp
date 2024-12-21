@@ -421,7 +421,7 @@ std::uint32_t LightManager::AttachConfigLights(const SourceData& a_srcData, cons
 
 void LightManager::AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, std::uint32_t a_index)
 {
-	const auto name = LightData::GetName(a_srcData, a_lightSource.lightEDID, a_index);
+	const auto name = LightData::GetLightName(a_srcData, a_lightSource.lightEDID, a_index);
 
 	if (auto [bsLight, niLight, debugMarker] = a_lightSource.data.GenLight(a_srcData.ref, a_node, name, a_srcData.scale); bsLight && niLight) {
 		switch (a_srcData.type) {
@@ -447,7 +447,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 
 							lightsToBeUpdated.write([&](auto& cellMap) {
 								cellMap[a_srcData.cellID].write([&](auto& innerMap) {
-									innerMap.emplace(lightData, a_srcData.handle);
+									innerMap.emplace(a_srcData.handle);
 								});
 							});
 						}
@@ -543,7 +543,7 @@ RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::TESWaitStopEvent* 
 	return RE::BSEventNotifyControl::kContinue;
 }
 
-void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell)
+void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 {
 	lightsToBeUpdated.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {
@@ -555,7 +555,7 @@ void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell
 			params.delta = RE::BSTimer::GetSingleton()->delta;
 
 			it->second.write([&](auto& innerMap) {
-				std::erase_if(innerMap.animatedLights, [&](auto& handle) {
+				std::erase_if(innerMap.updatingLights, [&](auto& handle) {
 					RE::TESObjectREFRPtr ref{};
 					RE::LookupReferenceByHandle(handle, ref);
 
