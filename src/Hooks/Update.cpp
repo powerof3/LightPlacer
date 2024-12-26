@@ -100,7 +100,13 @@ namespace Hooks::Update
 			func(a_this, a_delta);
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   size{ 0x1D };
+		static constexpr std::size_t                   size{
+#ifndef SKYRIMVR
+			0x1D
+#else
+			0x1F
+#endif
+		};
 
 		static void Install()
 		{
