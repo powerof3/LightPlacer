@@ -184,14 +184,15 @@ struct REFR_LIGH
 
 	const RE::NiPointer<RE::NiPointLight>& GetLight() const;
 
-	void CullDebugMarker(bool a_cull) const;
-	void CullLight(bool a_cull, LightData::CullFlags a_flags) const;
+	void HideLight(bool a_hide, LightData::CullFlags a_flags) const;
 	bool IsOutsideFrustum();
 	bool DimLight(float a_dimmer) const;
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	void ReattachLight() const;
 	void RemoveLight(bool a_clearData) const;
-	void ShowDebugMarker(bool a_show) const;
+	void ShowDebugMarker() const;
+	void HideDebugMarker() const;
+	void UpdateDebugMarkerState(bool a_culled) const;
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
 	void UpdateAnimation(float a_scalingFactor);
 	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
@@ -213,6 +214,7 @@ struct REFR_LIGH
 	bool                              culled{};
 
 private:
+	void CullDebugMarker(bool a_cull) const;
 	void UpdateIndividualAnimations();
 };
 

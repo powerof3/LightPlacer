@@ -24,7 +24,11 @@ void ProcessedLights::emplace_back(const REFR_LIGH& a_lightREFRData)
 void ProcessedLights::ShowDebugMarkers(bool a_show) const
 {
 	for (auto& light : lights) {
-		light.ShowDebugMarker(a_show);
+		if (a_show) {
+			light.ShowDebugMarker();			
+		} else {
+			light.HideDebugMarker();	
+		}
 	}
 }
 

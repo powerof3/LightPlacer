@@ -475,7 +475,7 @@ bool REFR_LIGH::IsOutsideFrustum()
 	if (!RE::NiCamera::BoundInFrustum(bound, RE::Main::WorldRootCamera())) {
 		if (!culled) {
 			culled = true;
-			CullLight(true, LightData::CullFlags::Culled);
+			HideLight(true, LightData::CullFlags::Culled);
 		}
 		return true;
 	}
@@ -483,7 +483,7 @@ bool REFR_LIGH::IsOutsideFrustum()
 	if (culled) {
 		culled = false;
 		if (!data.conditions || lastVisibleState == std::nullopt || lastVisibleState == true) {
-			CullLight(false, LightData::CullFlags::Culled);
+			HideLight(false, LightData::CullFlags::Culled);
 		}
 	}
 
@@ -495,16 +495,27 @@ const RE::NiPointer<RE::NiPointLight>& REFR_LIGH::GetLight() const
 	return niLight;
 }
 
-void REFR_LIGH::CullLight(bool a_cull, LightData::CullFlags a_flags) const
+void REFR_LIGH::HideLight(bool a_hide, LightData::CullFlags a_flags) const
 {
-	niLight->SetAppCulled(a_cull);
-	if (a_cull) {
-		niLight->ambient.blue = static_cast<float>(std::to_underlying(a_flags));
+	niLight->SetAppCulled(a_hide);
+
+	if (a_hide) {
+		niLight->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(niLight->ambient.blue) | std::to_underlying(a_flags));
 	} else {
-		niLight->ambient.blue = 0.0f;
+		niLight->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(niLight->ambient.blue) & ~std::to_underlying(a_flags));
 	}
+
 	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-		a_flags == LightData::CullFlags::Hidden ? ShowDebugMarker(!a_cull) : CullDebugMarker(a_cull);
+		if (a_flags == LightData::CullFlags::Hidden) {
+			a_hide ? HideDebugMarker() : ShowDebugMarker();
+			if (!a_hide) {
+				UpdateDebugMarkerState(false);
+			}
+
+		} else {
+			ShowDebugMarker();
+			UpdateDebugMarkerState(a_hide);
+		}
 	}
 }
 
@@ -534,14 +545,14 @@ void REFR_LIGH::ReattachLight() const
 	}
 
 	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-		ShowDebugMarker(true);
+		ShowDebugMarker();
 	}
 }
 
 void REFR_LIGH::RemoveLight(bool a_clearData) const
 {
 	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-		ShowDebugMarker(false);
+		HideDebugMarker();
 	}
 
 	if (bsLight) {
@@ -554,14 +565,24 @@ void REFR_LIGH::RemoveLight(bool a_clearData) const
 	}
 }
 
-void REFR_LIGH::ShowDebugMarker(bool a_show) const
+void REFR_LIGH::CullDebugMarker(bool a_cull) const
 {
 	if (debugMarker) {
-		debugMarker->SetAppCulled(!a_show);
+		debugMarker->SetAppCulled(a_cull);
 	}
 }
 
-void REFR_LIGH::CullDebugMarker(bool a_cull) const
+void REFR_LIGH::ShowDebugMarker() const
+{
+	CullDebugMarker(false);
+}
+
+void REFR_LIGH::HideDebugMarker() const
+{
+	CullDebugMarker(true);
+}
+
+void REFR_LIGH::UpdateDebugMarkerState(bool a_culled) const
 {
 	constexpr auto COLOR_RED = RE::NiColorA(1.0f, 0.0f, 0.0f, 1.0f);
 	constexpr auto COLOR_GREY = RE::NiColorA(0.682f, 0.682f, 0.682f, 1.0f);
@@ -578,7 +599,7 @@ void REFR_LIGH::CullDebugMarker(bool a_cull) const
 		const auto effectMaterial = effectProp ? static_cast<RE::BSEffectShaderMaterial*>(effectProp->material) : nullptr;
 
 		if (effectMaterial) {
-			effectMaterial->baseColor = a_cull ? COLOR_RED : COLOR_GREY;
+			effectMaterial->baseColor = a_culled ? COLOR_RED : COLOR_GREY;
 		}
 	}
 }
@@ -665,7 +686,7 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_node
 	if (lastVisibleState != isVisible) {
 		lastVisibleState = isVisible;
 
-		CullLight(!isVisible, LightData::CullFlags::Hidden);
+		HideLight(!isVisible, LightData::CullFlags::Hidden);
 
 		a_nodeVisHelper.isVisible |= isVisible;
 		a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);

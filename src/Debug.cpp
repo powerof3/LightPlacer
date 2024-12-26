@@ -74,11 +74,11 @@ namespace Debug
 		{
 			std::string details{};
 			if (auto light = netimmerse_cast<RE::NiPointLight*>(a_currentNode)) {
-				const auto flags = static_cast<LightData::CullFlags>(light->ambient.blue);
+				const auto cullFlags = static_cast<LightData::CullFlags>(light->ambient.blue);
 
 				details = std::format(" (radius: {},fade: {} [{}])", light->radius.x, light->fade,
 					light->GetAppCulled() ?
-						(flags == LightData::CullFlags::Culled) ? "culled" : "hidden" :
+						cullFlags == LightData::CullFlags::Hidden ? "hidden" : "culled" :
 						"visible");
 			}
 			return details;
