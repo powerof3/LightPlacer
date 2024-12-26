@@ -242,18 +242,22 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 	}
 
 	const auto ref = a_effect->target.get();
-	const auto root = a_effect->GetAttachRoot();
+	if (!ref) {
+		return;
+	}
 
-	if (!ref || !root) {
+	// check base first so we can short circuit if weapController->shader is nullptr and avoid crash in GetAttachRoot
+	const auto base = RE::GetReferenceEffectBase(ref, a_effect);
+	if (!base) {
+		return;
+	}
+
+	const auto root = a_effect->GetAttachRoot();
+	if (!root) {
 		return;
 	}
 
 	if (auto invMgr = RE::Inventory3DManager::GetSingleton(); invMgr && invMgr->tempRef == ref.get()) {
-		return;
-	}
-
-	const auto base = RE::GetReferenceEffectBase(ref, a_effect);
-	if (!base) {
 		return;
 	}
 

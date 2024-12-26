@@ -50,6 +50,9 @@ namespace RE
 	{
 		if (IsActor(a_ref.get())) {
 			if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {
+				if (!weapController->shader) {
+					return nullptr;
+				}
 				return weapController->lastWeapon;
 			}
 		}
