@@ -99,12 +99,7 @@ namespace Animation
 				if (validRotation) {
 					parentNode->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(rotation[0]), RE::deg_to_rad(rotation[1]), RE::deg_to_rad(rotation[2]));
 				}
-				if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
-					RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(parentNode);
-				} else {
-					RE::NiUpdateData updateData;
-					parentNode->Update(updateData);
-				}
+				RE::UpdateNode(parentNode);
 			}
 		}
 	}

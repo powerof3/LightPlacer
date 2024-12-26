@@ -62,6 +62,17 @@ namespace RE
 		}
 	}
 
+	template <class T>
+	void UpdateNode(T* a_obj)
+	{
+		if (TaskQueueInterface::ShouldUseTaskQueue()) {
+			TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(a_obj);
+		} else {
+			NiUpdateData updateData;
+			a_obj->Update(updateData);
+		}
+	}
+
 	FormID GetFormID(const std::string& a_str);
 	template <class T>
 	T* GetFormFromID(const std::string& a_str)
