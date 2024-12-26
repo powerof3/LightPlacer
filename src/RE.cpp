@@ -49,7 +49,7 @@ namespace RE
 	NiAVObject* GetReferenceAttachRoot(ReferenceEffect* a_referenceEffect)
 	{
 		if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {
-			if (!weapController->shader) { // missing nullptr check in GetAttachRoot -> crash
+			if (!weapController->shader) {  // missing nullptr check in GetAttachRoot -> crash
 				return nullptr;
 			}
 		}

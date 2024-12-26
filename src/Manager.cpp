@@ -554,7 +554,7 @@ void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 			params.pcPos = pc->GetPosition();
 			params.flickeringDistance = flickeringDistanceSq;
 			params.delta = RE::BSTimer::GetSingleton()->delta;
-			params.freeCameraMode = freeCameraMode; 
+			params.freeCameraMode = freeCameraMode;
 
 			it->second.write([&](auto& innerMap) {
 				std::erase_if(innerMap.updatingLights, [&](auto& handle) {
@@ -636,7 +636,7 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 			params.flickeringDistance = flickeringDistanceSq;
 			params.delta = RE::BSTimer::GetSingleton()->delta;
 			params.dimFactor = dimFactor;
-			params.freeCameraMode = freeCameraMode; 
+			params.freeCameraMode = freeCameraMode;
 
 			it->second.UpdateLightsAndRef(params);
 		}
@@ -661,7 +661,7 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 			params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 			params.flickeringDistance = flickeringDistanceSq;
 			params.delta = a_delta;
-			params.freeCameraMode = freeCameraMode; 
+			params.freeCameraMode = freeCameraMode;
 
 			it->second.UpdateLightsAndRef(params);
 		}

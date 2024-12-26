@@ -53,7 +53,7 @@ namespace Hooks::Misc
 		{
 			stl::write_vfunc<RE::FreeCameraState, FreeCamera_Begin>();
 			logger::info("Hooked FreeCameraState::Begin");
-		}		
+		}
 	};
 
 	struct FreeCamera_End

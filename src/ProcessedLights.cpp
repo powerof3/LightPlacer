@@ -25,9 +25,9 @@ void ProcessedLights::ShowDebugMarkers(bool a_show) const
 {
 	for (auto& light : lights) {
 		if (a_show) {
-			light.ShowDebugMarker();			
+			light.ShowDebugMarker();
 		} else {
-			light.HideDebugMarker();	
+			light.HideDebugMarker();
 		}
 	}
 }
