@@ -185,16 +185,17 @@ struct REFR_LIGH
 	const RE::NiPointer<RE::NiPointLight>& GetLight() const;
 
 	void HideLight(bool a_hide, LightData::CullFlags a_flags) const;
-	bool IsOutsideFrustum();
+	bool IsOutsideFrustum(bool a_freeCameraMode);
 	bool DimLight(float a_dimmer) const;
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	void ReattachLight() const;
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker() const;
 	void HideDebugMarker() const;
-	void UpdateDebugMarkerState(bool a_culled) const;
+	bool SetLightCullState(bool a_cull);
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
 	void UpdateAnimation(float a_scalingFactor);
+	void UpdateDebugMarkerState(bool a_culled) const;
 	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
 	void UpdateEmittance() const;
 	void UpdateVanillaFlickering() const;

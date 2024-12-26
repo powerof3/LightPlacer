@@ -465,29 +465,18 @@ REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLigh
 #undef INIT_CONTROLLER
 }
 
-bool REFR_LIGH::IsOutsideFrustum()
+bool REFR_LIGH::IsOutsideFrustum(bool a_freeCameraMode)
 {
 	if (!Settings::GetSingleton()->CanCullLights()) {
 		return false;
 	}
 
+	if (a_freeCameraMode) {
+		return SetLightCullState(false);
+	}
+
 	const RE::NiBound bound{ niLight->world.translate, niLight->radius.x };
-	if (!RE::NiCamera::BoundInFrustum(bound, RE::Main::WorldRootCamera())) {
-		if (!culled) {
-			culled = true;
-			HideLight(true, LightData::CullFlags::Culled);
-		}
-		return true;
-	}
-
-	if (culled) {
-		culled = false;
-		if (!data.conditions || lastVisibleState == std::nullopt || lastVisibleState == true) {
-			HideLight(false, LightData::CullFlags::Culled);
-		}
-	}
-
-	return false;
+	return SetLightCullState(!RE::NiCamera::BoundInFrustum(bound, RE::Main::WorldRootCamera()));
 }
 
 const RE::NiPointer<RE::NiPointLight>& REFR_LIGH::GetLight() const
@@ -593,6 +582,26 @@ void REFR_LIGH::UpdateDebugMarkerState(bool a_culled) const
 			effectMaterial->baseColor = a_culled ? COLOR_RED : COLOR_GREY;
 		}
 	}
+}
+
+bool REFR_LIGH::SetLightCullState(bool a_cull)
+{
+	if (a_cull) {
+		if (!culled) {
+			culled = true;
+			HideLight(true, LightData::CullFlags::Culled);
+		}
+		return true;
+	}
+
+	if (culled) {
+		culled = false;
+		if (!data.conditions || lastVisibleState == std::nullopt || lastVisibleState == true) {
+			HideLight(false, LightData::CullFlags::Culled);
+		}
+	}
+
+	return false;
 }
 
 bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const

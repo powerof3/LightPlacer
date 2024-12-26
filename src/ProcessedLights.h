@@ -14,6 +14,7 @@ struct ProcessedLights
 		float              delta;
 		std::string_view   nodeName{ ""sv };
 		float              dimFactor{ RE::NI_INFINITY };
+		bool               freeCameraMode;
 	};
 
 	bool IsNewLight(RE::NiPointLight* a_niLight);

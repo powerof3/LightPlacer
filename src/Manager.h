@@ -39,6 +39,8 @@ public:
 	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);
 	void UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta);
 
+	void SetFreeCameraMode(bool a_enabled);
+
 	template <class F>
 	void ForAllLights(F&& func)
 	{
@@ -156,4 +158,5 @@ private:
 	std::optional<bool>                               lastCellWasInterior;
 
 	float flickeringDistanceSq{ 0.0f };
+	bool  freeCameraMode{ false };
 };
