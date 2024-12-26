@@ -242,18 +242,14 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 	}
 
 	const auto ref = a_effect->target.get();
-	if (!ref) {
+	const auto root = RE::GetReferenceAttachRoot(a_effect);
+
+	if (!ref || !root) {
 		return;
 	}
 
-	// check base first so we can short circuit if weapController->shader is nullptr and avoid crash in GetAttachRoot
 	const auto base = RE::GetReferenceEffectBase(ref, a_effect);
 	if (!base) {
-		return;
-	}
-
-	const auto root = a_effect->GetAttachRoot();
-	if (!root) {
 		return;
 	}
 
@@ -527,11 +523,12 @@ RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::BGSActorCellEvent*
 		ForEachValidLight([&](const auto& ref, const auto& nodeName, auto& processedLights) {
 			processedLights.UpdateConditions(ref, nodeName, ConditionUpdateFlags::CellTransition);
 		});
-		ForEachFXLight([&](auto& processedLights) {
-			processedLights.ReattachLights();
-		});
 	}
 	lastCellWasInterior = currentCellIsInterior;
+
+	ForEachFXLight([&](auto& processedLights) {
+		processedLights.ReattachLights();
+	});
 
 	return RE::BSEventNotifyControl::kContinue;
 }

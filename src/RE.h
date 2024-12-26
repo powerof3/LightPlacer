@@ -86,6 +86,7 @@ namespace RE
 	REL::Version GetGameVersion();
 #endif
 
+	NiAVObject*     GetReferenceAttachRoot(ReferenceEffect* a_referenceEffect);
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
 	BGSArtObject*   GetCastingArt(const MagicItem* a_magicItem);
 	BGSArtObject*   GetCastingArt(const ActorMagicCaster* a_actorMagicCaster);
