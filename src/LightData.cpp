@@ -506,16 +506,7 @@ void REFR_LIGH::HideLight(bool a_hide, LightData::CullFlags a_flags) const
 	}
 
 	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-		if (a_flags == LightData::CullFlags::Hidden) {
-			a_hide ? HideDebugMarker() : ShowDebugMarker();
-			if (!a_hide) {
-				UpdateDebugMarkerState(false);
-			}
-
-		} else {
-			ShowDebugMarker();
-			UpdateDebugMarkerState(a_hide);
-		}
+		a_hide ? HideDebugMarker() : ShowDebugMarker();
 	}
 }
 
