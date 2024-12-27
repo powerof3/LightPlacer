@@ -73,9 +73,14 @@ namespace Debug
 		static std::string GetDetails(const RE::NiAVObject* a_currentNode)
 		{
 			std::string details{};
+
 			if (auto light = netimmerse_cast<RE::NiPointLight*>(a_currentNode)) {
-				details = std::format(" (radius: {},fade: {} [{}])", light->radius.x, light->fade, light->GetAppCulled() ? "hidden" : "visible");
+				const auto cullFlags = static_cast<std::uint32_t>(light->ambient.blue);
+
+				details = std::format(" (radius: {},fade: {} [{}])", light->radius.x, light->fade,
+					light->GetAppCulled() ? ((cullFlags & std::to_underlying(LightData::CullFlags::Hidden)) != 0 ? "hidden" : "culled") : "visible");
 			}
+
 			return details;
 		}
 

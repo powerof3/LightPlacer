@@ -32,12 +32,14 @@ public:
 	void DetachCastingLights(RE::RefAttachTechniqueInput& a_refAttachInput);
 
 	void AddLightsToUpdateQueue(const RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
-	void UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell);
+	void UpdateLights(const RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(const RE::TESObjectCELL* a_cell);
 	void RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
 
 	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);
 	void UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta);
+
+	void SetFreeCameraMode(bool a_enabled);
 
 	template <class F>
 	void ForAllLights(F&& func)
@@ -156,4 +158,5 @@ private:
 	std::optional<bool>                               lastCellWasInterior;
 
 	float flickeringDistanceSq{ 0.0f };
+	bool  freeCameraMode{ false };
 };

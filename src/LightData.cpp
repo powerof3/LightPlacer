@@ -13,7 +13,7 @@ std::string LightData::GetDebugMarkerName(std::string_view a_lightName)
 	return std::format("{}[{}]", LP_DEBUG, a_lightName);
 }
 
-std::string LightData::GetName(const SourceData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index)
+std::string LightData::GetLightName(const SourceData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index)
 {
 	if (a_srcData.effectID != std::numeric_limits<std::uint32_t>::max()) {
 		return std::format("{}[{}|{}]#{}", LP_LIGHT, a_srcData.effectID, a_lightEDID, a_index);
@@ -52,36 +52,18 @@ bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
 
 RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_view a_debugMarkerName) const
 {
-	const auto settings = Settings::GetSingleton();
-
-	if (!settings->LoadDebugMarkers()) {
+	if (!Settings::GetSingleton()->LoadDebugMarkers()) {
 		return nullptr;
 	}
-
-	const auto get_marker = [this] {
-		if (GetCastsShadows()) {
-			if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
-				return std::make_tuple("marker_spotlight.nif", 1.0f, true);
-			}
-			return std::make_tuple("marker_lightshadow.nif", 0.25f, false);
-		}
-		return std::make_tuple("marker_light.nif", 0.25f, false);
-	};
 
 	RE::NiPointer<RE::NiNode>                   loadedModel;
 	constexpr RE::BSModelDB::DBTraits::ArgsType args{};
 
-	auto [model, scale, flip] = get_marker();
-	if (const auto error = Demand(model, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
+	const auto create_params = GetDebugMarkerParams();
+
+	if (const auto error = Demand(create_params.modelName, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
 		if (const auto clonedModel = loadedModel->Clone()) {
-			if (!settings->CanShowDebugMarkers()) {
-				clonedModel->SetAppCulled(true);
-			}
-			clonedModel->name = a_debugMarkerName;
-			clonedModel->local.scale = scale;
-			if (flip) {
-				clonedModel->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(-180), 0, RE::deg_to_rad(-180));
-			}
+			PostProcessDebugMarker(clonedModel, create_params, a_debugMarkerName);
 			RE::AttachNode(a_node, clonedModel);
 			return clonedModel;
 		}
@@ -221,6 +203,7 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 		// immediately update state on attach. waiting for cell update is too slow
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
 			niLight->SetAppCulled(true);
+			niLight->ambient.blue = static_cast<float>(CullFlags::Hidden);
 		}
 
 		if (!debugMarker) {
@@ -232,6 +215,53 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 	}
 
 	return { bsLight, niLight, debugMarker };
+}
+
+void LightData::PostProcessDebugMarker(RE::NiAVObject* a_obj, const MARKER_CREATE_PARAMS& a_params, std::string_view a_debugMarkerName)
+{
+	if (!Settings::GetSingleton()->CanShowDebugMarkers()) {
+		a_obj->SetAppCulled(true);
+	}
+
+	a_obj->name = a_debugMarkerName;
+	a_obj->local.scale = a_params.scale;
+	if (a_params.flipModel) {
+		a_obj->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(-180), 0, RE::deg_to_rad(-180));
+	}
+
+	if (const auto shape = a_obj->GetObjectByName(a_params.shapeName); shape && shape->AsGeometry()) {
+		shape->name = "MarkerGeo"sv;
+
+		// make material unique so each bulb can turn red independently
+		if (const auto effectProp = netimmerse_cast<RE::BSEffectShaderProperty*>(shape->AsGeometry()->properties[RE::BSGeometry::States::kEffect].get())) {
+			effectProp->SetFlags(RE::BSShaderProperty::EShaderPropertyFlag8::kVertexColors, false);
+
+			if (const auto effectMaterial = static_cast<RE::BSEffectShaderMaterial*>(effectProp->material)) {
+				if (const auto newMaterial = static_cast<RE::BSEffectShaderMaterial*>(effectMaterial->Create())) {
+					newMaterial->CopyMembers(effectMaterial);
+
+					effectProp->lastRenderPassState = std::numeric_limits<std::int32_t>::max();
+					effectProp->SetMaterial(newMaterial, true);
+					effectProp->SetupGeometry(shape->AsGeometry());
+					effectProp->FinishSetupGeometry(shape->AsGeometry());
+
+					newMaterial->~BSEffectShaderMaterial();
+					RE::free(newMaterial);
+				}
+			}
+		}
+	}
+}
+
+LightData::MARKER_CREATE_PARAMS LightData::GetDebugMarkerParams() const
+{
+	if (GetCastsShadows()) {
+		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
+			return { "marker_spotlight.nif", "marker_spotlight:0", 1.0f, true };
+		}
+		return { "marker_lightshadow.nif", "marker_lightshadow:0", 0.25f, false };
+	}
+	return { "marker_light.nif", "marker_light:0", 0.25f, false };
 }
 
 void LightSourceData::ReadFlags()
@@ -431,19 +461,52 @@ REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLigh
 	INIT_CONTROLLER(fadeController)
 	INIT_CONTROLLER(positionController)
 	INIT_CONTROLLER(rotationController)
+	INIT_CONTROLLER(lightController)
 #undef INIT_CONTROLLER
 }
 
-bool REFR_LIGH::IsAnimated() const
+bool REFR_LIGH::IsOutsideFrustum(bool a_freeCameraMode)
 {
-	return data.light->GetNoFlicker() || data.conditions || colorController || fadeController || radiusController || positionController || rotationController;
+	if (!Settings::GetSingleton()->CanCullLights()) {
+		return false;
+	}
+
+	if (a_freeCameraMode) {
+		return SetLightCullState(false);
+	}
+
+	const RE::NiBound bound{ niLight->world.translate, niLight->radius.x };
+	return SetLightCullState(!RE::NiCamera::BoundInFrustum(bound, RE::Main::WorldRootCamera()));
 }
 
-void REFR_LIGH::DimLight(const float a_dimmer) const
+const RE::NiPointer<RE::NiPointLight>& REFR_LIGH::GetLight() const
 {
-	if (niLight) {
-		niLight->fade *= a_dimmer;
+	return niLight;
+}
+
+void REFR_LIGH::HideLight(bool a_hide, LightData::CullFlags a_flags) const
+{
+	niLight->SetAppCulled(a_hide);
+
+	if (a_hide) {
+		niLight->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(niLight->ambient.blue) | std::to_underlying(a_flags));
+	} else {
+		niLight->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(niLight->ambient.blue) & ~std::to_underlying(a_flags));
 	}
+
+	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
+		a_hide ? HideDebugMarker() : ShowDebugMarker();
+	}
+}
+
+bool REFR_LIGH::DimLight(const float a_dimmer) const
+{
+	if (a_dimmer <= 1.0f) {
+		niLight->fade *= a_dimmer;
+		return true;
+	}
+
+	return false;
 }
 
 void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
@@ -462,14 +525,14 @@ void REFR_LIGH::ReattachLight() const
 	}
 
 	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-		ShowDebugMarker(true);
+		ShowDebugMarker();
 	}
 }
 
 void REFR_LIGH::RemoveLight(bool a_clearData) const
 {
 	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-		ShowDebugMarker(false);
+		HideDebugMarker();
 	}
 
 	if (bsLight) {
@@ -482,16 +545,68 @@ void REFR_LIGH::RemoveLight(bool a_clearData) const
 	}
 }
 
-void REFR_LIGH::ShowDebugMarker(bool a_show) const
+void REFR_LIGH::CullDebugMarker(bool a_cull) const
 {
 	if (debugMarker) {
-		debugMarker->SetAppCulled(!a_show);
+		debugMarker->SetAppCulled(a_cull);
 	}
+}
+
+void REFR_LIGH::ShowDebugMarker() const
+{
+	CullDebugMarker(false);
+}
+
+void REFR_LIGH::HideDebugMarker() const
+{
+	CullDebugMarker(true);
+}
+
+void REFR_LIGH::UpdateDebugMarkerState(bool a_culled) const
+{
+	constexpr auto COLOR_RED = RE::NiColorA(1.0f, 0.0f, 0.0f, 1.0f);
+	constexpr auto COLOR_GREY = RE::NiColorA(0.682f, 0.682f, 0.682f, 1.0f);
+
+	if (debugMarker) {
+		const auto obj = debugMarker->GetObjectByName("MarkerGeo");
+		const auto shape = obj ? obj->AsGeometry() : nullptr;
+
+		if (!shape) {
+			return;
+		}
+
+		const auto effectProp = netimmerse_cast<RE::BSEffectShaderProperty*>(shape->properties[RE::BSGeometry::States::kEffect].get());
+		const auto effectMaterial = effectProp ? static_cast<RE::BSEffectShaderMaterial*>(effectProp->material) : nullptr;
+
+		if (effectMaterial) {
+			effectMaterial->baseColor = a_culled ? COLOR_RED : COLOR_GREY;
+		}
+	}
+}
+
+bool REFR_LIGH::SetLightCullState(bool a_cull)
+{
+	if (a_cull) {
+		if (!culled) {
+			culled = true;
+			HideLight(true, LightData::CullFlags::Culled);
+		}
+		return true;
+	}
+
+	if (culled) {
+		culled = false;
+		if (!data.conditions || lastVisibleState == std::nullopt || lastVisibleState == true) {
+			HideLight(false, LightData::CullFlags::Culled);
+		}
+	}
+
+	return false;
 }
 
 bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 {
-	if (!data.conditions || !niLight) {
+	if (!data.conditions || a_flags == ConditionUpdateFlags::Skip) {
 		return false;
 	}
 
@@ -519,29 +634,31 @@ bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 	return true;
 }
 
-void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
+void REFR_LIGH::UpdateAnimation(float a_scalingFactor)
 {
-	if (!niLight || niLight->GetAppCulled() || !a_withinRange) {
-		return;
-	}
+	scale = data.flags.any(LightData::Flags::IgnoreScale) ? 1.0f : a_scalingFactor;
 
+	if (lightController) {
+		lightController->GetValue(RE::BSTimer::GetSingleton()->delta).Update(niLight, scale);
+	} else {
+		UpdateIndividualAnimations();
+	}
+}
+
+void REFR_LIGH::UpdateIndividualAnimations()
+{
 	if (colorController) {
 		niLight->diffuse = colorController->GetValue(RE::BSTimer::GetSingleton()->delta);
 	}
-
-	scale = a_scalingFactor;
-
 	if (radiusController) {
-		const auto newRadius = data.GetScaledRadius(radiusController->GetValue(RE::BSTimer::GetSingleton()->delta), scale);
-		niLight->radius.x = newRadius;
-		niLight->radius.y = newRadius;
-		niLight->radius.z = newRadius;
+		const auto newRadius = radiusController->GetValue(RE::BSTimer::GetSingleton()->delta) * scale;
+		niLight->radius = { newRadius, newRadius, newRadius };
 		niLight->SetLightAttenuation(newRadius);
 	}
 	if (fadeController) {
 		niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta);
 	}
-	if (auto parentNode = niLight->parent) {
+	if (const auto parentNode = niLight->parent) {
 		if (positionController) {
 			parentNode->local.translate = positionController->GetValue(RE::BSTimer::GetSingleton()->delta);
 		}
@@ -550,12 +667,7 @@ void REFR_LIGH::UpdateAnimation(bool a_withinRange, float a_scalingFactor)
 			parentNode->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(rotation[0]), RE::deg_to_rad(rotation[1]), RE::deg_to_rad(rotation[2]));
 		}
 		if (positionController || rotationController) {
-			if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
-				RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(parentNode);
-			} else {
-				RE::NiUpdateData updateData;
-				parentNode->Update(updateData);
-			}
+			UpdateNode(parentNode);
 		}
 	}
 }
@@ -574,10 +686,7 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_node
 	if (lastVisibleState != isVisible) {
 		lastVisibleState = isVisible;
 
-		niLight->SetAppCulled(!isVisible);
-		if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-			ShowDebugMarker(isVisible);
-		}
+		HideLight(!isVisible, LightData::CullFlags::Hidden);
 
 		a_nodeVisHelper.isVisible |= isVisible;
 		a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);
@@ -604,11 +713,10 @@ void REFR_LIGH::UpdateEmittance() const
 
 void REFR_LIGH::UpdateVanillaFlickering() const
 {
-	if (!niLight || niLight->GetAppCulled()) {
-		return;
-	}
-
 	if (data.light->data.flags.any(RE::TES_LIGHT_FLAGS::kFlicker, RE::TES_LIGHT_FLAGS::kFlickerSlow)) {
+		const bool canUpdateTranslation = !positionController && (!lightController || !lightController->GetValidTranslation());
+		const bool canUpdateFade = !fadeController && (!lightController || !lightController->GetValidFade());
+
 		const auto flickerDelta = RE::BSTimer::GetSingleton()->delta * data.light->data.flickerPeriodRecip;
 
 		auto constAttenOffset = niLight->constAttenuation + (clib_util::RNG().generate<float>(1.1f, 13.1f) * flickerDelta);
@@ -623,7 +731,7 @@ void REFR_LIGH::UpdateVanillaFlickering() const
 		niLight->linearAttenuation = linearAttenOffset;
 		niLight->quadraticAttenuation = quadraticAttenOffset;
 
-		if (!positionController) {
+		if (canUpdateTranslation) {
 			const auto constAttenSine = RE::NiSinQ(constAttenOffset + 1.7f);
 			const auto linearAttenSine = RE::NiSinQ(linearAttenOffset + 0.5f);
 
@@ -635,9 +743,11 @@ void REFR_LIGH::UpdateVanillaFlickering() const
 			niLight->local.translate.x = flickerMovementMult * constAttenSine;
 			niLight->local.translate.y = flickerMovementMult * linearAttenSine;
 			niLight->local.translate.z = flickerMovementMult * RE::NiSinQ(quadraticAttenOffset + 0.3f);
+
+			RE::UpdateNode(niLight.get());
 		}
 
-		if (!fadeController) {
+		if (canUpdateFade) {
 			const auto halfIntensityAmplitude = data.light->data.flickerIntensityAmplitude * 0.5f;
 
 			const auto flickerIntensity = std::clamp((RE::NiSinQImpl(linearAttenOffset * 1.3f * (512.0f / RE::NI_TWO_PI) + 52.966763f) + 1.0f) * 0.5f *
@@ -653,32 +763,28 @@ void REFR_LIGH::UpdateVanillaFlickering() const
 			return;
 		}
 
+		const bool canUpdateTranslation = !positionController && (!lightController || !lightController->GetValidTranslation());
+		const bool canUpdateFade = !fadeController && (!lightController || !lightController->GetValidFade());
+
 		auto constAttenuation = std::fmod(niLight->constAttenuation + (RE::BSTimer::GetSingleton()->delta * data.light->data.flickerPeriodRecip), RE::NI_TWO_PI);
 		niLight->constAttenuation = constAttenuation;
 
 		auto constAttenCosine = RE::NiCosQ(constAttenuation);
 		auto constAttenSine = RE::NiSinQ(constAttenuation);
 
-		if (!fadeController) {
+		if (canUpdateFade) {
 			const auto halfIntensityAmplitude = data.light->data.flickerIntensityAmplitude * 0.5f;
 			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * data.GetFade();
 		}
 
-		if (!positionController) {
+		if (canUpdateTranslation) {
 			const auto movementAmplitude = data.light->data.flickerMovementAmplitude;
 
 			niLight->local.translate.x = movementAmplitude * constAttenCosine;
 			niLight->local.translate.y = movementAmplitude * constAttenSine;
 			niLight->local.translate.z = movementAmplitude * (constAttenSine * constAttenCosine);
-		}
-	}
 
-	if (!positionController) {
-		if (RE::TaskQueueInterface::ShouldUseTaskQueue()) {
-			RE::TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(niLight.get());
-		} else {
-			RE::NiUpdateData updateData;
-			niLight->Update(updateData);
+			RE::UpdateNode(niLight.get());
 		}
 	}
 }

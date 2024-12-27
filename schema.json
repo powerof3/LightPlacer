@@ -152,14 +152,10 @@
                     "$ref": "#/definitions/color"
                 },
                 "fade": {
-                    "type": "number",
-                    "minimum": 0.0,
-                    "description": "Override lightbulb fade."
+                    "$ref": "#/definitions/fade"
                 },
                 "radius": {
-                    "type": "number",
-                    "minimum": 0.0,
-                    "description": "Override lightbulb radius."
+                    "$ref": "#/definitions/radius"
                 },
                 "fov": {
                     "type": "number",
@@ -201,7 +197,17 @@
                 "flags": {
                     "anyOf": [
                         {
-                            "enum": ["PortalStrict","Simple","Shadow","SyncAddonNodes","IgnoreScale","RandomAnimStart","NoExternalEmittance","UpdateOnCellTransition","UpdateOnWaiting"]
+                            "enum": [
+                                "PortalStrict",
+                                "Simple",
+                                "Shadow",
+                                "SyncAddonNodes",
+                                "IgnoreScale",
+                                "RandomAnimStart",
+                                "NoExternalEmittance",
+                                "UpdateOnCellTransition",
+                                "UpdateOnWaiting"
+                            ]
                         },
                         {
                             "pattern": "^PortalStrict|Simple|Shadow|SyncAddonNodes|IgnoreScale|RandomAnimStart|NoExternalEmittance|UpdateOnCellTransition|UpdateOnWaiting"
@@ -215,12 +221,7 @@
                     "type": "object",
                     "properties": {
                         "interpolation": {
-                            "type": "string",
-                            "enum": [
-                                "Linear",
-                                "Step",
-                                "Cubic"
-                            ]
+                            "$ref": "#/definitions/interpolation"
                         },
                         "keys": {
                             "type": "array",
@@ -265,12 +266,7 @@
                     "type": "object",
                     "properties": {
                         "interpolation": {
-                            "type": "string",
-                            "enum": [
-                                "Linear",
-                                "Step",
-                                "Cubic"
-                            ]
+                            "$ref": "#/definitions/interpolation"
                         },
                         "keys": {
                             "type": "array",
@@ -305,16 +301,50 @@
                     ],
                     "description": "Lights can be animated similar to how nif animation controllers work. Animation will cycle between each keyframe and loop back when the final key is reached."
                 },
+                "lightController": {
+                    "type": "object",
+                    "properties": {
+                        "interpolation": {
+                            "$ref": "#/definitions/interpolation"
+                        },
+                        "keys": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "time": {
+                                        "type": "number"
+                                    },
+                                    "data": {
+                                        "$ref": "#/definitions/lightControllerData"
+                                    },
+                                    "forward": {
+                                        "$ref": "#/definitions/lightControllerData"
+                                    },
+                                    "backward": {
+                                        "$ref": "#/definitions/lightControllerData"
+                                    }
+                                },
+                                "required": [
+                                    "time",
+                                    "data"
+                                ]
+                            },
+                            "minItems": 2,
+                            "uniqueItems": true
+                        }
+                    },
+                    "required": [
+                        "interpolation",
+                        "keys"
+                    ],
+                    "description": "Lights can be animated similar to how nif animation controllers work. Animation will cycle between each keyframe and loop back when the final key is reached."
+                },
                 "rotationController": {
                     "type": "object",
                     "properties": {
                         "interpolation": {
-                            "type": "string",
-                            "enum": [
-                                "Linear",
-                                "Step",
-                                "Cubic"
-                            ]
+                            "$ref": "#/definitions/interpolation"
                         },
                         "keys": {
                             "type": "array",
@@ -397,12 +427,7 @@
             "type": "object",
             "properties": {
                 "interpolation": {
-                    "type": "string",
-                    "enum": [
-                        "Linear",
-                        "Step",
-                        "Cubic"
-                    ]
+                    "$ref": "#/definitions/interpolation"
                 },
                 "keys": {
                     "type": "array",
@@ -439,6 +464,44 @@
                 "keys"
             ],
             "description": "Lights can be animated similar to how nif animation controllers work. Animation will cycle between each keyframe and loop back when the final key is reached."
+        },
+        "fade": {
+            "type": "number",
+            "minimum": 0.0,
+            "description": "Override lightbulb fade."
+        },
+        "radius": {
+            "type": "number",
+            "minimum": 0.0,
+            "description": "Override lightbulb radius."
+        },
+        "interpolation": {
+            "type": "string",
+            "enum": [
+                "Linear",
+                "Step",
+                "Cubic"
+            ]
+        },
+        "lightControllerData": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "$ref": "#/definitions/color"
+                },
+                "radius": {
+                    "$ref": "#/definitions/radius"
+                },
+                "fade": {
+                    "$ref": "#/definitions/fade"
+                },
+                "translation": {
+                    "$ref": "#/definitions/pos"
+                },
+                "rotation": {
+                    "$ref": "#/definitions/rot"
+                }
+            }
         }
     }
 }

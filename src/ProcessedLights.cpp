@@ -24,7 +24,11 @@ void ProcessedLights::emplace_back(const REFR_LIGH& a_lightREFRData)
 void ProcessedLights::ShowDebugMarkers(bool a_show) const
 {
 	for (auto& light : lights) {
-		light.ShowDebugMarker(a_show);
+		if (a_show) {
+			light.ShowDebugMarker();
+		} else {
+			light.HideDebugMarker();
+		}
 	}
 }
 
@@ -72,22 +76,25 @@ void ProcessedLights::UpdateConditions(RE::TESObjectREFR* a_ref, std::string_vie
 
 void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 {
-	const bool  updateConditions = UpdateTimer(a_params.delta, 1.0f);
+	auto conditionUpdateFlags = ConditionUpdateFlags::Skip;
+	if (firstLoad) {
+		conditionUpdateFlags = ConditionUpdateFlags::Forced;
+	} else if (UpdateTimer(a_params.delta, 1.0f)) {
+		conditionUpdateFlags = ConditionUpdateFlags::Normal;
+	}
+
 	const bool  withinFlickerDistance = a_params.ref->GetPosition().GetSquaredDistance(a_params.pcPos) < a_params.flickeringDistance;
 	const float scale = withinFlickerDistance ? a_params.ref->GetScale() : 1.0f;
 
-	const auto conditionUpdateFlags = firstLoad ? ConditionUpdateFlags::Forced : ConditionUpdateFlags::Normal;
-
 	for (auto& lightData : lights) {
-		if (a_params.dimFactor <= 1.0f) {
-			lightData.DimLight(a_params.dimFactor);
+		if (!lightData.GetLight() || lightData.IsOutsideFrustum(a_params.freeCameraMode) || lightData.DimLight(a_params.dimFactor)) {
 			continue;
 		}
-		if (conditionUpdateFlags == ConditionUpdateFlags::Forced || updateConditions) {
-			lightData.UpdateConditions(a_params.ref, nodeVisHelper, conditionUpdateFlags);
-		}
-		lightData.UpdateAnimation(withinFlickerDistance, scale);
-		if (withinFlickerDistance) {
+
+		lightData.UpdateConditions(a_params.ref, nodeVisHelper, conditionUpdateFlags);
+
+		if (!lightData.GetLight()->GetAppCulled() && withinFlickerDistance) {
+			lightData.UpdateAnimation(scale);
 			lightData.UpdateVanillaFlickering();
 		}
 	}
@@ -106,36 +113,23 @@ void ProcessedLights::UpdateEmittance() const
 
 void LightsToUpdate::emplace(const ProcessedLights& a_processedLights, RE::RefHandle a_handle, bool a_isObject)
 {
-	bool hasAnimatedLight = false;
-	bool hasEmittanceLight = false;
+	stl::unique_insert(updatingLights, a_handle);
 
 	for (auto& lightData : a_processedLights.lights) {
-		hasAnimatedLight |= lightData.IsAnimated();
-		hasEmittanceLight |= (a_isObject && lightData.data.emittanceForm);
-
-		if (hasAnimatedLight && hasEmittanceLight) {
+		if (a_isObject && lightData.data.emittanceForm) {
+			stl::unique_insert(emittanceLights, a_handle);
 			break;
 		}
 	}
-
-	if (hasAnimatedLight) {
-		stl::unique_insert(animatedLights, a_handle);
-	}
-
-	if (hasEmittanceLight) {
-		stl::unique_insert(emittanceLights, a_handle);
-	}
 }
 
-void LightsToUpdate::emplace(const REFR_LIGH& a_lightData, RE::RefHandle a_handle)
+void LightsToUpdate::emplace(RE::RefHandle a_handle)
 {
-	if (a_lightData.IsAnimated()) {
-		stl::unique_insert(animatedLights, a_handle);
-	}
+	stl::unique_insert(updatingLights, a_handle);
 }
 
 void LightsToUpdate::erase(RE::RefHandle a_handle)
 {
-	stl::unique_erase(animatedLights, a_handle);
+	stl::unique_erase(updatingLights, a_handle);
 	stl::unique_erase(emittanceLights, a_handle);
 }

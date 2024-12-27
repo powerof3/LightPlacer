@@ -54,7 +54,7 @@ namespace Hooks::Update
 			func(a_cell);
 
 			if (a_cell && a_cell->loadedData) {
-				LightManager::GetSingleton()->UpdateFlickeringAndConditions(a_cell);
+				LightManager::GetSingleton()->UpdateLights(a_cell);
 			}
 		}
 		static inline REL::Relocation<decltype(thunk)> func;

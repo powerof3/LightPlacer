@@ -7,6 +7,7 @@ set(sources ${sources}
 	src/Hooks/Detach.cpp
 	src/Hooks/Misc.cpp
 	src/Hooks/Update.cpp
+	src/LightControllers.cpp
 	src/LightData.cpp
 	src/Manager.cpp
 	src/PCH.cpp

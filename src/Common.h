@@ -89,10 +89,6 @@ struct string_cmp
 	{
 		return string::iequals(str1, str2);
 	}
-	bool operator()(const std::string& str1, std::string_view str2) const
-	{
-		return string::iequals(str1, str2);
-	}
 	bool operator()(std::string_view str1, std::string_view str2) const
 	{
 		return string::iequals(str1, str2);

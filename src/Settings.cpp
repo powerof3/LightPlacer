@@ -20,6 +20,7 @@ void Settings::LoadSettings()
 
 	logger::info("");
 	logger::info("bShowMarkers : {}", showDebugMarkers);
+	logger::info("bCullLights : {}", cullLights);
 	logger::info("bDisableAllGameLights : {}", disableAllGameLights);
 	logger::info("LightBlackList : {} entries", blackListedLights.size());
 	logger::info("LightWhiteList : {} entries", whiteListedLights.size());
@@ -43,6 +44,11 @@ void Settings::OnDataLoad()
 
 	post_process(blackListedLights, blackListedLightsRefs);
 	post_process(whiteListedLights, whiteListedLightsRefs);
+}
+
+bool Settings::CanCullLights() const
+{
+	return cullLights;
 }
 
 bool Settings::CanShowDebugMarkers() const
@@ -89,6 +95,9 @@ void Settings::ReadSettings(std::string_view a_path)
 	}
 	if (!disableAllGameLights) {
 		disableAllGameLights = ini.GetBoolValue("Settings", "bDisableAllGameLights", false);
+	}
+	if (cullLights) {
+		cullLights = ini.GetBoolValue("Settings", "bCullLights", true);
 	}
 
 	const auto add_to_list = [&](std::string_view a_listName, StringSet& a_list) {

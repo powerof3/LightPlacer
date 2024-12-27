@@ -1,6 +1,5 @@
 #include "Manager.h"
 #include "SourceData.h"
-#include "glaze/util/dragonbox.hpp"
 
 bool LightManager::ReadConfigs(bool a_reload)
 {
@@ -243,18 +242,18 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 	}
 
 	const auto ref = a_effect->target.get();
-	const auto root = a_effect->GetAttachRoot();
+	const auto root = RE::GetReferenceAttachRoot(a_effect);
 
 	if (!ref || !root) {
 		return;
 	}
 
-	if (auto invMgr = RE::Inventory3DManager::GetSingleton(); invMgr && invMgr->tempRef == ref.get()) {
+	const auto base = RE::GetReferenceEffectBase(ref, a_effect);
+	if (!base) {
 		return;
 	}
 
-	const auto base = RE::GetReferenceEffectBase(ref, a_effect);
-	if (!base) {
+	if (auto invMgr = RE::Inventory3DManager::GetSingleton(); invMgr && invMgr->tempRef == ref.get()) {
 		return;
 	}
 
@@ -395,11 +394,11 @@ std::uint32_t LightManager::AttachConfigLights(const SourceData& a_srcData, cons
 					   auto& [filter, points, lightData] = pointData;
 					   if (!filter.IsInvalid(a_srcData)) {
 						   for (const auto [pointIdx, point] : std::views::enumerate(points)) {
-							   index += static_cast<std::uint32_t>(pointIdx);
 							   lightPlacerNode = lightData.GetOrCreateNode(rootNode, point, index);
 							   if (lightPlacerNode) {
 								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), index);
 							   }
+							   index++;
 						   }
 					   }
 				   },
@@ -407,11 +406,11 @@ std::uint32_t LightManager::AttachConfigLights(const SourceData& a_srcData, cons
 					   auto& [filter, nodes, lightData] = nodeData;
 					   if (!filter.IsInvalid(a_srcData)) {
 						   for (const auto [nodeIdx, nodeName] : std::views::enumerate(nodes)) {
-							   index += static_cast<std::uint32_t>(nodeIdx);
 							   lightPlacerNode = lightData.GetOrCreateNode(rootNode, nodeName, index);
 							   if (lightPlacerNode) {
 								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), index);
 							   }
+							   index++;
 						   }
 					   }
 				   } },
@@ -422,7 +421,7 @@ std::uint32_t LightManager::AttachConfigLights(const SourceData& a_srcData, cons
 
 void LightManager::AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, std::uint32_t a_index)
 {
-	const auto name = LightData::GetName(a_srcData, a_lightSource.lightEDID, a_index);
+	const auto name = LightData::GetLightName(a_srcData, a_lightSource.lightEDID, a_index);
 
 	if (auto [bsLight, niLight, debugMarker] = a_lightSource.data.GenLight(a_srcData.ref, a_node, name, a_srcData.scale); bsLight && niLight) {
 		switch (a_srcData.type) {
@@ -448,7 +447,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 
 							lightsToBeUpdated.write([&](auto& cellMap) {
 								cellMap[a_srcData.cellID].write([&](auto& innerMap) {
-									innerMap.emplace(lightData, a_srcData.handle);
+									innerMap.emplace(a_srcData.handle);
 								});
 							});
 						}
@@ -524,11 +523,12 @@ RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::BGSActorCellEvent*
 		ForEachValidLight([&](const auto& ref, const auto& nodeName, auto& processedLights) {
 			processedLights.UpdateConditions(ref, nodeName, ConditionUpdateFlags::CellTransition);
 		});
-		ForEachFXLight([&](auto& processedLights) {
-			processedLights.ReattachLights();
-		});
 	}
 	lastCellWasInterior = currentCellIsInterior;
+
+	ForEachFXLight([&](auto& processedLights) {
+		processedLights.ReattachLights();
+	});
 
 	return RE::BSEventNotifyControl::kContinue;
 }
@@ -544,7 +544,7 @@ RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::TESWaitStopEvent* 
 	return RE::BSEventNotifyControl::kContinue;
 }
 
-void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell)
+void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 {
 	lightsToBeUpdated.read_unsafe([&](auto& map) {
 		if (auto it = map.find(a_cell->GetFormID()); it != map.end()) {
@@ -554,9 +554,10 @@ void LightManager::UpdateFlickeringAndConditions(const RE::TESObjectCELL* a_cell
 			params.pcPos = pc->GetPosition();
 			params.flickeringDistance = flickeringDistanceSq;
 			params.delta = RE::BSTimer::GetSingleton()->delta;
+			params.freeCameraMode = freeCameraMode;
 
 			it->second.write([&](auto& innerMap) {
-				std::erase_if(innerMap.animatedLights, [&](auto& handle) {
+				std::erase_if(innerMap.updatingLights, [&](auto& handle) {
 					RE::TESObjectREFRPtr ref{};
 					RE::LookupReferenceByHandle(handle, ref);
 
@@ -635,6 +636,7 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 			params.flickeringDistance = flickeringDistanceSq;
 			params.delta = RE::BSTimer::GetSingleton()->delta;
 			params.dimFactor = dimFactor;
+			params.freeCameraMode = freeCameraMode;
 
 			it->second.UpdateLightsAndRef(params);
 		}
@@ -659,8 +661,14 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 			params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 			params.flickeringDistance = flickeringDistanceSq;
 			params.delta = a_delta;
+			params.freeCameraMode = freeCameraMode;
 
 			it->second.UpdateLightsAndRef(params);
 		}
 	});
+}
+
+void LightManager::SetFreeCameraMode(bool a_enabled)
+{
+	freeCameraMode = a_enabled;
 }

@@ -22,20 +22,35 @@ struct glz::meta<RE::NiMatrix3>
 		vec[2] = RE::rad_to_deg(vec[2]);
 		return vec;
 	};
-	static constexpr auto value = array(custom<read, write>);
+	static constexpr auto value = custom<read, write>;
 };
 
 template <>
 struct glz::meta<RE::NiColor>
 {
-	using T = RE::NiColor;
-	static constexpr auto value = array(&T::red, &T::green, &T::blue);
+	static constexpr auto read = [](RE::NiColor& input, const std::array<float, 3>& vec) {
+		for (std::size_t i = 0; i < RE::NiColor::kTotal; ++i) {
+			if (vec[i] >= -1.0f && vec[i] <= 1.0f) {
+				input[i] = vec[i];
+			} else {
+				input[i] = vec[i] / 255;
+			}
+		}
+	};
+	static constexpr auto write = [](auto const& input) -> auto
+	{
+		return std::array{ input.red, input.green, input.blue };
+	};
+	static constexpr auto value = custom<read, write>;
 };
 
 namespace RE
 {
+	static constexpr NiPoint3 POINT_MAX{ NI_INFINITY, NI_INFINITY, NI_INFINITY };
+
 	static constexpr NiColor COLOR_BLACK{ 0.0f, 0.0f, 0.0f };
 	static constexpr NiColor COLOR_WHITE{ 1.0f, 1.0f, 1.0f };
+	static constexpr NiColor COLOR_MAX{ NI_INFINITY, NI_INFINITY, NI_INFINITY };
 
 	static constexpr NiMatrix3 MATRIX_ZERO{};
 
@@ -46,6 +61,17 @@ namespace RE
 			TaskQueueInterface::GetSingleton()->QueueNodeAttach(a_obj, a_root);
 		} else {
 			a_root->AttachChild(a_obj, true);
+		}
+	}
+
+	template <class T>
+	void UpdateNode(T* a_obj)
+	{
+		if (TaskQueueInterface::ShouldUseTaskQueue()) {
+			TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(a_obj);
+		} else {
+			NiUpdateData updateData;
+			a_obj->Update(updateData);
 		}
 	}
 
@@ -62,6 +88,7 @@ namespace RE
 	REL::Version GetGameVersion();
 #endif
 
+	NiAVObject*     GetReferenceAttachRoot(ReferenceEffect* a_referenceEffect);
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
 	BGSArtObject*   GetCastingArt(const MagicItem* a_magicItem);
 	BGSArtObject*   GetCastingArt(const ActorMagicCaster* a_actorMagicCaster);

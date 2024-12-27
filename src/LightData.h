@@ -24,28 +24,27 @@ struct LightData
 		NoExternalEmittance = (1 << 30)
 	};
 
-	RE::NiAVObject* AttachDebugMarker(RE::NiNode* a_node, std::string_view a_debugMarkerName) const;
+	enum class CullFlags : std::uint8_t
+	{
+		None = 0,
+		Hidden = (1 << 0),
+		Culled = (1 << 1)
+	};
 
-	bool        GetCastsShadows() const;
-	RE::NiColor GetDiffuse() const;
-
-	float GetRadius() const;
-	float GetFade() const;
-
-	float GetScaledRadius(float a_radius, float a_scale) const;
-	float GetScaledFade(float a_fade, float a_scale) const;
-	float GetScaledRadius(float a_scale) const;
-	float GetScaledFade(float a_scale) const;
-
-	float GetFOV() const;
-	float GetFalloff() const;
-	float GetNearDistance() const;
-
-	static std::string GetDebugMarkerName(std::string_view a_lightName);
-	static std::string GetName(const SourceData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index);
-	static std::string GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
-	static std::string GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
-
+	bool                                     GetCastsShadows() const;
+	RE::NiColor                              GetDiffuse() const;
+	float                                    GetRadius() const;
+	float                                    GetFade() const;
+	float                                    GetScaledRadius(float a_radius, float a_scale) const;
+	float                                    GetScaledFade(float a_fade, float a_scale) const;
+	float                                    GetScaledRadius(float a_scale) const;
+	float                                    GetScaledFade(float a_scale) const;
+	float                                    GetFOV() const;
+	float                                    GetFalloff() const;
+	float                                    GetNearDistance() const;
+	static std::string                       GetLightName(const SourceData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index);
+	static std::string                       GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
+	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
 	bool                                     GetPortalStrict() const;
 	bool                                     IsDynamicLight(RE::TESObjectREFR* a_ref) const;
@@ -70,27 +69,25 @@ struct LightData
 	constexpr static auto LP_LIGHT = "LP_Light"sv;
 	constexpr static auto LP_NODE = "LP_Node"sv;
 	constexpr static auto LP_DEBUG = "LP_DebugMarker"sv;
+
+private:
+	struct MARKER_CREATE_PARAMS
+	{
+		const char* modelName;
+		const char* shapeName;
+		float       scale;
+		bool        flipModel;
+	};
+
+	static std::string   GetDebugMarkerName(std::string_view a_lightName);
+	RE::NiAVObject*      AttachDebugMarker(RE::NiNode* a_node, std::string_view a_debugMarkerName) const;
+	static void          PostProcessDebugMarker(RE::NiAVObject* a_obj, const MARKER_CREATE_PARAMS& a_params, std::string_view a_debugMarkerName);
+	MARKER_CREATE_PARAMS GetDebugMarkerParams() const;
 };
 
 struct LightSourceData
 {
 	LightSourceData() = default;
-
-	void read_color(RE::NiColor a_value)
-	{
-		for (std::size_t i = 0; i < RE::NiColor::kTotal; ++i) {
-			if (a_value[i] >= -1.0f && a_value[i] <= 1.0f) {
-				continue;
-			}
-			a_value[i] = a_value[i] / 255;
-		}
-		data.color = a_value;
-	}
-
-	RE::NiColor write_color() const
-	{
-		return data.color;
-	}
 
 	void ReadFlags();
 	void ReadConditions();
@@ -111,8 +108,9 @@ struct LightSourceData
 	ColorKeyframeSequence    colorController;
 	FloatKeyframeSequence    radiusController;
 	FloatKeyframeSequence    fadeController;
-	PosKeyframeSequence      positionController;
-	RotKeyframeSequence      rotationController;
+	PositionKeyframeSequence positionController;
+	RotationKeyframeSequence rotationController;
+	AIOKeyframeSequence      lightController;
 };
 
 template <>
@@ -121,7 +119,7 @@ struct glz::meta<LightSourceData>
 	using T = LightSourceData;
 	static constexpr auto value = object(
 		"light", &T::lightEDID,
-		"color", "color", custom<&T::read_color, &T::write_color>,
+		"color", [](auto&& self) -> auto& { return self.data.color; },
 		"radius", [](auto&& self) -> auto& { return self.data.radius; },
 		"fade", [](auto&& self) -> auto& { return self.data.fade; },
 		"fov", [](auto&& self) -> auto& { return self.data.fov; },
@@ -136,7 +134,8 @@ struct glz::meta<LightSourceData>
 		"radiusController", &T::radiusController,
 		"fadeController", &T::fadeController,
 		"positionController", &T::positionController,
-		"rotationController", &T::rotationController);
+		"rotationController", &T::rotationController,
+		"lightController", &T::lightController);
 };
 
 struct REFR_LIGH
@@ -145,10 +144,11 @@ struct REFR_LIGH
 	{
 		enum UpdateFlags : std::uint8_t
 		{
-			Normal = 0,
-			Forced = (1 << 0),
-			CellTransition = (1 << 1),
-			Waiting = (1 << 2),
+			Skip = 0,
+			Normal = (1 << 0),
+			Forced = (1 << 1),
+			CellTransition = (1 << 2),
+			Waiting = (1 << 3),
 
 			UpdateRequired = CellTransition | Waiting
 		};
@@ -182,30 +182,41 @@ struct REFR_LIGH
 		return niLight->name == rhs->name;
 	}
 
-	bool IsAnimated() const;
+	const RE::NiPointer<RE::NiPointLight>& GetLight() const;
 
-	void DimLight(float a_dimmer) const;
+	void HideLight(bool a_hide, LightData::CullFlags a_flags) const;
+	bool IsOutsideFrustum(bool a_freeCameraMode);
+	bool DimLight(float a_dimmer) const;
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	void ReattachLight() const;
 	void RemoveLight(bool a_clearData) const;
-	void ShowDebugMarker(bool a_show) const;
+	void ShowDebugMarker() const;
+	void HideDebugMarker() const;
+	bool SetLightCullState(bool a_cull);
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
-	void UpdateAnimation(bool a_withinRange, float a_scalingFactor);
+	void UpdateAnimation(float a_scalingFactor);
+	void UpdateDebugMarkerState(bool a_culled) const;
 	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
 	void UpdateEmittance() const;
 	void UpdateVanillaFlickering() const;
 
-	LightData                       data;
-	RE::NiPointer<RE::BSLight>      bsLight;
-	RE::NiPointer<RE::NiPointLight> niLight;
-	RE::NiPointer<RE::NiAVObject>   debugMarker;
-	std::optional<ColorController>  colorController;
-	std::optional<FloatController>  radiusController;
-	std::optional<FloatController>  fadeController;
-	std::optional<PosController>    positionController;
-	std::optional<RotController>    rotationController;
-	float                           scale{ 1.0f };
-	std::optional<bool>             lastVisibleState;
+	LightData                         data;
+	RE::NiPointer<RE::BSLight>        bsLight;
+	RE::NiPointer<RE::NiPointLight>   niLight;
+	RE::NiPointer<RE::NiAVObject>     debugMarker;
+	std::optional<ColorController>    colorController;
+	std::optional<FloatController>    radiusController;
+	std::optional<FloatController>    fadeController;
+	std::optional<PositionController> positionController;
+	std::optional<RotationController> rotationController;
+	std::optional<AIOController>      lightController;
+	float                             scale{ 1.0f };
+	std::optional<bool>               lastVisibleState;
+	bool                              culled{};
+
+private:
+	void CullDebugMarker(bool a_cull) const;
+	void UpdateIndividualAnimations();
 };
 
 using ConditionUpdateFlags = REFR_LIGH::ConditionUpdateFlags;

@@ -46,12 +46,20 @@ namespace RE
 	}
 #endif
 
+	NiAVObject* GetReferenceAttachRoot(ReferenceEffect* a_referenceEffect)
+	{
+		if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {
+			if (!weapController->shader) {  // missing nullptr check in GetAttachRoot -> crash
+				return nullptr;
+			}
+		}
+		return a_referenceEffect->GetAttachRoot();
+	}
+
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect)
 	{
-		if (IsActor(a_ref.get())) {
-			if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {
-				return weapController->lastWeapon;
-			}
+		if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {
+			return weapController->lastWeapon;
 		}
 
 		if (auto modelEffect = a_referenceEffect->As<ModelReferenceEffect>()) {

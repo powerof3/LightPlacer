@@ -9,6 +9,8 @@ public:
 
 	void OnDataLoad();
 
+	bool CanCullLights() const;
+
 	bool CanShowDebugMarkers() const;
 	bool LoadDebugMarkers() const;
 	void ToggleDebugMarkers();
@@ -22,6 +24,7 @@ private:
 	// members
 	bool showDebugMarkers{ false };
 	bool loadDebugMarkers{ false };
+	bool cullLights{ true };
 
 	bool disableAllGameLights{ false };
 
