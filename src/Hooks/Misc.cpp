@@ -21,7 +21,7 @@ namespace Hooks::Misc
 				return;
 			}
 
-			if (!Settings::GetSingleton()->GetGameLightDisabled(a_ref)) {
+			if (!Settings::GetSingleton()->GetGameLightDisabled(a_ref, base)) {
 				return;
 			}
 

@@ -71,13 +71,13 @@ bool Settings::ShouldDisableLights() const
 	return disableAllGameLights || !blackListedLights.empty() || !blackListedLightsRefs.empty();
 }
 
-bool Settings::GetGameLightDisabled(const RE::TESObjectREFR* a_ref) const
+bool Settings::GetGameLightDisabled(const RE::TESObjectREFR* a_ref, const RE::TESBoundObject* a_base) const
 {
 	if (disableAllGameLights) {
-		return !whiteListedLights.contains(a_ref->GetFile(0)->fileName) && !whiteListedLightsRefs.contains(a_ref->GetFormID());
+		return !whiteListedLights.contains(a_ref->GetFile(0)->fileName) && !whiteListedLightsRefs.contains(a_ref->GetFormID()) && !whiteListedLightsRefs.contains(a_base->GetFormID());
 	}
 
-	return blackListedLights.contains(a_ref->GetFile(0)->fileName) || blackListedLightsRefs.contains(a_ref->GetFormID());
+	return blackListedLights.contains(a_ref->GetFile(0)->fileName) || blackListedLightsRefs.contains(a_ref->GetFormID()) || blackListedLightsRefs.contains(a_base->GetFormID());
 }
 
 void Settings::ReadSettings(std::string_view a_path)
