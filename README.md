@@ -15,7 +15,7 @@ SKSE plugin and framework for adding lights to objects, using configurable JSON 
 * [CommonLibSSE](https://github.com/powerof3/CommonLibSSE/tree/dev)
 	* You need to build from the powerof3/dev branch
 	* Add this as as an environment variable `CommonLibSSEPath`
-* [CommonLibVR](https://github.com/FlayaN/CommonLibVR/tree/vr)
+* [CommonLibVR](https://github.com/alandtse/CommonLibVR/tree/vr)
 	* Add this as as an environment variable `CommonLibVRPath` instead of /extern
 
 ## User Requirements

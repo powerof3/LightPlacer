@@ -3,4 +3,4 @@
 	url = https://github.com/powerof3/CommonLibSSE.git
 [submodule "extern/CommonLibVR"]
 	path = extern/CommonLibVR
-	url = https://github.com/FlayaN/CommonLibVR.git
+	url = https://github.com/alandtse/CommonLibVR.git
