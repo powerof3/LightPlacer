@@ -5,12 +5,12 @@
 #include <shared_mutex>
 
 #include "RE/Skyrim.h"
+#include "REX/REX/Singleton.h"
 #include "SKSE/SKSE.h"
 
 #include <ClibUtil/RNG.hpp>
 #include <ClibUtil/distribution.hpp>
 #include <ClibUtil/simpleINI.hpp>
-#include <ClibUtil/singleton.hpp>
 #include <MergeMapperPluginAPI.h>
 //#include <boost_unordered.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -31,7 +31,6 @@ namespace ini = clib_util::ini;
 
 using namespace std::literals;
 using namespace clib_util::string::literals;
-using namespace clib_util::singleton;
 
 namespace stl
 {
