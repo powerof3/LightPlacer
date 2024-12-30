@@ -5,7 +5,7 @@
 #include "ProcessedLights.h"
 
 class LightManager :
-	public ISingleton<LightManager>,
+	public REX::Singleton<LightManager>,
 	public RE::BSTEventSink<RE::BGSActorCellEvent>,
 	public RE::BSTEventSink<RE::TESWaitStopEvent>
 {

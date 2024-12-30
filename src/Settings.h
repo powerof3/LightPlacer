@@ -2,7 +2,7 @@
 
 struct LightData;
 
-class Settings : public ISingleton<Settings>
+class Settings : public REX::Singleton<Settings>
 {
 public:
 	void LoadSettings();

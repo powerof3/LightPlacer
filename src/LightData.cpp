@@ -203,7 +203,7 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 		// immediately update state on attach. waiting for cell update is too slow
 		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
 			niLight->SetAppCulled(true);
-			niLight->ambient.blue = static_cast<float>(CullFlags::Hidden);
+			niLight->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(niLight->ambient.blue) | std::to_underlying(CullFlags::Hidden));
 		}
 
 		if (!debugMarker) {
