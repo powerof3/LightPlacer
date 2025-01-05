@@ -514,7 +514,7 @@ void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 	if (!niLight || !niLight->parent) {
 		return;
 	}
-	
+
 	auto [newBSLight, newNiLight, newDebugMarker] = data.GenLight(a_ref, niLight->parent, niLight->name, scale);
 
 	bsLight.reset(newBSLight);
