@@ -44,8 +44,6 @@ void LightManager::OnDataLoad()
 
 	ProcessConfigs();
 
-	flickeringDistanceSq = std::powf(RE::GetINISetting("fFlickeringLightDistance:General")->GetFloat(), 2);
-
 	logger::info("{:*^50}", "RESULTS");
 
 	logger::info("Models : {} entries", gameModels.size());
@@ -552,7 +550,6 @@ void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 
 			ProcessedLights::UpdateParams params;
 			params.pcPos = pc->GetPosition();
-			params.flickeringDistance = flickeringDistanceSq;
 			params.delta = RE::BSTimer::GetSingleton()->delta;
 			params.freeCameraMode = freeCameraMode;
 
@@ -633,7 +630,6 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 			ProcessedLights::UpdateParams params;
 			params.ref = ref.get();
 			params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
-			params.flickeringDistance = flickeringDistanceSq;
 			params.delta = RE::BSTimer::GetSingleton()->delta;
 			params.dimFactor = dimFactor;
 			params.freeCameraMode = freeCameraMode;

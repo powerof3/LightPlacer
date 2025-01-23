@@ -157,6 +157,5 @@ private:
 	LockedMap<RE::FormID, MutexGuard<LightsToUpdate>> lightsToBeUpdated;
 	std::optional<bool>                               lastCellWasInterior;
 
-	float flickeringDistanceSq{ 0.0f };
-	bool  freeCameraMode{ false };
+	bool freeCameraMode{ false };
 };

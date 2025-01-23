@@ -83,7 +83,7 @@ void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 		conditionUpdateFlags = ConditionUpdateFlags::Normal;
 	}
 
-	const bool  withinFlickerDistance = a_params.ref->GetPosition().GetSquaredDistance(a_params.pcPos) < a_params.flickeringDistance;
+	const bool  withinFlickerDistance = a_params.ref->GetPosition().GetSquaredDistance(a_params.pcPos) < 16384.0f;
 	const float scale = withinFlickerDistance ? a_params.ref->GetScale() : 1.0f;
 
 	for (auto& lightData : lights) {
