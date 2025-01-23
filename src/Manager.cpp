@@ -655,7 +655,6 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 			ProcessedLights::UpdateParams params;
 			params.ref = actor;
 			params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
-			params.flickeringDistance = flickeringDistanceSq;
 			params.delta = a_delta;
 			params.freeCameraMode = freeCameraMode;
 
