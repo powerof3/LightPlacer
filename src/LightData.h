@@ -6,18 +6,18 @@ struct SourceData;
 
 struct LightData
 {
-	// CS light flags
 	enum class Flags
 	{
+		// CS light flags
 		None = 0,
 		PortalStrict = (1 << 0),
 		Shadow = (1 << 1),
 		Simple = (1 << 2),
 
+		// LP flags
 		UpdateOnWaiting = (1 << 25),
 		UpdateOnCellTransition = (1 << 26),
 		NeedsUpdate = UpdateOnWaiting | UpdateOnCellTransition,
-
 		SyncAddonNodes = (1 << 27),
 		IgnoreScale = (1 << 28),
 		RandomAnimStart = (1 << 29),
@@ -89,7 +89,6 @@ struct LightSourceData
 {
 	LightSourceData() = default;
 
-	void ReadFlags();
 	void ReadConditions();
 	bool PostProcess();
 
@@ -103,7 +102,6 @@ struct LightSourceData
 	LightData                data;
 	std::string              lightEDID;
 	std::string              emittanceFormEDID;
-	std::string              flags;
 	std::vector<std::string> conditions;
 	ColorKeyframeSequence    colorController;
 	FloatKeyframeSequence    radiusController;
@@ -117,6 +115,48 @@ template <>
 struct glz::meta<LightSourceData>
 {
 	using T = LightSourceData;
+
+	static constexpr auto read_flags = [](T& s, const std::string& input) {
+		if (!input.empty()) {
+			const auto flagStrs = string::split(input, "|");
+			for (const auto& flagStr : flagStrs) {
+				switch (string::const_hash(flagStr)) {
+				case "PortalStrict"_h:
+					s.data.flags.set(LightData::Flags::PortalStrict);
+					break;
+				case "Shadow"_h:
+					s.data.flags.set(LightData::Flags::Shadow);
+					break;
+				case "Simple"_h:
+					s.data.flags.set(LightData::Flags::Simple);
+					break;
+
+				case "UpdateOnWaiting"_h:
+					s.data.flags.set(LightData::Flags::UpdateOnWaiting);
+					break;
+				case "UpdateOnCellTransition"_h:
+					s.data.flags.set(LightData::Flags::UpdateOnCellTransition);
+					break;
+				case "SyncAddonNodes"_h:
+					s.data.flags.set(LightData::Flags::SyncAddonNodes);
+					break;
+				case "IgnoreScale"_h:
+					s.data.flags.set(LightData::Flags::IgnoreScale);
+					break;
+				case "RandomAnimStart"_h:
+					s.data.flags.set(LightData::Flags::RandomAnimStart);
+					break;
+				case "NoExternalEmittance"_h:
+					s.data.flags.set(LightData::Flags::NoExternalEmittance);
+					break;
+				default:
+					break;
+				}
+			}
+		}
+	};
+	static constexpr auto write_flags = [](auto& s) -> auto& { return ""; };
+
 	static constexpr auto value = object(
 		"light", &T::lightEDID,
 		"color", [](auto&& self) -> auto& { return self.data.color; },
@@ -127,7 +167,7 @@ struct glz::meta<LightSourceData>
 		"offset", [](auto&& self) -> auto& { return self.data.offset; },
 		"rotation", [](auto&& self) -> auto& { return self.data.rotation; },
 		"externalEmittance", &T::emittanceFormEDID,
-		"flags", &T::flags,
+		"flags", glz::custom<read_flags, write_flags>,
 		"conditions", &T::conditions,
 		"conditionalNodes", [](auto&& self) -> auto& { return self.data.conditionalNodes; },
 		"colorController", &T::colorController,

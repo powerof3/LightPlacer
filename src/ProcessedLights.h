@@ -10,7 +10,6 @@ struct ProcessedLights
 	{
 		RE::TESObjectREFR* ref;
 		RE::NiPoint3       pcPos;
-		float              flickeringDistance;
 		float              delta;
 		std::string_view   nodeName{ ""sv };
 		float              dimFactor{ RE::NI_INFINITY };

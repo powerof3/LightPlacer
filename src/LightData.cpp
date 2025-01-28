@@ -264,49 +264,6 @@ LightData::MARKER_CREATE_PARAMS LightData::GetDebugMarkerParams() const
 	return { "marker_light.nif", "marker_light:0", 0.25f, false };
 }
 
-void LightSourceData::ReadFlags()
-{
-	// glaze doesn't reflect flag enums
-	if (!flags.empty()) {
-		const auto flagStrs = string::split(flags, "|");
-
-		for (const auto& flagStr : flagStrs) {
-			switch (string::const_hash(flagStr)) {
-			case "PortalStrict"_h:
-				data.flags.set(LightData::Flags::PortalStrict);
-				break;
-			case "Shadow"_h:
-				data.flags.set(LightData::Flags::Shadow);
-				break;
-			case "Simple"_h:
-				data.flags.set(LightData::Flags::Simple);
-				break;
-
-			case "UpdateOnWaiting"_h:
-				data.flags.set(LightData::Flags::UpdateOnWaiting);
-				break;
-			case "UpdateOnCellTransition"_h:
-				data.flags.set(LightData::Flags::UpdateOnCellTransition);
-				break;
-			case "SyncAddonNodes"_h:
-				data.flags.set(LightData::Flags::SyncAddonNodes);
-				break;
-			case "IgnoreScale"_h:
-				data.flags.set(LightData::Flags::IgnoreScale);
-				break;
-			case "RandomAnimStart"_h:
-				data.flags.set(LightData::Flags::RandomAnimStart);
-				break;
-			case "NoExternalEmittance"_h:
-				data.flags.set(LightData::Flags::NoExternalEmittance);
-				break;
-			default:
-				break;
-			}
-		}
-	}
-}
-
 void LightSourceData::ReadConditions()
 {
 	if (!conditions.empty()) {
@@ -320,7 +277,7 @@ bool LightSourceData::PostProcess()
 		data.light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);
 	} else {
 		auto edids = string::split(lightEDID, "|");
-		for (auto& edid : edids) {
+		for (const auto& edid : edids) {
 			if (auto form = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(edid)) {
 				data.light = form;
 				break;
@@ -334,7 +291,6 @@ bool LightSourceData::PostProcess()
 
 	data.emittanceForm = RE::TESForm::LookupByEditorID(emittanceFormEDID);
 
-	ReadFlags();
 	ReadConditions();
 
 	return true;
