@@ -398,27 +398,13 @@ REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLigh
 	bsLight(a_bsLight),
 	niLight(a_niLight),
 	debugMarker(a_debugMarker),
+	lightControllers(a_lightSource),
 	scale(a_scale)
 {
 	if (!data.emittanceForm && data.flags.none(LightData::Flags::NoExternalEmittance)) {
 		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
 		data.emittanceForm = xData ? xData->source : nullptr;
 	}
-
-	const bool randomAnimStart = data.flags.any(LightData::Flags::RandomAnimStart);
-
-#define INIT_CONTROLLER(controller)                                                           \
-	if (!a_lightSource.controller.empty()) {                                                  \
-		(controller) = Animation::LightController(a_lightSource.controller, randomAnimStart); \
-	}
-
-	INIT_CONTROLLER(colorController)
-	INIT_CONTROLLER(radiusController)
-	INIT_CONTROLLER(fadeController)
-	INIT_CONTROLLER(positionController)
-	INIT_CONTROLLER(rotationController)
-	INIT_CONTROLLER(lightController)
-#undef INIT_CONTROLLER
 }
 
 bool REFR_LIGH::IsOutsideFrustum(bool a_freeCameraMode)
@@ -594,42 +580,10 @@ bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 	return true;
 }
 
-void REFR_LIGH::UpdateAnimation(float a_scalingFactor)
+void REFR_LIGH::UpdateAnimation(float a_delta, float a_scalingFactor)
 {
 	scale = data.flags.any(LightData::Flags::IgnoreScale) ? 1.0f : a_scalingFactor;
-
-	if (lightController) {
-		lightController->GetValue(RE::BSTimer::GetSingleton()->delta).Update(niLight, scale);
-	} else {
-		UpdateIndividualAnimations();
-	}
-}
-
-void REFR_LIGH::UpdateIndividualAnimations()
-{
-	if (colorController) {
-		niLight->diffuse = colorController->GetValue(RE::BSTimer::GetSingleton()->delta);
-	}
-	if (radiusController) {
-		const auto newRadius = radiusController->GetValue(RE::BSTimer::GetSingleton()->delta) * scale;
-		niLight->radius = { newRadius, newRadius, newRadius };
-		niLight->SetLightAttenuation(newRadius);
-	}
-	if (fadeController) {
-		niLight->fade = fadeController->GetValue(RE::BSTimer::GetSingleton()->delta);
-	}
-	if (const auto parentNode = niLight->parent) {
-		if (positionController) {
-			parentNode->local.translate = positionController->GetValue(RE::BSTimer::GetSingleton()->delta);
-		}
-		if (rotationController) {
-			auto rotation = rotationController->GetValue(RE::BSTimer::GetSingleton()->delta);
-			parentNode->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(rotation[0]), RE::deg_to_rad(rotation[1]), RE::deg_to_rad(rotation[2]));
-		}
-		if (positionController || rotationController) {
-			UpdateNode(parentNode);
-		}
-	}
+	lightControllers.UpdateAnimation(niLight, a_delta, scale);
 }
 
 void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags)
@@ -674,9 +628,6 @@ void REFR_LIGH::UpdateEmittance() const
 void REFR_LIGH::UpdateVanillaFlickering() const
 {
 	if (data.light->data.flags.any(RE::TES_LIGHT_FLAGS::kFlicker, RE::TES_LIGHT_FLAGS::kFlickerSlow)) {
-		const bool canUpdateTranslation = !positionController && (!lightController || !lightController->GetValidTranslation());
-		const bool canUpdateFade = !fadeController && (!lightController || !lightController->GetValidFade());
-
 		const auto flickerDelta = RE::BSTimer::GetSingleton()->delta * data.light->data.flickerPeriodRecip;
 
 		auto constAttenOffset = niLight->constAttenuation + (clib_util::RNG().generate<float>(1.1f, 13.1f) * flickerDelta);
@@ -691,7 +642,7 @@ void REFR_LIGH::UpdateVanillaFlickering() const
 		niLight->linearAttenuation = linearAttenOffset;
 		niLight->quadraticAttenuation = quadraticAttenOffset;
 
-		if (canUpdateTranslation) {
+		if (!lightControllers.positionController) {
 			const auto constAttenSine = RE::NiSinQ(constAttenOffset + 1.7f);
 			const auto linearAttenSine = RE::NiSinQ(linearAttenOffset + 0.5f);
 
@@ -707,7 +658,7 @@ void REFR_LIGH::UpdateVanillaFlickering() const
 			RE::UpdateNode(niLight.get());
 		}
 
-		if (canUpdateFade) {
+		if (!lightControllers.fadeController) {
 			const auto halfIntensityAmplitude = data.light->data.flickerIntensityAmplitude * 0.5f;
 
 			const auto flickerIntensity = std::clamp((RE::NiSinQImpl(linearAttenOffset * 1.3f * (512.0f / RE::NI_TWO_PI) + 52.966763f) + 1.0f) * 0.5f *
@@ -723,21 +674,18 @@ void REFR_LIGH::UpdateVanillaFlickering() const
 			return;
 		}
 
-		const bool canUpdateTranslation = !positionController && (!lightController || !lightController->GetValidTranslation());
-		const bool canUpdateFade = !fadeController && (!lightController || !lightController->GetValidFade());
-
 		auto constAttenuation = std::fmod(niLight->constAttenuation + (RE::BSTimer::GetSingleton()->delta * data.light->data.flickerPeriodRecip), RE::NI_TWO_PI);
 		niLight->constAttenuation = constAttenuation;
 
 		auto constAttenCosine = RE::NiCosQ(constAttenuation);
 		auto constAttenSine = RE::NiSinQ(constAttenuation);
 
-		if (canUpdateFade) {
+		if (!lightControllers.fadeController) {
 			const auto halfIntensityAmplitude = data.light->data.flickerIntensityAmplitude * 0.5f;
 			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * data.GetFade();
 		}
 
-		if (canUpdateTranslation) {
+		if (!lightControllers.positionController) {
 			const auto movementAmplitude = data.light->data.flickerMovementAmplitude;
 
 			niLight->local.translate.x = movementAmplitude * constAttenCosine;

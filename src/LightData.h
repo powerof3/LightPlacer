@@ -108,7 +108,7 @@ struct LightSourceData
 	FloatKeyframeSequence    fadeController;
 	PositionKeyframeSequence positionController;
 	RotationKeyframeSequence rotationController;
-	AIOKeyframeSequence      lightController;
+	AIOKeyframeSequence      aioController;
 };
 
 template <>
@@ -157,6 +157,42 @@ struct glz::meta<LightSourceData>
 	};
 	static constexpr auto write_flags = [](auto& s) -> auto& { return ""; };
 
+	static constexpr auto read_aioController = [](auto& s) -> bool {
+		if (!s.aioController.empty()) {
+			s.colorController.clear();
+			s.radiusController.clear();
+			s.fadeController.clear();
+			s.positionController.clear();
+			s.rotationController.clear();
+
+			s.colorController.interpolation = s.aioController.interpolation;
+			s.radiusController.interpolation = s.aioController.interpolation;
+			s.fadeController.interpolation = s.aioController.interpolation;
+			s.positionController.interpolation = s.aioController.interpolation;
+			s.rotationController.interpolation = s.aioController.interpolation;
+
+			for (auto& key : s.aioController.keys) {
+				if (key.value.GetValidColor()) {
+					s.colorController.keys.push_back(ColorKeyframe(key.time, key.value.color, key.forward.color, key.backward.color));
+				}
+				if (key.value.GetValidRadius()) {
+					s.radiusController.keys.push_back(FloatKeyframe(key.time, key.value.radius, key.forward.radius, key.backward.radius));
+				}
+				if (key.value.GetValidFade()) {
+					s.fadeController.keys.push_back(FloatKeyframe(key.time, key.value.fade, key.forward.fade, key.backward.fade));
+				}
+				if (key.value.GetValidTranslation()) {
+					s.positionController.keys.push_back(PositionKeyframe(key.time, key.value.translation, key.forward.translation, key.backward.translation));
+				}
+				if (key.value.GetValidRotation()) {
+					s.rotationController.keys.push_back(RotationKeyframe(key.time, key.value.rotation, key.forward.rotation, key.backward.rotation));
+				}
+			}
+		}
+		return true;
+	};
+	static constexpr auto write_aioController = [](auto&) -> bool { return true; };
+
 	static constexpr auto value = object(
 		"light", &T::lightEDID,
 		"color", [](auto&& self) -> auto& { return self.data.color; },
@@ -175,7 +211,7 @@ struct glz::meta<LightSourceData>
 		"fadeController", &T::fadeController,
 		"positionController", &T::positionController,
 		"rotationController", &T::rotationController,
-		"lightController", &T::lightController);
+		"lightController", glz::manage<&T::aioController, read_aioController, write_aioController>);
 };
 
 struct REFR_LIGH
@@ -234,29 +270,23 @@ struct REFR_LIGH
 	void HideDebugMarker() const;
 	bool SetLightCullState(bool a_cull);
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
-	void UpdateAnimation(float a_scalingFactor);
+	void UpdateAnimation(float a_delta, float a_scalingFactor);
 	void UpdateDebugMarkerState(bool a_culled) const;
 	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
 	void UpdateEmittance() const;
 	void UpdateVanillaFlickering() const;
 
-	LightData                         data;
-	RE::NiPointer<RE::BSLight>        bsLight;
-	RE::NiPointer<RE::NiPointLight>   niLight;
-	RE::NiPointer<RE::NiAVObject>     debugMarker;
-	std::optional<ColorController>    colorController;
-	std::optional<FloatController>    radiusController;
-	std::optional<FloatController>    fadeController;
-	std::optional<PositionController> positionController;
-	std::optional<RotationController> rotationController;
-	std::optional<AIOController>      lightController;
-	float                             scale{ 1.0f };
-	std::optional<bool>               lastVisibleState;
-	bool                              culled{};
+	LightData                       data;
+	RE::NiPointer<RE::BSLight>      bsLight;
+	RE::NiPointer<RE::NiPointLight> niLight;
+	RE::NiPointer<RE::NiAVObject>   debugMarker;
+	LightControllers                lightControllers;
+	float                           scale{ 1.0f };
+	std::optional<bool>             lastVisibleState;
+	bool                            culled{};
 
 private:
 	void CullDebugMarker(bool a_cull) const;
-	void UpdateIndividualAnimations();
 };
 
 using ConditionUpdateFlags = REFR_LIGH::ConditionUpdateFlags;

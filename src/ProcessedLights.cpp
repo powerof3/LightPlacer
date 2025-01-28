@@ -94,7 +94,7 @@ void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 		lightData.UpdateConditions(a_params.ref, nodeVisHelper, conditionUpdateFlags);
 
 		if (!lightData.GetLight()->GetAppCulled() && withinFlickerDistance) {
-			lightData.UpdateAnimation(scale);
+			lightData.UpdateAnimation(a_params.delta, scale);
 			lightData.UpdateVanillaFlickering();
 		}
 	}
