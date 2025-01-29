@@ -73,10 +73,10 @@ struct LightData
 private:
 	struct MARKER_CREATE_PARAMS
 	{
-		const char* modelName;
-		const char* shapeName;
-		float       scale;
-		bool        flipModel;
+		const char*  modelName;
+		const char*  shapeName;
+		float        scale;
+		RE::NiPoint3 rotation;
 	};
 
 	static std::string   GetDebugMarkerName(std::string_view a_lightName);

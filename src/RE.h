@@ -99,4 +99,5 @@ namespace RE
 	float           NiCosQ(float a_radians);
 	bool            ToggleMasterParticleAddonNodes(const NiNode* a_node, bool a_enable);
 	void            UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer);
+	void            WrapRotation(NiPoint3& a_rotation);
 }

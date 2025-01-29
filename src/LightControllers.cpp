@@ -49,9 +49,7 @@ void LightControllers::UpdateAnimation(const RE::NiPointer<RE::NiPointLight>& a_
 		}
 		if (rotationController) {
 			auto rotation = rotationController->GetValue(a_delta);
-			rotation.x = RE::deg_to_rad(rotation.x);
-			rotation.y = RE::deg_to_rad(rotation.y);
-			rotation.z = RE::deg_to_rad(rotation.z);
+			RE::WrapRotation(rotation);
 			parentNode->local.rotate.SetEulerAnglesXYZ(rotation.x, rotation.y, rotation.z);
 		}
 		if (positionController || rotationController) {

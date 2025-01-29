@@ -122,11 +122,11 @@ float LightData::GetFOV() const
 	if (!GetCastsShadows()) {
 		return 1.0;
 	}
-	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
-		return RE::deg_to_rad(fov > 0.0f ? fov : light->data.fov);
-	}
 	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kHemiShadow)) {
 		return RE::NI_PI;
+	}
+	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
+		return RE::deg_to_rad(fov > 0.0f ? fov : light->data.fov);
 	}
 	return RE::NI_TWO_PI;
 }
@@ -225,8 +225,8 @@ void LightData::PostProcessDebugMarker(RE::NiAVObject* a_obj, const MARKER_CREAT
 
 	a_obj->name = a_debugMarkerName;
 	a_obj->local.scale = a_params.scale;
-	if (a_params.flipModel) {
-		a_obj->local.rotate.SetEulerAnglesXYZ(RE::deg_to_rad(-180), 0, RE::deg_to_rad(-180));
+	if (a_params.rotation != RE::NiPoint3::Zero()) {
+		a_obj->local.rotate.SetEulerAnglesXYZ(a_params.rotation.x, a_params.rotation.y, a_params.rotation.z);
 	}
 
 	if (const auto shape = a_obj->GetObjectByName(a_params.shapeName); shape && shape->AsGeometry()) {
@@ -256,12 +256,15 @@ void LightData::PostProcessDebugMarker(RE::NiAVObject* a_obj, const MARKER_CREAT
 LightData::MARKER_CREATE_PARAMS LightData::GetDebugMarkerParams() const
 {
 	if (GetCastsShadows()) {
-		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
-			return { "marker_spotlight.nif", "marker_spotlight:0", 1.0f, true };
+		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kHemiShadow)) {
+			return { "marker_halfomni.nif", "marker_halfomni:0", 0.25f, RE::NiPoint3(0, -1.5708f, 0) };
 		}
-		return { "marker_lightshadow.nif", "marker_lightshadow:0", 0.25f, false };
+		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
+			return { "marker_spotlight.nif", "marker_spotlight:0", 1.0f, RE::NiPoint3(-RE::NI_PI, 0, -RE::NI_PI) };
+		}
+		return { "marker_lightshadow.nif", "marker_lightshadow:0", 0.25f, RE::NiPoint3() };
 	}
-	return { "marker_light.nif", "marker_light:0", 0.25f, false };
+	return { "marker_light.nif", "marker_light:0", 0.25f, RE::NiPoint3() };
 }
 
 void LightSourceData::ReadConditions()

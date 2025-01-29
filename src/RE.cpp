@@ -1168,4 +1168,21 @@ namespace RE
 		static REL::Relocation<func_t> func{ RELOCATION_ID(17212, 17614) };
 		func(a_light, a_ptLight, a_ref, a_wantDimmer);
 	}
+
+	void WrapRotation(NiPoint3& a_angle)
+	{
+		constexpr auto wrap_angle = [](float& angle) {
+			angle = RE::deg_to_rad(angle);
+			while (angle > RE::NI_TWO_PI) {
+				angle -= RE::NI_TWO_PI;
+			}
+			while (angle < 0) {
+				angle += RE::NI_TWO_PI;
+			}
+		};
+
+		wrap_angle(a_angle.x);
+		wrap_angle(a_angle.y);
+		wrap_angle(a_angle.z);
+	}
 }
