@@ -70,15 +70,12 @@ namespace Debug
 	private:
 		using SceneGraphMap = std::unordered_map<RE::NiAVObject*, std::vector<RE::NiAVObject*>>;
 
-		static std::string GetDetails(const RE::NiAVObject* a_currentNode)
+		static std::string GetDetails(RE::NiAVObject* a_currentNode)
 		{
 			std::string details{};
 
 			if (auto light = netimmerse_cast<RE::NiPointLight*>(a_currentNode)) {
-				const auto cullFlags = static_cast<std::uint32_t>(light->ambient.blue);
-
-				details = std::format(" (radius: {},fade: {} [{}])", light->radius.x, light->fade,
-					light->GetAppCulled() ? ((cullFlags & std::to_underlying(LightData::CullFlags::Hidden)) != 0 ? "hidden" : "culled") : "visible");
+				details = std::format(" (radius: {}|fade: {}|{})", light->radius.x, light->fade, LightData::GetCulledStatus(light));
 			}
 
 			return details;
@@ -86,7 +83,9 @@ namespace Debug
 
 		static void GetNodeHierarchy(RE::NiAVObject* a_obj, std::vector<RE::NiAVObject*>& hierarchy)
 		{
-			while (a_obj && !a_obj->name.empty()) {  // object root is attached to nameless BSMultiBoundNode
+			static auto BSMultiBoundNode_RTTI = REL::Relocation<RE::NiRTTI*>(RE::BSMultiBoundNode::RTTI.address());
+
+			while (a_obj && a_obj->GetRTTI() != BSMultiBoundNode_RTTI.get()) {  // object root is attached to nameless BSMultiBoundNode
 				hierarchy.emplace_back(a_obj);
 				a_obj = a_obj->parent;
 			}

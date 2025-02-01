@@ -16,7 +16,7 @@ namespace Hooks::Update
 				LightManager::GetSingleton()->UpdateTempEffectLights(a_this);
 			}
 			static inline REL::Relocation<decltype(thunk)> func;
-			static constexpr std::size_t                   size{ 0x3B };
+			static constexpr std::size_t                   idx{ 0x3B };
 
 			static void Install()
 			{

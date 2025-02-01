@@ -93,7 +93,7 @@ namespace Hooks::Attach
 			}
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   size{ 0x38 };
+		static constexpr std::size_t                   idx{ 0x38 };
 
 		static void Install()
 		{

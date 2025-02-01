@@ -36,11 +36,11 @@ namespace stl
 {
 	using namespace SKSE::stl;
 
-	template <class F, size_t index, class T>
+	template <class F, size_t vtbl_idx, class T>
 	void write_vfunc()
 	{
-		REL::Relocation<std::uintptr_t> vtbl{ F::VTABLE[index] };
-		T::func = vtbl.write_vfunc(T::size, T::thunk);
+		REL::Relocation<std::uintptr_t> vtbl{ F::VTABLE[vtbl_idx] };
+		T::func = vtbl.write_vfunc(T::idx, T::thunk);
 	}
 
 	template <class F, class T>
@@ -49,11 +49,15 @@ namespace stl
 		write_vfunc<F, 0, T>();
 	}
 
-	template <class T>
+	template <class T, std::size_t size = 5>
 	void write_thunk_call(std::uintptr_t a_src)
 	{
 		auto& trampoline = SKSE::GetTrampoline();
-		T::func = trampoline.write_call<5>(a_src, T::thunk);
+		if (size == 6) {
+			T::func = *(uintptr_t*)trampoline.write_call<6>(a_src, T::thunk);
+		} else {
+			T::func = trampoline.write_call<size>(a_src, T::thunk);
+		}
 	}
 
 	template <class T, std::size_t BYTES>

@@ -74,7 +74,7 @@ RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_vie
 
 bool LightData::GetCastsShadows() const
 {
-	return flags.any(Flags::Shadow) /*|| light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow)*/;
+	return flags.any(LIGHT_FLAGS::Shadow) /*|| light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow)*/;
 }
 
 RE::NiColor LightData::GetDiffuse() const
@@ -95,14 +95,14 @@ float LightData::GetFade() const
 
 float LightData::GetScaledRadius(float a_radius, float a_scale) const
 {
-	return flags.any(Flags::IgnoreScale) ?
+	return flags.any(LIGHT_FLAGS::IgnoreScale) ?
 	           a_radius :
 	           a_radius * a_scale;
 }
 
 float LightData::GetScaledFade(float a_fade, float a_scale) const
 {
-	return flags.any(Flags::IgnoreScale) ?
+	return flags.any(LIGHT_FLAGS::IgnoreScale) ?
 	           a_fade :
 	           a_fade * a_scale;
 }
@@ -162,7 +162,7 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR*
 
 bool LightData::GetPortalStrict() const
 {
-	return flags.any(Flags::PortalStrict) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
+	return flags.any(LIGHT_FLAGS::PortalStrict) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
 }
 
 std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const
@@ -192,29 +192,66 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 		niLight->radius.y = lightRadius;
 		niLight->radius.z = lightRadius;
 
+		niLight->SetLightAttenuation(lightRadius);
+		niLight->fade = GetFade();
+
 		auto* shadowSceneNode = RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0];
 		if (bsLight = shadowSceneNode->GetPointLight(niLight); !bsLight) {
 			bsLight = shadowSceneNode->AddLight(niLight, GetParams(a_ref));
 		}
 
-		niLight->SetLightAttenuation(lightRadius);
-		niLight->fade = GetFade();
-
-		// immediately update state on attach. waiting for cell update is too slow
-		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
-			niLight->SetAppCulled(true);
-			niLight->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(niLight->ambient.blue) | std::to_underlying(CullFlags::Hidden));
-		}
-
 		if (!debugMarker) {
 			debugMarker = a_node->GetObjectByName(debugMarkerName);
 		}
-		if (debugMarker && Settings::GetSingleton()->CanShowDebugMarkers()) {
-			debugMarker->SetAppCulled(false);
+
+		// immediately update state on attach. waiting for cell update is too slow
+		if (conditions) {
+			CullLight(niLight, debugMarker, !conditions->IsTrue(a_ref, a_ref), LIGHT_CULL_FLAGS::Conditions);
 		}
 	}
 
 	return { bsLight, niLight, debugMarker };
+}
+
+LIGHT_CULL_FLAGS LightData::GetCulledFlag(RE::NiPointLight* a_light)
+{
+	return static_cast<LIGHT_CULL_FLAGS>(a_light->ambient.blue);
+}
+
+void LightData::CullLight(RE::NiPointLight* a_light, RE::NiAVObject* a_debugMarker, bool a_hide, LIGHT_CULL_FLAGS a_flags)
+{
+	a_light->SetAppCulled(a_hide);
+
+	if (a_hide) {
+		a_light->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(a_light->ambient.blue) | std::to_underlying(a_flags));
+	} else {
+		a_light->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(a_light->ambient.blue) & ~std::to_underlying(a_flags));
+	}
+
+	if (Settings::GetSingleton()->CanShowDebugMarkers() && a_debugMarker) {
+		a_debugMarker->SetAppCulled(a_hide);
+	}
+}
+
+const char* LightData::GetCulledStatus(RE::NiPointLight* a_light)
+{
+	if (!a_light->GetAppCulled()) {
+		return "visible";
+	}
+
+	const REX::EnumSet<LIGHT_CULL_FLAGS, std::uint8_t> flags(static_cast<LIGHT_CULL_FLAGS>(a_light->ambient.blue));
+
+	if (flags.any(LIGHT_CULL_FLAGS::Conditions)) {
+		return "hidden [conditions]";
+	}
+	if (flags.any(LIGHT_CULL_FLAGS::Game)) {
+		return "hidden [game]";
+	}
+	if (flags.any(LIGHT_CULL_FLAGS::Script)) {
+		return "hidden [script]";
+	}
+
+	return "hidden";
 }
 
 void LightData::PostProcessDebugMarker(RE::NiAVObject* a_obj, const MARKER_CREATE_PARAMS& a_params, std::string_view a_debugMarkerName)
@@ -337,11 +374,18 @@ RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject*
 		}
 	}
 
+	auto geometry = a_obj->AsGeometry();
+	if (geometry && geometry->parent && !geometry->parent->AsFadeNode()) {  // not top level BSFadeNode
+		if (geometry->local == RE::NiTransform{}) {
+			return geometry->parent;
+		}
+	}
+
 	const auto name = LightData::GetNodeName(a_obj, a_index);
 	if (const auto node = a_root->GetObjectByName(name)) {
 		return node->AsNode();
 	}
-	auto geometry = a_obj->AsGeometry();
+
 	if (const auto newNode = RE::NiNode::Create(1); newNode) {
 		newNode->name = name;
 		if (geometry) {
@@ -349,7 +393,9 @@ RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject*
 		}
 		newNode->local.translate += data.offset;
 		newNode->local.rotate = data.rotation;
-		RE::AttachNode(geometry ? a_root : a_obj->AsNode(), newNode);
+		RE::AttachNode(geometry ? a_root :
+								  a_obj->AsNode(),
+			newNode);
 		return newNode;
 	}
 
@@ -404,44 +450,15 @@ REFR_LIGH::REFR_LIGH(const LightSourceData& a_lightSource, RE::BSLight* a_bsLigh
 	lightControllers(a_lightSource),
 	scale(a_scale)
 {
-	if (!data.emittanceForm && data.flags.none(LightData::Flags::NoExternalEmittance)) {
+	if (!data.emittanceForm && data.flags.none(LIGHT_FLAGS::NoExternalEmittance)) {
 		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
 		data.emittanceForm = xData ? xData->source : nullptr;
 	}
 }
 
-bool REFR_LIGH::IsOutsideFrustum(bool a_freeCameraMode)
-{
-	if (!Settings::GetSingleton()->CanCullLights()) {
-		return false;
-	}
-
-	if (a_freeCameraMode) {
-		return SetLightCullState(false);
-	}
-
-	const RE::NiBound bound{ niLight->world.translate, niLight->radius.x };
-	return SetLightCullState(!RE::NiCamera::BoundInFrustum(bound, RE::Main::WorldRootCamera()));
-}
-
 const RE::NiPointer<RE::NiPointLight>& REFR_LIGH::GetLight() const
 {
 	return niLight;
-}
-
-void REFR_LIGH::HideLight(bool a_hide, LightData::CullFlags a_flags) const
-{
-	niLight->SetAppCulled(a_hide);
-
-	if (a_hide) {
-		niLight->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(niLight->ambient.blue) | std::to_underlying(a_flags));
-	} else {
-		niLight->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(niLight->ambient.blue) & ~std::to_underlying(a_flags));
-	}
-
-	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
-		a_hide ? HideDebugMarker() : ShowDebugMarker();
-	}
 }
 
 bool REFR_LIGH::DimLight(const float a_dimmer) const
@@ -494,21 +511,18 @@ void REFR_LIGH::RemoveLight(bool a_clearData) const
 	}
 }
 
-void REFR_LIGH::CullDebugMarker(bool a_cull) const
-{
-	if (debugMarker) {
-		debugMarker->SetAppCulled(a_cull);
-	}
-}
-
 void REFR_LIGH::ShowDebugMarker() const
 {
-	CullDebugMarker(false);
+	if (debugMarker) {
+		debugMarker->SetAppCulled(false);
+	}
 }
 
 void REFR_LIGH::HideDebugMarker() const
 {
-	CullDebugMarker(true);
+	if (debugMarker) {
+		debugMarker->SetAppCulled(true);
+	}
 }
 
 void REFR_LIGH::UpdateDebugMarkerState(bool a_culled) const
@@ -533,29 +547,9 @@ void REFR_LIGH::UpdateDebugMarkerState(bool a_culled) const
 	}
 }
 
-bool REFR_LIGH::SetLightCullState(bool a_cull)
-{
-	if (a_cull) {
-		if (!culled) {
-			culled = true;
-			HideLight(true, LightData::CullFlags::Culled);
-		}
-		return true;
-	}
-
-	if (culled) {
-		culled = false;
-		if (!data.conditions || lastVisibleState == std::nullopt || lastVisibleState == true) {
-			HideLight(false, LightData::CullFlags::Culled);
-		}
-	}
-
-	return false;
-}
-
 bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 {
-	if (!data.conditions || a_flags == ConditionUpdateFlags::Skip) {
+	if (!data.conditions || LightData::GetCulledFlag(niLight.get()) == LIGHT_CULL_FLAGS::Game || a_flags == ConditionUpdateFlags::Skip) {
 		return false;
 	}
 
@@ -563,8 +557,8 @@ bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 		return true;
 	}
 
-	const bool requiresCellTransition = data.flags.any(LightData::Flags::UpdateOnCellTransition);
-	const bool requiresWaiting = data.flags.any(LightData::Flags::UpdateOnWaiting);
+	const bool requiresCellTransition = data.flags.any(LIGHT_FLAGS::UpdateOnCellTransition);
+	const bool requiresWaiting = data.flags.any(LIGHT_FLAGS::UpdateOnWaiting);
 
 	if (requiresCellTransition || requiresWaiting) {
 		if (requiresCellTransition && requiresWaiting) {
@@ -585,7 +579,7 @@ bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 
 void REFR_LIGH::UpdateAnimation(float a_delta, float a_scalingFactor)
 {
-	scale = data.flags.any(LightData::Flags::IgnoreScale) ? 1.0f : a_scalingFactor;
+	scale = data.flags.any(LIGHT_FLAGS::IgnoreScale) ? 1.0f : a_scalingFactor;
 	lightControllers.UpdateAnimation(niLight, a_delta, scale);
 }
 
@@ -603,10 +597,10 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_node
 	if (lastVisibleState != isVisible) {
 		lastVisibleState = isVisible;
 
-		HideLight(!isVisible, LightData::CullFlags::Hidden);
+		LightData::CullLight(niLight.get(), debugMarker.get(), !isVisible, LIGHT_CULL_FLAGS::Conditions);
 
 		a_nodeVisHelper.isVisible |= isVisible;
-		a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LightData::Flags::SyncAddonNodes);
+		a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LIGHT_FLAGS::SyncAddonNodes);
 		a_nodeVisHelper.canCullNodes |= !data.conditionalNodes.empty();
 
 		if (!data.conditionalNodes.empty()) {

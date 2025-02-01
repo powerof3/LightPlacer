@@ -87,7 +87,7 @@ void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 	const float scale = withinFlickerDistance ? a_params.ref->GetScale() : 1.0f;
 
 	for (auto& lightData : lights) {
-		if (!lightData.GetLight() || lightData.IsOutsideFrustum(a_params.freeCameraMode) || lightData.DimLight(a_params.dimFactor)) {
+		if (!lightData.GetLight() || lightData.DimLight(a_params.dimFactor)) {
 			continue;
 		}
 

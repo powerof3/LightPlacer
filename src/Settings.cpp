@@ -22,7 +22,6 @@ namespace SETTINGS
 
 		logger::info("");
 		logger::info("bShowMarkers : {}", showDebugMarkers);
-		logger::info("bCullLights : {}", cullLights);
 		logger::info("bDisableAllGameLights : {}", disableAllGameLights);
 		logger::info("LightBlackList : {} entries", blackListedLights.size());
 		logger::info("LightWhiteList : {} entries", whiteListedLights.size());
@@ -46,11 +45,6 @@ namespace SETTINGS
 
 		post_process(blackListedLights, blackListedLightsRefs);
 		post_process(whiteListedLights, whiteListedLightsRefs);
-	}
-
-	bool Cache::CanCullLights() const
-	{
-		return cullLights;
 	}
 
 	bool Cache::CanShowDebugMarkers() const
@@ -97,9 +91,6 @@ namespace SETTINGS
 		}
 		if (!disableAllGameLights) {
 			disableAllGameLights = ini.GetBoolValue("Settings", "bDisableAllGameLights", false);
-		}
-		if (cullLights) {
-			cullLights = ini.GetBoolValue("Settings", "bCullLights", true);
 		}
 
 		const auto add_to_list = [&](std::string_view a_listName, StringSet& a_list) {

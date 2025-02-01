@@ -4,33 +4,34 @@
 
 struct SourceData;
 
+enum class LIGHT_FLAGS
+{
+	// CS light flags
+	None = 0,
+	PortalStrict = (1 << 0),
+	Shadow = (1 << 1),
+	Simple = (1 << 2),
+
+	// LP flags
+	UpdateOnWaiting = (1 << 25),
+	UpdateOnCellTransition = (1 << 26),
+	NeedsUpdate = UpdateOnWaiting | UpdateOnCellTransition,
+	SyncAddonNodes = (1 << 27),
+	IgnoreScale = (1 << 28),
+	RandomAnimStart = (1 << 29),
+	NoExternalEmittance = (1 << 30)
+};
+
+enum class LIGHT_CULL_FLAGS
+{
+	None = 0,
+	Conditions = (1 << 0),
+	Game = (1 << 1),
+	Script = (1 << 2),
+};
+
 struct LightData
 {
-	enum class Flags
-	{
-		// CS light flags
-		None = 0,
-		PortalStrict = (1 << 0),
-		Shadow = (1 << 1),
-		Simple = (1 << 2),
-
-		// LP flags
-		UpdateOnWaiting = (1 << 25),
-		UpdateOnCellTransition = (1 << 26),
-		NeedsUpdate = UpdateOnWaiting | UpdateOnCellTransition,
-		SyncAddonNodes = (1 << 27),
-		IgnoreScale = (1 << 28),
-		RandomAnimStart = (1 << 29),
-		NoExternalEmittance = (1 << 30)
-	};
-
-	enum class CullFlags : std::uint8_t
-	{
-		None = 0,
-		Hidden = (1 << 0),
-		Culled = (1 << 1)
-	};
-
 	bool                                     GetCastsShadows() const;
 	RE::NiColor                              GetDiffuse() const;
 	float                                    GetRadius() const;
@@ -52,19 +53,23 @@ struct LightData
 
 	std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;  // [bsLight, niLight, debugMarker]
 
+	static LIGHT_CULL_FLAGS GetCulledFlag(RE::NiPointLight* a_light);
+	static void             CullLight(RE::NiPointLight* a_light, RE::NiAVObject* a_debugMarker, bool a_hide, LIGHT_CULL_FLAGS a_flags);
+	static const char*      GetCulledStatus(RE::NiPointLight* a_light);
+
 	// members
-	RE::TESObjectLIGH*                 light{ nullptr };
-	RE::NiColor                        color{ RE::COLOR_BLACK };
-	float                              radius{ 0.0f };
-	float                              fade{ 0.0f };
-	float                              fov{ 0.0f };
-	float                              shadowDepthBias{ 1.0f };
-	RE::NiPoint3                       offset;
-	RE::NiMatrix3                      rotation;
-	REX::EnumSet<Flags, std::uint32_t> flags{ Flags::None };
-	RE::TESForm*                       emittanceForm{ nullptr };
-	std::shared_ptr<RE::TESCondition>  conditions;
-	StringSet                          conditionalNodes;
+	RE::TESObjectLIGH*                       light{ nullptr };
+	RE::NiColor                              color{ RE::COLOR_BLACK };
+	float                                    radius{ 0.0f };
+	float                                    fade{ 0.0f };
+	float                                    fov{ 0.0f };
+	float                                    shadowDepthBias{ 1.0f };
+	RE::NiPoint3                             offset;
+	RE::NiMatrix3                            rotation;
+	REX::EnumSet<LIGHT_FLAGS, std::uint32_t> flags{ LIGHT_FLAGS::None };
+	RE::TESForm*                             emittanceForm{ nullptr };
+	std::shared_ptr<RE::TESCondition>        conditions;
+	StringSet                                conditionalNodes;
 
 	constexpr static auto LP_LIGHT = "LP_Light"sv;
 	constexpr static auto LP_NODE = "LP_Node"sv;
@@ -122,32 +127,32 @@ struct glz::meta<LightSourceData>
 			for (const auto& flagStr : flagStrs) {
 				switch (string::const_hash(flagStr)) {
 				case "PortalStrict"_h:
-					s.data.flags.set(LightData::Flags::PortalStrict);
+					s.data.flags.set(LIGHT_FLAGS::PortalStrict);
 					break;
 				case "Shadow"_h:
-					s.data.flags.set(LightData::Flags::Shadow);
+					s.data.flags.set(LIGHT_FLAGS::Shadow);
 					break;
 				case "Simple"_h:
-					s.data.flags.set(LightData::Flags::Simple);
+					s.data.flags.set(LIGHT_FLAGS::Simple);
 					break;
 
 				case "UpdateOnWaiting"_h:
-					s.data.flags.set(LightData::Flags::UpdateOnWaiting);
+					s.data.flags.set(LIGHT_FLAGS::UpdateOnWaiting);
 					break;
 				case "UpdateOnCellTransition"_h:
-					s.data.flags.set(LightData::Flags::UpdateOnCellTransition);
+					s.data.flags.set(LIGHT_FLAGS::UpdateOnCellTransition);
 					break;
 				case "SyncAddonNodes"_h:
-					s.data.flags.set(LightData::Flags::SyncAddonNodes);
+					s.data.flags.set(LIGHT_FLAGS::SyncAddonNodes);
 					break;
 				case "IgnoreScale"_h:
-					s.data.flags.set(LightData::Flags::IgnoreScale);
+					s.data.flags.set(LIGHT_FLAGS::IgnoreScale);
 					break;
 				case "RandomAnimStart"_h:
-					s.data.flags.set(LightData::Flags::RandomAnimStart);
+					s.data.flags.set(LIGHT_FLAGS::RandomAnimStart);
 					break;
 				case "NoExternalEmittance"_h:
-					s.data.flags.set(LightData::Flags::NoExternalEmittance);
+					s.data.flags.set(LIGHT_FLAGS::NoExternalEmittance);
 					break;
 				default:
 					break;
@@ -260,15 +265,12 @@ struct REFR_LIGH
 
 	const RE::NiPointer<RE::NiPointLight>& GetLight() const;
 
-	void HideLight(bool a_hide, LightData::CullFlags a_flags) const;
-	bool IsOutsideFrustum(bool a_freeCameraMode);
 	bool DimLight(float a_dimmer) const;
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	void ReattachLight() const;
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker() const;
 	void HideDebugMarker() const;
-	bool SetLightCullState(bool a_cull);
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
 	void UpdateAnimation(float a_delta, float a_scalingFactor);
 	void UpdateDebugMarkerState(bool a_culled) const;
@@ -283,10 +285,6 @@ struct REFR_LIGH
 	LightControllers                lightControllers;
 	float                           scale{ 1.0f };
 	std::optional<bool>             lastVisibleState;
-	bool                            culled{};
-
-private:
-	void CullDebugMarker(bool a_cull) const;
 };
 
 using ConditionUpdateFlags = REFR_LIGH::ConditionUpdateFlags;

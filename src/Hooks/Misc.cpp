@@ -29,7 +29,7 @@ namespace Hooks::Misc
 			a_ref->data.location.z -= 30000.0f;
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   size{ 0x13 };
+		static constexpr std::size_t                   idx{ 0x13 };
 
 		static void Install()
 		{
@@ -47,7 +47,7 @@ namespace Hooks::Misc
 			LightManager::GetSingleton()->SetFreeCameraMode(true);
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   size{ 0x1 };
+		static constexpr std::size_t                   idx{ 0x1 };
 
 		static void Install()
 		{
@@ -65,7 +65,7 @@ namespace Hooks::Misc
 			LightManager::GetSingleton()->SetFreeCameraMode(false);
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   size{ 0x2 };
+		static constexpr std::size_t                   idx{ 0x2 };
 
 		static void Install()
 		{

@@ -15,8 +15,6 @@ namespace SETTINGS
 		void LoadSettings();
 		void OnDataLoad();
 
-		bool CanCullLights() const;
-
 		bool CanShowDebugMarkers() const;
 		bool LoadDebugMarkers() const;
 		void ToggleDebugMarkers();
@@ -30,7 +28,6 @@ namespace SETTINGS
 		// members
 		bool showDebugMarkers{ false };
 		bool loadDebugMarkers{ false };
-		bool cullLights{ true };
 		bool disableAllGameLights{ false };
 
 		static Cache instance;
