@@ -205,8 +205,8 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 		}
 
 		// immediately update state on attach. waiting for cell update is too slow
-		if (conditions) {
-			CullLight(niLight, debugMarker, !conditions->IsTrue(a_ref, a_ref), LIGHT_CULL_FLAGS::Conditions);
+		if (conditions && !conditions->IsTrue(a_ref, a_ref)) {
+			CullLight(niLight, debugMarker, true, LIGHT_CULL_FLAGS::Conditions);
 		}
 	}
 
@@ -241,14 +241,16 @@ const char* LightData::GetCulledStatus(RE::NiPointLight* a_light)
 
 	const REX::EnumSet<LIGHT_CULL_FLAGS, std::uint8_t> flags(static_cast<LIGHT_CULL_FLAGS>(a_light->ambient.blue));
 
-	if (flags.any(LIGHT_CULL_FLAGS::Conditions)) {
-		return "hidden [conditions]";
+	// script > game > conditions
+
+	if (flags.any(LIGHT_CULL_FLAGS::Script)) {
+		return "hidden [script]";
 	}
 	if (flags.any(LIGHT_CULL_FLAGS::Game)) {
 		return "hidden [game]";
 	}
-	if (flags.any(LIGHT_CULL_FLAGS::Script)) {
-		return "hidden [script]";
+	if (flags.any(LIGHT_CULL_FLAGS::Conditions)) {
+		return "hidden [conditions]";
 	}
 
 	return "hidden";
@@ -549,7 +551,13 @@ void REFR_LIGH::UpdateDebugMarkerState(bool a_culled) const
 
 bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 {
-	if (!data.conditions || LightData::GetCulledFlag(niLight.get()) == LIGHT_CULL_FLAGS::Game || a_flags == ConditionUpdateFlags::Skip) {
+	if (!data.conditions || a_flags == ConditionUpdateFlags::Skip) {
+		return false;
+	}
+
+	const REX::EnumSet<LIGHT_CULL_FLAGS, std::uint8_t> cullFlags{ LightData::GetCulledFlag(niLight.get()) };
+
+	if (cullFlags.any(LIGHT_CULL_FLAGS::Game, LIGHT_CULL_FLAGS::Script)) {
 		return false;
 	}
 

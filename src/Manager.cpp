@@ -419,6 +419,10 @@ std::uint32_t LightManager::AttachConfigLights(const SourceData& a_srcData, cons
 
 void LightManager::AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, std::uint32_t a_index)
 {
+	if (!a_node) {
+		return;
+	}
+	
 	const auto name = LightData::GetLightName(a_srcData, a_lightSource.lightEDID, a_index);
 
 	if (auto [bsLight, niLight, debugMarker] = a_lightSource.data.GenLight(a_srcData.ref, a_node, name, a_srcData.scale); bsLight && niLight) {
@@ -551,7 +555,6 @@ void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 			ProcessedLights::UpdateParams params;
 			params.pcPos = pc->GetPosition();
 			params.delta = RE::BSTimer::GetSingleton()->delta;
-			params.freeCameraMode = freeCameraMode;
 
 			it->second.write([&](auto& innerMap) {
 				std::erase_if(innerMap.updatingLights, [&](auto& handle) {
@@ -632,7 +635,6 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 			params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 			params.delta = RE::BSTimer::GetSingleton()->delta;
 			params.dimFactor = dimFactor;
-			params.freeCameraMode = freeCameraMode;
 
 			it->second.UpdateLightsAndRef(params);
 		}
@@ -656,14 +658,8 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 			params.ref = actor;
 			params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 			params.delta = a_delta;
-			params.freeCameraMode = freeCameraMode;
 
 			it->second.UpdateLightsAndRef(params);
 		}
 	});
-}
-
-void LightManager::SetFreeCameraMode(bool a_enabled)
-{
-	freeCameraMode = a_enabled;
 }

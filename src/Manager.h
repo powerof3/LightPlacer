@@ -39,8 +39,6 @@ public:
 	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);
 	void UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta);
 
-	void SetFreeCameraMode(bool a_enabled);
-
 	template <class F>
 	void ForAllLights(F&& func)
 	{
@@ -156,6 +154,4 @@ private:
 
 	LockedMap<RE::FormID, MutexGuard<LightsToUpdate>> lightsToBeUpdated;
 	std::optional<bool>                               lastCellWasInterior;
-
-	bool freeCameraMode{ false };
 };
