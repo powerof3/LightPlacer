@@ -163,7 +163,7 @@ namespace Hooks::Update
 				LightData::CullLight(a_light, nullptr, false, LIGHT_CULL_FLAGS::Game);
 				return RE::BSVisit::BSVisitControl::kContinue;
 			});
-			
+
 			func(a_this, a_data, a_arg2);
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
