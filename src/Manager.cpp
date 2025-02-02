@@ -422,7 +422,7 @@ void LightManager::AttachLight(const LightSourceData& a_lightSource, const Sourc
 	if (!a_node) {
 		return;
 	}
-	
+
 	const auto name = LightData::GetLightName(a_srcData, a_lightSource.lightEDID, a_index);
 
 	if (auto [bsLight, niLight, debugMarker] = a_lightSource.data.GenLight(a_srcData.ref, a_node, name, a_srcData.scale); bsLight && niLight) {
