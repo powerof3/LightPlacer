@@ -2,7 +2,7 @@
 
 #include "LightData.h"
 
-struct SourceData;
+struct SourceAttachData;
 
 namespace Config
 {
@@ -10,9 +10,9 @@ namespace Config
 	{
 		void PostProcess();
 
-		bool IsInvalid(const SourceData& a_srcData) const;
-		bool IsBlacklisted(const SourceData& a_srcData) const;
-		bool IsWhitelisted(const SourceData& a_srcData) const;
+		bool IsInvalid(const SourceAttachData& a_srcData) const;
+		bool IsBlacklisted(const SourceAttachData& a_srcData) const;
+		bool IsWhitelisted(const SourceAttachData& a_srcData) const;
 
 		StringSet whiteList;
 		StringSet blackList;
@@ -57,6 +57,7 @@ namespace Config
 		LightSourceVec lights;
 	};
 
+	// deprecated
 	struct MultiAddonSet
 	{
 		FlatSet<std::uint32_t>  addonNodes;

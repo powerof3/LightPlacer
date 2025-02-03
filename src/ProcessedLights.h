@@ -17,7 +17,7 @@ struct ProcessedLights
 
 	bool IsNewLight(RE::NiPointLight* a_niLight);
 
-	bool emplace_back(const SourceData& a_srcData, const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight, RE::NiAVObject* a_debugMarker);
+	bool emplace_back(const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight, RE::NiAVObject* a_debugMarker, RE::TESObjectREFR* a_ref, float a_scale);
 	void emplace_back(const REFR_LIGH& a_lightREFRData);
 
 	void ShowDebugMarkers(bool a_show) const;

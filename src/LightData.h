@@ -2,7 +2,7 @@
 
 #include "LightControllers.h"
 
-struct SourceData;
+struct SourceAttachData;
 
 enum class LIGHT_FLAGS
 {
@@ -43,7 +43,7 @@ struct LightData
 	float                                    GetFOV() const;
 	float                                    GetFalloff() const;
 	float                                    GetNearDistance() const;
-	static std::string                       GetLightName(const SourceData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index);
+	static std::string                       GetLightName(const SourceAttachData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index);
 	static std::string                       GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
 	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;

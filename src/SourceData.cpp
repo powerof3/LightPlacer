@@ -4,9 +4,7 @@ SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObj
 	type(a_type),
 	ref(a_ref),
 	base(a_object),
-	root(a_root->AsNode()),
-	handle(a_ref->CreateRefHandle().native_handle()),
-	scale(a_ref->GetScale())
+	root(a_root->AsNode())
 {
 	RE::TESModel* model = a_model;
 	if (!model) {
@@ -14,16 +12,6 @@ SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObj
 	}
 	if (model) {
 		modelPath = model->GetModel();
-	}
-
-	if (auto parentCell = a_ref->GetParentCell()) {
-		cellID = parentCell->GetFormID();
-	}
-	if (auto worldSpace = a_ref->GetWorldspace()) {
-		worldSpaceID = worldSpace->GetFormID();
-	}
-	if (auto location = a_ref->GetCurrentLocation()) {
-		locationID = location->GetFormID();
 	}
 }
 
@@ -34,21 +22,17 @@ SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::TESBoun
 SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject) :
 	SourceData(a_type, a_ref, a_root, a_bipObject.item->As<RE::TESBoundObject>(), a_bipObject.part)
 {
-	arma = a_bipObject.addon;
+	if (a_bipObject.addon) {
+		miscID = a_bipObject.addon->GetFormID();
+	}
 }
 
 bool SourceData::IsValid() const
 {
-	const bool is_valid = !ref->IsDisabled() && !ref->IsDeleted() && root != nullptr && cellID != 0;
-
-	if (type == SOURCE_TYPE::kRef || type == SOURCE_TYPE::kActorWorn) {
-		return is_valid && !modelPath.empty();
-	}
-
-	return is_valid;
+	return !ref->IsDisabled() && !ref->IsDeleted() && root != nullptr;
 }
 
-RE::NiNode* SourceData::GetRootNode() const
+RE::NiNode* SourceData::GetAttachNode() const
 {
 	if (type == SOURCE_TYPE::kActorWorn && base->Is(RE::FormType::Armor)) {
 		return ref->Get3D()->AsNode();
@@ -64,11 +48,53 @@ RE::NiNode* SourceData::GetRootNode() const
 	return root;
 }
 
-void SourceData::GetWornItemNodeName(char* a_dstBuffer) const
+std::string SourceData::GetWornItemNodeName() const
 {
-	if (auto armo = base->As<RE::TESObjectARMO>()) {
-		arma->GetNodeName(a_dstBuffer, ref, armo, -1);
-	} else if (const auto weap = base->As<RE::TESObjectWEAP>()) {
-		weap->GetNodeName(a_dstBuffer);
+	if (type != SOURCE_TYPE::kActorWorn) {
+		return std::string();
 	}
+		
+	char nodeName[MAX_PATH]{ '\0' };
+	if (auto armo = base->As<RE::TESObjectARMO>()) {
+		if (auto arma = RE::TESForm::LookupByID<RE::TESObjectARMA>(miscID)) {
+			arma->GetNodeName(nodeName, ref, armo, -1);
+		}
+	} else if (const auto weap = base->As<RE::TESObjectWEAP>()) {
+		weap->GetNodeName(nodeName);
+	}
+
+	return nodeName;
+}
+
+bool SourceAttachData::Initialize(const SourceData& a_srcData)
+{
+	if (filterIDs.empty()) {
+		if (auto parentCell = a_srcData.ref->GetParentCell()) {
+			type = a_srcData.type;
+			effectID = a_srcData.miscID;
+			ref = a_srcData.ref;
+			root = a_srcData.root;
+			attachNode = a_srcData.GetAttachNode();
+			handle = ref->CreateRefHandle().native_handle();
+			scale = ref->GetScale();
+			nodeName = std::move(a_srcData.GetWornItemNodeName());
+			
+			filterIDs.push_back(parentCell->GetFormID());
+
+			filterIDs.push_back(ref->GetFormID());
+			filterIDs.push_back(a_srcData.base->GetFormID());
+			
+			if (auto worldSpace = ref->GetWorldspace()) {
+				filterIDs.push_back(worldSpace->GetFormID());
+			}
+			if (auto location = ref->GetCurrentLocation()) {
+				filterIDs.push_back(location->GetFormID());
+				for (auto it = location->parentLoc; it; it = it->parentLoc) {
+					filterIDs.push_back(it->GetFormID());
+				}
+			}
+		}
+	}
+
+	return !filterIDs.empty();
 }

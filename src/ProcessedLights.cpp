@@ -7,10 +7,10 @@ bool ProcessedLights::IsNewLight(RE::NiPointLight* a_niLight)
 	return std::find(lights.begin(), lights.end(), a_niLight) == lights.end();
 }
 
-bool ProcessedLights::emplace_back(const SourceData& a_srcData, const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight, RE::NiAVObject* a_debugMarker)
+bool ProcessedLights::emplace_back(const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight, RE::NiAVObject* a_debugMarker, RE::TESObjectREFR* a_ref, float a_scale)
 {
 	if (IsNewLight(a_niLight)) {
-		lights.emplace_back(a_lightSrcData, a_bsLight, a_niLight, a_debugMarker, a_srcData.ref, a_srcData.scale);
+		lights.emplace_back(a_lightSrcData, a_bsLight, a_niLight, a_debugMarker, a_ref, a_scale);
 		return true;
 	}
 	return false;

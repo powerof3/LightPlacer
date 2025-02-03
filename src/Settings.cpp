@@ -10,8 +10,7 @@ namespace SETTINGS
 
 		std::filesystem::path dir{ R"(Data\LightPlacer)" };
 
-		std::error_code ec;
-		if (std::filesystem::exists(dir, ec)) {
+		if (std::error_code ec; std::filesystem::exists(dir, ec)) {
 			for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(dir)) {
 				if (dirEntry.is_directory() || dirEntry.path().extension() != ".ini"sv) {
 					continue;

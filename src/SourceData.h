@@ -1,6 +1,6 @@
 #pragma once
 
-enum class SOURCE_TYPE : std::uint8_t
+enum class SOURCE_TYPE
 {
 	kNone = 0,
 	kRef,
@@ -17,20 +17,32 @@ struct SourceData
 	SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject);
 
 	bool        IsValid() const;
-	RE::NiNode* GetRootNode() const;
-	void        GetWornItemNodeName(char* a_dstBuffer) const;
+	RE::NiNode* GetAttachNode() const;
+	std::string GetWornItemNodeName() const;
 
 	// members
 	SOURCE_TYPE         type{ SOURCE_TYPE::kNone };
+	std::uint32_t       miscID{ std::numeric_limits<std::uint32_t>::max() };
 	RE::TESObjectREFR*  ref{};
 	RE::TESBoundObject* base{};
-	RE::TESObjectARMA*  arma{};
 	RE::NiNode*         root{};
 	std::string_view    modelPath;
-	RE::RefHandle       handle{};
-	float               scale{};
-	RE::FormID          cellID{ 0 };
-	RE::FormID          worldSpaceID{ 0 };
-	RE::FormID          locationID{ 0 };
-	std::uint32_t       effectID{ std::numeric_limits<std::uint32_t>::max() };
+};
+
+struct SourceAttachData
+{
+	SourceAttachData() = default;
+
+	bool Initialize(const SourceData& a_srcData);
+
+	// members
+	SOURCE_TYPE             type{ SOURCE_TYPE::kNone };
+	std::uint32_t           effectID{ std::numeric_limits<std::uint32_t>::max() };
+	RE::TESObjectREFR*      ref{};
+	RE::NiNode*             root{};
+	RE::NiNode*             attachNode{};
+	RE::RefHandle           handle{};
+	float                   scale{};
+	std::string             nodeName{};
+	std::vector<RE::FormID> filterIDs{};
 };

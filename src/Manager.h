@@ -4,6 +4,8 @@
 #include "LightData.h"
 #include "ProcessedLights.h"
 
+struct SourceData;
+
 class LightManager :
 	public REX::Singleton<LightManager>,
 	public RE::BSTEventSink<RE::BGSActorCellEvent>,
@@ -21,11 +23,11 @@ public:
 	void DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData);
 
 	void AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root);
-	void ReattachWornLights(const RE::ActorHandle& a_handle);
+	void ReattachWornLights(const RE::ActorHandle& a_handle) const;
 	void DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObject* a_root);
 
 	void AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectFormID);
-	void ReattachTempEffectLights(RE::ReferenceEffect* a_effect);
+	void ReattachTempEffectLights(RE::ReferenceEffect* a_effect) const;
 	void DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData);
 
 	void AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
@@ -136,16 +138,17 @@ private:
 	RE::BSEventNotifyControl ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*) override;
 	RE::BSEventNotifyControl ProcessEvent(const RE::TESWaitStopEvent* a_event, RE::BSTEventSource<RE::TESWaitStopEvent>*) override;
 
-	void          AttachLightsImpl(const SourceData& a_srcData);
-	std::uint32_t AttachConfigLights(const SourceData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index);
-	void          AttachLight(const LightSourceData& a_lightSource, const SourceData& a_srcData, RE::NiNode* a_node, std::uint32_t a_index = 0);
-	bool          ReattachLightsImpl(const SourceData& a_srcData);
+	void AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_formID = 0);
+
+	std::uint32_t AttachConfigLights(const SourceAttachData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index);
+	void          AttachLight(const LightSourceData& a_lightSource, const SourceAttachData& a_srcData, RE::NiNode* a_node, std::uint32_t a_index = 0);
+
+	void ReattachLightsImpl(RE::TESObjectREFR* a_ref);
 
 	// members
-	std::vector<Config::Format>                         configs;
-	StringMap<Config::LightSourceVec>                   gameModels;
-	FlatMap<RE::FormID, Config::LightSourceVec>         gameVisualEffects;
-	FlatMap<std::uint32_t, Config::AddonLightSourceVec> gameAddonNodes;
+	std::vector<Config::Format>                 configs;
+	StringMap<Config::LightSourceVec>           gameModels;
+	FlatMap<RE::FormID, Config::LightSourceVec> gameVisualEffects;
 
 	LockedMap<RE::RefHandle, ProcessedLights>                         gameRefLights;
 	LockedMap<RE::RefHandle, LockedMap<std::string, ProcessedLights>> gameActorWornLights;     // nodeName (armor node on attach isn't same ptr on detach)
