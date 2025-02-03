@@ -53,7 +53,7 @@ std::string SourceData::GetWornItemNodeName() const
 	if (type != SOURCE_TYPE::kActorWorn) {
 		return std::string();
 	}
-		
+
 	char nodeName[MAX_PATH]{ '\0' };
 	if (auto armo = base->As<RE::TESObjectARMO>()) {
 		if (auto arma = RE::TESForm::LookupByID<RE::TESObjectARMA>(miscID)) {
@@ -78,12 +78,12 @@ bool SourceAttachData::Initialize(const SourceData& a_srcData)
 			handle = ref->CreateRefHandle().native_handle();
 			scale = ref->GetScale();
 			nodeName = std::move(a_srcData.GetWornItemNodeName());
-			
+
 			filterIDs.push_back(parentCell->GetFormID());
 
 			filterIDs.push_back(ref->GetFormID());
 			filterIDs.push_back(a_srcData.base->GetFormID());
-			
+
 			if (auto worldSpace = ref->GetWorldspace()) {
 				filterIDs.push_back(worldSpace->GetFormID());
 			}
