@@ -36,9 +36,9 @@ namespace Config
 
 	struct NodeData
 	{
-		Filter                   filter;
-		std::vector<std::string> nodes;
-		LightSourceData          data;
+		Filter          filter;
+		StringSet       nodes;
+		LightSourceData data;
 	};
 
 	using LightSourceData = std::variant<PointData, NodeData>;

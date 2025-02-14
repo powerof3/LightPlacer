@@ -343,15 +343,14 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_fo
 
 std::uint32_t LightManager::AttachConfigLights(const SourceAttachData& a_srcData, const Config::LightSourceData& a_lightData, std::uint32_t a_index)
 {
-	RE::NiAVObject* lightPlacerNode = nullptr;
-	std::uint32_t   index = a_index;
+	std::uint32_t index = a_index;
 
 	std::visit(overload{
 				   [&](const Config::PointData& pointData) {
 					   auto& [filter, points, lightData] = pointData;
 					   if (!filter.IsInvalid(a_srcData)) {
 						   for (const auto [pointIdx, point] : std::views::enumerate(points)) {
-							   lightPlacerNode = lightData.GetOrCreateNode(a_srcData.attachNode, point, index);
+							   auto lightPlacerNode = lightData.GetOrCreateNode(a_srcData.attachNode, point, index);
 							   if (lightPlacerNode) {
 								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), index);
 							   }
@@ -362,8 +361,15 @@ std::uint32_t LightManager::AttachConfigLights(const SourceAttachData& a_srcData
 				   [&](const Config::NodeData& nodeData) {
 					   auto& [filter, nodes, lightData] = nodeData;
 					   if (!filter.IsInvalid(a_srcData)) {
-						   for (const auto [nodeIdx, nodeName] : std::views::enumerate(nodes)) {
-							   lightPlacerNode = lightData.GetOrCreateNode(a_srcData.attachNode, nodeName, index);
+						   std::vector<RE::NiAVObject*> nodeVec;
+						   RE::BSVisit::TraverseScenegraphObjects(a_srcData.attachNode, [&](RE::NiAVObject* a_obj) {
+							   if (nodes.contains(a_obj->name.c_str())) {
+								   nodeVec.push_back(a_obj);
+							   }
+							   return RE::BSVisit::BSVisitControl::kContinue;
+						   });
+						   for (const auto [nodeIdx, node] : std::views::enumerate(nodeVec)) {
+							   auto lightPlacerNode = lightData.GetOrCreateNode(a_srcData.attachNode, node, index);
 							   if (lightPlacerNode) {
 								   AttachLight(lightData, a_srcData, lightPlacerNode->AsNode(), index);
 							   }

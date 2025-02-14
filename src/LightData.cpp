@@ -171,6 +171,10 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 	RE::NiPointLight* niLight = nullptr;
 	RE::NiAVObject*   debugMarker = nullptr;
 
+	if (!a_node) {
+		return { bsLight, niLight, debugMarker };
+	}
+
 	const auto debugMarkerName = GetDebugMarkerName(a_lightName);
 
 	niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(a_lightName));

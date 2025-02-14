@@ -68,7 +68,7 @@ std::string SourceData::GetWornItemNodeName() const
 
 bool SourceAttachData::Initialize(const SourceData& a_srcData)
 {
-	if (filterIDs.empty()) {
+	if (!attachNode) {
 		if (auto parentCell = a_srcData.ref->GetParentCell()) {
 			type = a_srcData.type;
 			effectID = a_srcData.miscID;
@@ -96,5 +96,5 @@ bool SourceAttachData::Initialize(const SourceData& a_srcData)
 		}
 	}
 
-	return !filterIDs.empty();
+	return attachNode != nullptr;
 }
