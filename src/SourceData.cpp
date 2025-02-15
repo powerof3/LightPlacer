@@ -37,14 +37,6 @@ RE::NiNode* SourceData::GetAttachNode() const
 	if (type == SOURCE_TYPE::kActorWorn && base->Is(RE::FormType::Armor)) {
 		return ref->Get3D()->AsNode();
 	}
-	if (type == SOURCE_TYPE::kActorMagic && ref->IsPlayerRef()) {  // light doesn't get show in first person (possibly culled when switching nodes)?
-		if (ref->Get3D(true)) {
-			const auto tpRoot = ref->Get3D(false);
-			if (const auto node = tpRoot->GetObjectByName(root->parent->name)) {
-				return node->AsNode();
-			}
-		}
-	}
 	return root;
 }
 

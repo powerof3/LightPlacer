@@ -21,7 +21,7 @@ namespace Debug
 				return false;
 			}
 
-			const auto root = a_obj->Get3D(false);
+			const auto root = a_obj->GetCurrent3D();
 
 			if (!root) {
 				return false;
