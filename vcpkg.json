@@ -1,6 +1,6 @@
 {
   "name": "light-placer",
-  "version-string": "2.5.3",
+  "version-string": "2.6.0",
   "description": "",
   "homepage": "",
   "license": "MIT",
@@ -15,5 +15,5 @@
     "spdlog",
     "xbyak"
   ],
-  "builtin-baseline": "01be99fec01f777c4113ceea192a45115c69cdb7"
+  "builtin-baseline": "d5ec528843d29e3a52d745a64b469f810b2cedbf"
 }

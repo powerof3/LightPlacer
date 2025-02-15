@@ -119,6 +119,7 @@ namespace Hooks::Attach
 		Clone3D<RE::IngredientItem>::Install();
 		Clone3D<RE::TESFlora>::Install();
 		Clone3D<RE::TESObjectTREE>::Install();
+
 		BSTempEffect::Init<RE::ShaderReferenceEffect>::Install();
 		BSTempEffect::Init<RE::ModelReferenceEffect>::Install();
 		AttachEnchantmentVisuals::Install();
