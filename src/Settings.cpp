@@ -33,7 +33,7 @@ namespace SETTINGS
 		constexpr auto is_formID = [](const auto& str) {
 			return str.starts_with("0x") || str.starts_with("0X");
 		};
-		
+
 		constexpr auto post_process = [](StringSet& a_strSet, FlatSet<RE::FormID>& a_formSet) {
 			erase_if(a_strSet, [&](const auto& str) {
 				if (!is_formID(str)) {  // assume formid
@@ -74,7 +74,7 @@ namespace SETTINGS
 	{
 		auto fileName = a_ref->GetFile(0)->fileName;
 		auto lastFileName = a_ref->GetDescriptionOwnerFile()->fileName;
-		
+
 		if (disableAllGameLights) {
 			return !whiteListedLights.contains(fileName) && !whiteListedLights.contains(lastFileName) && !whiteListedLightsRefs.contains(a_ref->GetFormID()) && !whiteListedLightsRefs.contains(a_base->GetFormID());
 		}
