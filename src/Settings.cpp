@@ -30,9 +30,13 @@ namespace SETTINGS
 
 	void Cache::OnDataLoad()
 	{
+		constexpr auto is_formID = [](const auto& str) {
+			return str.starts_with("0x") || str.starts_with("0X");
+		};
+		
 		constexpr auto post_process = [](StringSet& a_strSet, FlatSet<RE::FormID>& a_formSet) {
 			erase_if(a_strSet, [&](const auto& str) {
-				if (!str.starts_with("0x")) {  // assume formid
+				if (!is_formID(str)) {  // assume formid
 					return false;
 				}
 				if (auto formID = RE::GetFormID(str); formID != 0) {
@@ -68,11 +72,14 @@ namespace SETTINGS
 
 	bool Cache::GetGameLightDisabled(const RE::TESObjectREFR* a_ref, const RE::TESBoundObject* a_base) const
 	{
+		auto fileName = a_ref->GetFile(0)->fileName;
+		auto lastFileName = a_ref->GetDescriptionOwnerFile()->fileName;
+		
 		if (disableAllGameLights) {
-			return !whiteListedLights.contains(a_ref->GetFile(0)->fileName) && !whiteListedLightsRefs.contains(a_ref->GetFormID()) && !whiteListedLightsRefs.contains(a_base->GetFormID());
+			return !whiteListedLights.contains(fileName) && !whiteListedLights.contains(lastFileName) && !whiteListedLightsRefs.contains(a_ref->GetFormID()) && !whiteListedLightsRefs.contains(a_base->GetFormID());
 		}
 
-		return blackListedLights.contains(a_ref->GetFile(0)->fileName) || blackListedLightsRefs.contains(a_ref->GetFormID()) || blackListedLightsRefs.contains(a_base->GetFormID());
+		return blackListedLights.contains(fileName) || blackListedLights.contains(lastFileName) || blackListedLightsRefs.contains(a_ref->GetFormID()) || blackListedLightsRefs.contains(a_base->GetFormID());
 	}
 
 	void Cache::ReadSettings(std::string_view a_path)
