@@ -150,19 +150,20 @@ namespace Hooks::Update
 	{
 		static void thunk(RE::NiSwitchNode* a_this, RE::NiUpdateData& a_data, std::uint32_t a_arg2)
 		{
-			auto switch_idx = static_cast<std::uint16_t>(a_this->index);
+			if (a_this->children.size() == 2) {
+				auto switch_idx = static_cast<std::uint16_t>(a_this->index);				
+				// inactive node
+				RE::BSVisit::TraverseScenegraphLights(a_this->children[!switch_idx].get(), [](RE::NiPointLight* a_light) {
+					LightData::CullLight(a_light, nullptr, true, LIGHT_CULL_FLAGS::Game);
+					return RE::BSVisit::BSVisitControl::kContinue;
+				});
 
-			// inactive node
-			RE::BSVisit::TraverseScenegraphLights(a_this->children[!switch_idx].get(), [](RE::NiPointLight* a_light) {
-				LightData::CullLight(a_light, nullptr, true, LIGHT_CULL_FLAGS::Game);
-				return RE::BSVisit::BSVisitControl::kContinue;
-			});
-
-			// active node
-			RE::BSVisit::TraverseScenegraphLights(a_this->children[switch_idx].get(), [](RE::NiPointLight* a_light) {
-				LightData::CullLight(a_light, nullptr, false, LIGHT_CULL_FLAGS::Game);
-				return RE::BSVisit::BSVisitControl::kContinue;
-			});
+				// active node
+				RE::BSVisit::TraverseScenegraphLights(a_this->children[switch_idx].get(), [](RE::NiPointLight* a_light) {
+					LightData::CullLight(a_light, nullptr, false, LIGHT_CULL_FLAGS::Game);
+					return RE::BSVisit::BSVisitControl::kContinue;
+				});
+			}
 
 			func(a_this, a_data, a_arg2);
 		}
