@@ -15,7 +15,7 @@ namespace Hooks::Detach
 				LightManager::GetSingleton()->DetachTempEffectLights(a_this, true);
 			}
 			static inline REL::Relocation<decltype(thunk)> func;
-			static constexpr std::size_t                   size{ 0x3E };
+			static constexpr std::size_t                   idx{ 0x3E };
 
 			static void Install()
 			{

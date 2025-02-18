@@ -19,7 +19,7 @@ namespace Hooks::Attach
 			return node;
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   size{ 0x4A };
+		static constexpr std::size_t                   idx{ 0x4A };
 
 		static void Install()
 		{
@@ -54,7 +54,7 @@ namespace Hooks::Attach
 				return result;
 			}
 			static inline REL::Relocation<decltype(thunk)> func;
-			static constexpr std::size_t                   size{ 0x36 };
+			static constexpr std::size_t                   idx{ 0x36 };
 
 			static void Install()
 			{

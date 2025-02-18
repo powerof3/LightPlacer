@@ -10,16 +10,14 @@ struct ProcessedLights
 	{
 		RE::TESObjectREFR* ref;
 		RE::NiPoint3       pcPos;
-		float              flickeringDistance;
 		float              delta;
 		std::string_view   nodeName{ ""sv };
 		float              dimFactor{ RE::NI_INFINITY };
-		bool               freeCameraMode;
 	};
 
 	bool IsNewLight(RE::NiPointLight* a_niLight);
 
-	bool emplace_back(const SourceData& a_srcData, const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight, RE::NiAVObject* a_debugMarker);
+	bool emplace_back(const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight, RE::NiAVObject* a_debugMarker, RE::TESObjectREFR* a_ref, float a_scale);
 	void emplace_back(const REFR_LIGH& a_lightREFRData);
 
 	void ShowDebugMarkers(bool a_show) const;

@@ -93,7 +93,7 @@ namespace Hooks::Attach
 			}
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   size{ 0x38 };
+		static constexpr std::size_t                   idx{ 0x38 };
 
 		static void Install()
 		{
@@ -105,6 +105,7 @@ namespace Hooks::Attach
 	void Install()
 	{
 		Clone3D<RE::BGSMovableStatic, 2>::Install();
+		Clone3D<RE::BGSProjectile>::Install();
 		Clone3D<RE::TESFurniture>::Install();
 		Clone3D<RE::TESObjectDOOR>::Install();
 		Clone3D<RE::TESObjectMISC>::Install();
@@ -119,6 +120,7 @@ namespace Hooks::Attach
 		Clone3D<RE::IngredientItem>::Install();
 		Clone3D<RE::TESFlora>::Install();
 		Clone3D<RE::TESObjectTREE>::Install();
+
 		BSTempEffect::Init<RE::ShaderReferenceEffect>::Install();
 		BSTempEffect::Init<RE::ModelReferenceEffect>::Install();
 		AttachEnchantmentVisuals::Install();

@@ -1,5 +1,7 @@
 #include "Update.h"
 
+#include "LightData.h"
+
 namespace Hooks::Update
 {
 	// add lights to queue
@@ -100,7 +102,7 @@ namespace Hooks::Update
 			func(a_this, a_delta);
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   size{
+		static constexpr std::size_t                   idx{
 #ifndef SKYRIMVR
 			0x1D
 #else
@@ -144,6 +146,37 @@ namespace Hooks::Update
 		}
 	};
 
+	struct NiSwitchNode_UpdateDownwardsPass
+	{
+		static void thunk(RE::NiSwitchNode* a_this, RE::NiUpdateData& a_data, std::uint32_t a_arg2)
+		{
+			if (a_this->children.size() == 2) {
+				auto switch_idx = static_cast<std::uint16_t>(a_this->index);
+				// inactive node
+				RE::BSVisit::TraverseScenegraphLights(a_this->children[!switch_idx].get(), [](RE::NiPointLight* a_light) {
+					LightData::CullLight(a_light, nullptr, true, LIGHT_CULL_FLAGS::Game);
+					return RE::BSVisit::BSVisitControl::kContinue;
+				});
+
+				// active node
+				RE::BSVisit::TraverseScenegraphLights(a_this->children[switch_idx].get(), [](RE::NiPointLight* a_light) {
+					LightData::CullLight(a_light, nullptr, false, LIGHT_CULL_FLAGS::Game);
+					return RE::BSVisit::BSVisitControl::kContinue;
+				});
+			}
+
+			func(a_this, a_data, a_arg2);
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+		static constexpr std::size_t                   idx{ 0x2C };
+
+		static void Install()
+		{
+			stl::write_vfunc<RE::NiSwitchNode, NiSwitchNode_UpdateDownwardsPass>();
+			logger::info("Hooked NiSwitchNode::UpdateDownwardsPass");
+		}
+	};
+
 	void Install()
 	{
 		CheckUsesExternalEmittancePatch::Install();
@@ -153,6 +186,7 @@ namespace Hooks::Update
 		BSTempEffect::UpdatePosition<RE::ShaderReferenceEffect>::Install();
 		BSTempEffect::UpdatePosition<RE::ModelReferenceEffect>::Install();
 		ActorMagicCaster__Update::Install();
+		NiSwitchNode_UpdateDownwardsPass::Install();
 
 		RemoveExternalEmittance::Install();
 	}

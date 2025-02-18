@@ -4,31 +4,35 @@
 void Config::Filter::PostProcess()
 {
 	constexpr auto post_process = [](StringSet& a_stringSet, FlatSet<RE::FormID>& a_FormIDSet) {
-		erase_if(a_stringSet, [&a_FormIDSet](const auto& str) {
-			if (str.ends_with(".nif")) {
-				return false;
-			}
+		for (auto& str : a_stringSet) {
 			if (auto formID = RE::GetFormID(str); formID != 0) {
 				a_FormIDSet.emplace(formID);
 			}
-			return true;
-		});
+		}
+		a_stringSet.clear();
 	};
 
 	post_process(blackList, blackListForms);
 	post_process(whiteList, whiteListForms);
 }
 
-bool Config::Filter::IsInvalid(const SourceData& a_srcData) const
+bool Config::Filter::IsInvalid(const SourceAttachData& a_srcData) const
 {
-	if (!blackList.empty() || !blackListForms.empty()) {
-		if (IsBlacklisted(a_srcData)) {
-			return true;
-		}
+	if (!blackListForms.empty() && IsBlacklisted(a_srcData)) {
+		return true;
 	}
 
-	if (!whiteList.empty() || !whiteListForms.empty()) {
-		if (!IsWhitelisted(a_srcData)) {
+	if (!whiteListForms.empty() && !IsWhitelisted(a_srcData)) {
+		return true;
+	}
+
+	return false;
+}
+
+bool Config::Filter::IsBlacklisted(const SourceAttachData& a_srcData) const
+{
+	for (const auto& id : a_srcData.filterIDs) {
+		if (blackListForms.contains(id)) {
 			return true;
 		}
 	}
@@ -36,24 +40,15 @@ bool Config::Filter::IsInvalid(const SourceData& a_srcData) const
 	return false;
 }
 
-bool Config::Filter::IsBlacklisted(const SourceData& a_srcData) const
+bool Config::Filter::IsWhitelisted(const SourceAttachData& a_srcData) const
 {
-	const auto refID = a_srcData.ref->GetFormID();
-	const auto baseID = a_srcData.base->GetFormID();
-
-	return blackList.contains(a_srcData.modelPath.data()) || stl::contains(blackListForms, refID, baseID, a_srcData.cellID, a_srcData.worldSpaceID, a_srcData.locationID);
-}
-
-bool Config::Filter::IsWhitelisted(const SourceData& a_srcData) const
-{
-	const auto refID = a_srcData.ref->GetFormID();
-	const auto baseID = a_srcData.base->GetFormID();
-
-	if (!whiteList.empty() && !whiteListForms.empty()) {
-		return whiteList.contains(a_srcData.modelPath.data()) && stl::contains(whiteListForms, refID, baseID, a_srcData.cellID, a_srcData.worldSpaceID, a_srcData.locationID);
+	for (const auto& id : a_srcData.filterIDs) {
+		if (whiteListForms.contains(id)) {
+			return true;
+		}
 	}
 
-	return whiteList.contains(a_srcData.modelPath.data()) || stl::contains(whiteListForms, refID, baseID, a_srcData.cellID, a_srcData.worldSpaceID, a_srcData.locationID);
+	return false;
 }
 
 void Config::PostProcess(Config::LightSourceVec& a_lightDataVec)

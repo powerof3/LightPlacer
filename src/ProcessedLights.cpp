@@ -7,10 +7,10 @@ bool ProcessedLights::IsNewLight(RE::NiPointLight* a_niLight)
 	return std::find(lights.begin(), lights.end(), a_niLight) == lights.end();
 }
 
-bool ProcessedLights::emplace_back(const SourceData& a_srcData, const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight, RE::NiAVObject* a_debugMarker)
+bool ProcessedLights::emplace_back(const LightSourceData& a_lightSrcData, RE::NiPointLight* a_niLight, RE::BSLight* a_bsLight, RE::NiAVObject* a_debugMarker, RE::TESObjectREFR* a_ref, float a_scale)
 {
 	if (IsNewLight(a_niLight)) {
-		lights.emplace_back(a_lightSrcData, a_bsLight, a_niLight, a_debugMarker, a_srcData.ref, a_srcData.scale);
+		lights.emplace_back(a_lightSrcData, a_bsLight, a_niLight, a_debugMarker, a_ref, a_scale);
 		return true;
 	}
 	return false;
@@ -83,18 +83,18 @@ void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 		conditionUpdateFlags = ConditionUpdateFlags::Normal;
 	}
 
-	const bool  withinFlickerDistance = a_params.ref->GetPosition().GetSquaredDistance(a_params.pcPos) < a_params.flickeringDistance;
+	const bool  withinFlickerDistance = a_params.ref->GetPosition().GetSquaredDistance(a_params.pcPos) < 16384.0f;
 	const float scale = withinFlickerDistance ? a_params.ref->GetScale() : 1.0f;
 
 	for (auto& lightData : lights) {
-		if (!lightData.GetLight() || lightData.IsOutsideFrustum(a_params.freeCameraMode) || lightData.DimLight(a_params.dimFactor)) {
+		if (!lightData.GetLight() || lightData.DimLight(a_params.dimFactor)) {
 			continue;
 		}
 
 		lightData.UpdateConditions(a_params.ref, nodeVisHelper, conditionUpdateFlags);
 
 		if (!lightData.GetLight()->GetAppCulled() && withinFlickerDistance) {
-			lightData.UpdateAnimation(scale);
+			lightData.UpdateAnimation(a_params.delta, scale);
 			lightData.UpdateVanillaFlickering();
 		}
 	}
