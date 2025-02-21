@@ -31,26 +31,6 @@
                 "type": "object",
                 "required": [
                     "lights",
-                    "addonNodes"
-                ],
-                "properties": {
-                    "addonNodes": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        },
-                        "minItems": 1,
-                        "description": "addon node index"
-                    },
-                    "lights": {
-                        "$ref": "#/definitions/lightsArray"
-                    }
-                }
-            },
-            {
-                "type": "object",
-                "required": [
-                    "lights",
                     "visualEffects"
                 ],
                 "properties": {
