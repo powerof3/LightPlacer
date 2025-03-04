@@ -113,6 +113,11 @@ void LightManager::AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_bas
 		return;
 	}
 
+	auto file = a_ref->GetDescriptionOwnerFile();
+	if (file && (strcmp(file->fileName, "DynDOLOD.esm") == 0 || strcmp(file->fileName, "DynDOLOD.esp") == 0)) {
+		return;
+	}
+
 	SourceData srcData(SOURCE_TYPE::kRef, a_ref, a_root, a_base);
 	if (!srcData.IsValid()) {
 		return;
