@@ -106,6 +106,8 @@ namespace Hooks::Attach
 	{
 		Clone3D<RE::BGSMovableStatic, 2>::Install();
 		Clone3D<RE::BGSProjectile>::Install();
+		Clone3D<RE::BGSExplosion>::Install();
+		Clone3D<RE::BGSHazard>::Install();
 		Clone3D<RE::TESFurniture>::Install();
 		Clone3D<RE::TESObjectDOOR>::Install();
 		Clone3D<RE::TESObjectMISC>::Install();
