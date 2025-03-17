@@ -349,6 +349,10 @@ bool LightSourceData::IsStaticLight() const
 
 RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const
 {
+	if (!a_root) {
+		return nullptr;
+	}
+
 	if (a_point == RE::NiPoint3::Zero() && IsStaticLight()) {
 		return a_root;
 	}
@@ -363,17 +367,25 @@ RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoi
 		RE::AttachNode(a_root, node);
 	}
 
-	return node->AsNode();
+	return node ? node->AsNode() : nullptr;
 }
 
 RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
 {
+	if (!a_root) {
+		return nullptr;
+	}
+
 	const auto obj = a_root->GetObjectByName(a_nodeName);
-	return obj ? GetOrCreateNode(a_root, obj, a_index) : nullptr;
+	return GetOrCreateNode(a_root, obj, a_index);
 }
 
 RE::NiNode* LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
 {
+	if (!a_root || !a_obj) {
+		return nullptr;
+	}
+
 	if (const auto node = a_obj->AsNode()) {
 		if (IsStaticLight()) {
 			return node;
