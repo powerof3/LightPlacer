@@ -5,43 +5,49 @@
 
 namespace Hooks::Misc
 {
-	struct InitItemImpl
+	struct detail
 	{
-		static void thunk(RE::TESObjectREFR* a_ref)
+		static bool should_disable_light(RE::TESObjectLIGH* light, RE::TESObjectREFR* ref)
 		{
-			func(a_ref);
+			return ref && light && !ref->IsDynamicForm() && light->data.flags.none(RE::TES_LIGHT_FLAGS::kCanCarry) && Settings::GetSingleton()->GetGameLightDisabled(ref, light);
+		}
+	};
 
-			const auto base = a_ref->GetBaseObject();
-			if (a_ref->IsDynamicForm() || !base || base->IsNot(RE::FormType::Light)) {
-				return;
-			}
-
-			auto light = base->As<RE::TESObjectLIGH>();
-			if (!light || light->data.flags.any(RE::TES_LIGHT_FLAGS::kCanCarry)) {
-				return;
-			}
-
-			if (!Settings::GetSingleton()->GetGameLightDisabled(a_ref, base)) {
-				return;
-			}
-
-			a_ref->formFlags |= RE::TESObjectREFR::RecordFlags::kInitiallyDisabled;
-			a_ref->data.location.z -= 30000.0f;
+	struct TESObjectLIGH_GenDynamic
+	{
+		static RE::NiPointLight* thunk(RE::TESObjectLIGH* light,
+			RE::TESObjectREFR*                            ref,
+			RE::NiNode*                                   node,
+			bool                                          forceDynamic,
+			bool                                          useLightRadius,
+			bool                                          affectRequesterOnly)
+		{
+			return detail::should_disable_light(light, ref) ?
+			           nullptr :
+			           func(light, ref, node, forceDynamic, useLightRadius, affectRequesterOnly);
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   idx{ 0x13 };
 
 		static void Install()
 		{
-			stl::write_vfunc<RE::TESObjectREFR, InitItemImpl>();
-			logger::info("Hooked TESObjectREFR::InitItemImpl");
+			std::array targets{
+				std::make_pair(RELOCATION_ID(17206, 17603), 0x1D3),  // TESObjectLIGH::Clone3D
+				std::make_pair(RELOCATION_ID(19252, 19678), 0xB8),   // TESObjectREFR::AddLight
+			};
+
+			for (const auto& [address, offset] : targets) {
+				REL::Relocation<std::uintptr_t> target{ address, offset };
+				stl::write_thunk_call<TESObjectLIGH_GenDynamic>(target.address());
+			}
+
+			logger::info("Installed TESObjectLIGH::GenDynamic patch"sv);
 		}
 	};
 
 	void Install()
 	{
 		if (Settings::GetSingleton()->ShouldDisableLights()) {
-			InitItemImpl::Install();
+			TESObjectLIGH_GenDynamic::Install();
 		}
 	}
 }
