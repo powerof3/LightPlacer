@@ -187,7 +187,7 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 
 	if (niLight) {
 		niLight->ambient = RE::NiColor();
-		niLight->ambient.red = static_cast<float>(flags.underlying());
+		niLight->ambient.red = std::bit_cast<float>(flags.underlying());
 
 		niLight->diffuse = GetDiffuse();
 
@@ -219,18 +219,22 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 
 LIGHT_CULL_FLAGS LightData::GetCulledFlag(RE::NiPointLight* a_light)
 {
-	return static_cast<LIGHT_CULL_FLAGS>(a_light->ambient.blue);
+	return static_cast<LIGHT_CULL_FLAGS>(std::bit_cast<uint32_t>(a_light->ambient.red) >> 24);
 }
 
 void LightData::CullLight(RE::NiPointLight* a_light, RE::NiAVObject* a_debugMarker, bool a_hide, LIGHT_CULL_FLAGS a_flags)
 {
 	a_light->SetAppCulled(a_hide);
 
+	uint32_t bits = std::bit_cast<uint32_t>(a_light->ambient.red);
+
 	if (a_hide) {
-		a_light->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(a_light->ambient.blue) | std::to_underlying(a_flags));
+		bits = (bits & 0x00FFFFFF) | (static_cast<uint32_t>(std::to_underlying(a_flags)) << 24);
 	} else {
-		a_light->ambient.blue = static_cast<float>(static_cast<std::uint8_t>(a_light->ambient.blue) & ~std::to_underlying(a_flags));
+		bits &= ~(static_cast<uint32_t>(std::to_underlying(a_flags)) << 24);
 	}
+
+	a_light->ambient.red = std::bit_cast<float>(bits);
 
 	if (Settings::GetSingleton()->CanShowDebugMarkers() && a_debugMarker) {
 		a_debugMarker->SetAppCulled(a_hide);
@@ -243,7 +247,7 @@ const char* LightData::GetCulledStatus(RE::NiPointLight* a_light)
 		return "visible";
 	}
 
-	const REX::EnumSet<LIGHT_CULL_FLAGS, std::uint8_t> flags(static_cast<LIGHT_CULL_FLAGS>(a_light->ambient.blue));
+	const REX::EnumSet<LIGHT_CULL_FLAGS, std::uint8_t> flags(static_cast<LIGHT_CULL_FLAGS>(std::bit_cast<uint32_t>(a_light->ambient.red) >> 24));
 
 	// script > game > conditions
 
