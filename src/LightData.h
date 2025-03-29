@@ -20,7 +20,7 @@ enum class LIGHT_FLAGS
 	IgnoreScale = (1 << 21),
 	RandomAnimStart = (1 << 22),
 	NoExternalEmittance = (1 << 23)
-	
+
 	// LIGHT_CULL_FLAGS 24 - 31
 };
 
