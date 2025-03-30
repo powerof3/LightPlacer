@@ -13,13 +13,15 @@ enum class LIGHT_FLAGS
 	Simple = (1 << 2),
 
 	// LP flags
-	UpdateOnWaiting = (1 << 25),
-	UpdateOnCellTransition = (1 << 26),
+	UpdateOnWaiting = (1 << 18),
+	UpdateOnCellTransition = (1 << 19),
 	NeedsUpdate = UpdateOnWaiting | UpdateOnCellTransition,
-	SyncAddonNodes = (1 << 27),
-	IgnoreScale = (1 << 28),
-	RandomAnimStart = (1 << 29),
-	NoExternalEmittance = (1 << 30)
+	SyncAddonNodes = (1 << 20),
+	IgnoreScale = (1 << 21),
+	RandomAnimStart = (1 << 22),
+	NoExternalEmittance = (1 << 23)
+
+	// LIGHT_CULL_FLAGS 24 - 31
 };
 
 enum class LIGHT_CULL_FLAGS
