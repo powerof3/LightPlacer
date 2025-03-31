@@ -131,6 +131,26 @@ float LightData::GetFOV() const
 	return RE::NI_TWO_PI;
 }
 
+LIGHT_FLAGS LightData::GetLightFlags() const
+{
+	auto lightFlags = LIGHT_FLAGS::Initialised | flags;
+	if (GetInverseSquare()) {
+		lightFlags |= LIGHT_FLAGS::InverseSquare;
+	}
+	return lightFlags.get();
+}
+
+bool LightData::GetInverseSquare() const
+{
+	return flags.any(LIGHT_FLAGS::InverseSquare) || light->data.flags.any(static_cast<RE::TES_LIGHT_FLAGS>(TES_LIGHT_FLAGS_EXT::kInverseSquare));
+}
+
+float LightData::GetCutoff() const
+{
+	const float lightCutoff = cutoff > 0.0f ? cutoff : light->data.fallofExponent;
+	return std::min(std::max(lightCutoff, 0.01f), 1.0f);
+}
+
 float LightData::GetFalloff() const
 {
 	return GetCastsShadows() ? light->data.fallofExponent : 1.0f;
@@ -187,7 +207,9 @@ std::tuple<RE::BSLight*, RE::NiPointLight*, RE::NiAVObject*> LightData::GenLight
 
 	if (niLight) {
 		niLight->ambient = RE::NiColor();
-		niLight->ambient.red = std::bit_cast<float>(flags.underlying());
+		niLight->ambient.red = std::bit_cast<float>(GetLightFlags());
+		niLight->ambient.green = GetCutoff();
+		niLight->ambient.blue = std::bit_cast<float>(light->formID);
 
 		niLight->diffuse = GetDiffuse();
 
