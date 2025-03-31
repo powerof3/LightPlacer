@@ -78,7 +78,7 @@ struct LightData
 	float                                    radius{ 0.0f };
 	float                                    fade{ 0.0f };
 	float                                    fov{ 0.0f };
-	float                                    cutoff { 0.0f };
+	float                                    cutoff{ 0.0f };
 	float                                    shadowDepthBias{ 1.0f };
 	RE::NiPoint3                             offset;
 	RE::NiMatrix3                            rotation;
