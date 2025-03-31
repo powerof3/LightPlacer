@@ -12,6 +12,11 @@ enum class LIGHT_FLAGS
 	Shadow = (1 << 1),
 	Simple = (1 << 2),
 
+	// CS ISL flags
+	Initialised = (1 << 8),
+	Disabled = (1 << 9),
+	InverseSquare = (1 << 10),
+
 	// LP flags
 	UpdateOnWaiting = (1 << 18),
 	UpdateOnCellTransition = (1 << 19),
@@ -32,6 +37,11 @@ enum class LIGHT_CULL_FLAGS
 	Script = (1 << 2),
 };
 
+enum class TES_LIGHT_FLAGS_EXT
+{
+	kInverseSquare = 1 << 14,
+};
+
 struct LightData
 {
 	bool                                     GetCastsShadows() const;
@@ -43,6 +53,9 @@ struct LightData
 	float                                    GetScaledRadius(float a_scale) const;
 	float                                    GetScaledFade(float a_scale) const;
 	float                                    GetFOV() const;
+	LIGHT_FLAGS                              GetLightFlags() const;
+	bool                                     GetInverseSquare() const;
+	float                                    GetCutoff() const;
 	float                                    GetFalloff() const;
 	float                                    GetNearDistance() const;
 	static std::string                       GetLightName(const SourceAttachData& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index);
@@ -65,6 +78,7 @@ struct LightData
 	float                                    radius{ 0.0f };
 	float                                    fade{ 0.0f };
 	float                                    fov{ 0.0f };
+	float                                    cutoff { 0.0f };
 	float                                    shadowDepthBias{ 1.0f };
 	RE::NiPoint3                             offset;
 	RE::NiMatrix3                            rotation;
@@ -137,6 +151,9 @@ struct glz::meta<LightSourceData>
 				case "Simple"_h:
 					s.data.flags.set(LIGHT_FLAGS::Simple);
 					break;
+				case "InverseSquare"_h:
+					s.data.flags.set(LIGHT_FLAGS::InverseSquare);
+					break;
 
 				case "UpdateOnWaiting"_h:
 					s.data.flags.set(LIGHT_FLAGS::UpdateOnWaiting);
@@ -206,6 +223,7 @@ struct glz::meta<LightSourceData>
 		"radius", [](auto&& self) -> auto& { return self.data.radius; },
 		"fade", [](auto&& self) -> auto& { return self.data.fade; },
 		"fov", [](auto&& self) -> auto& { return self.data.fov; },
+		"cutoff", [](auto&& self) -> auto& { return self.data.cutoff; },
 		"shadowDepthBias", [](auto&& self) -> auto& { return self.data.shadowDepthBias; },
 		"offset", [](auto&& self) -> auto& { return self.data.offset; },
 		"rotation", [](auto&& self) -> auto& { return self.data.rotation; },
