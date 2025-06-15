@@ -594,7 +594,7 @@ bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_par
 		a_param.f = string::to_num<float>(a_str);
 		break;
 	case PARAM_TYPE::kActorValue:
-		a_param.i = static_cast<std::int32_t>(RE::ActorValueList::GetSingleton()->LookupActorValueByName(a_str));
+		a_param.i = static_cast<std::int32_t>(RE::ActorValueList::GetSingleton()->LookupActorValueByName(a_str.c_str()));
 		break;
 	case RE::SCRIPT_PARAM_TYPE::kAxis:
 		{

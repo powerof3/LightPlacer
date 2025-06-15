@@ -7,7 +7,10 @@ enum class INTERPOLATION : std::uint8_t
 	kCubic
 };
 
-struct LightSourceData;
+namespace LIGH
+{
+	struct LightSourceData;
+}
 
 // all-in-one controller
 struct LightAnimData
@@ -229,7 +232,7 @@ using FloatController = LightController<float>;
 struct LightControllers
 {
 	LightControllers() = default;
-	LightControllers(const LightSourceData& a_src);
+	LightControllers(const LIGH::LightSourceData& a_src);
 
 	void UpdateAnimation(const RE::NiPointer<RE::NiPointLight>& a_light, float a_delta, float a_scalingFactor);
 

@@ -10,40 +10,49 @@ namespace Config
 	{
 		void PostProcess();
 
-		bool IsInvalid(const SourceAttachData& a_srcData) const;
-		bool IsBlacklisted(const SourceAttachData& a_srcData) const;
-		bool IsWhitelisted(const SourceAttachData& a_srcData) const;
+		bool IsInvalid(const std::unique_ptr<SourceAttachData>& a_srcData) const;
+		bool IsBlacklisted(const std::unique_ptr<SourceAttachData>& a_srcData) const;
+		bool IsWhitelisted(const std::unique_ptr<SourceAttachData>& a_srcData) const;
 
-		StringSet whiteList;
-		StringSet blackList;
-
+		// members
+		StringSet           whiteList;
+		StringSet           blackList;
 		FlatSet<RE::FormID> whiteListForms;
 		FlatSet<RE::FormID> blackListForms;
 	};
 
-	struct FilterData
-	{
-		Filter          filter;
-		LightSourceData data;
-	};
-
 	struct PointData
 	{
-		Filter                    filter;
 		std::vector<RE::NiPoint3> points;
-		LightSourceData           data;
+		LIGH::LightSourceData     data;
 	};
 
 	struct NodeData
 	{
-		Filter          filter;
-		StringSet       nodes;
-		LightSourceData data;
+		StringSet             nodes;
+		LIGH::LightSourceData data;
 	};
 
-	using LightSourceData = std::variant<PointData, NodeData>;
+	template <class T>
+	struct FilteredData
+	{
+		LIGH::LightSourceData& get()
+			requires !std::is_same_v<T, LIGH::LightSourceData>
+		{
+			return data.data;
+		}
+
+		Filter filter;
+		T      data;
+	};
+
+	using FilteredRawData = FilteredData<LIGH::LightSourceData>;
+	using AddonLightSourceVec = std::vector<FilteredRawData>;
+
+	using FilteredPointData = FilteredData<PointData>;
+	using FilteredNodeData = FilteredData<NodeData>;
+	using LightSourceData = std::variant<FilteredPointData, FilteredNodeData>;
 	using LightSourceVec = std::vector<LightSourceData>;
-	using AddonLightSourceVec = std::vector<FilterData>;
 
 	struct MultiModelSet
 	{
@@ -60,8 +69,8 @@ namespace Config
 	// deprecated
 	struct MultiAddonSet
 	{
-		FlatSet<std::uint32_t>  addonNodes;
-		std::vector<FilterData> lights;
+		FlatSet<std::uint32_t>       addonNodes;
+		std::vector<FilteredRawData> lights;
 	};
 
 	using Format = std::variant<MultiModelSet, MultiVisualEffectSet, MultiAddonSet>;
@@ -71,9 +80,9 @@ namespace Config
 }
 
 template <>
-struct glz::meta<Config::FilterData>
+struct glz::meta<Config::FilteredRawData>
 {
-	using T = Config::FilterData;
+	using T = Config::FilteredRawData;
 	static constexpr auto value = object(
 		"whiteList", [](auto&& self) -> auto& { return self.filter.whiteList; },
 		"blackList", [](auto&& self) -> auto& { return self.filter.blackList; },
@@ -81,23 +90,50 @@ struct glz::meta<Config::FilterData>
 };
 
 template <>
-struct glz::meta<Config::PointData>
+struct glz::meta<Config::FilteredPointData>
 {
-	using T = Config::PointData;
+	using T = Config::FilteredPointData;
 	static constexpr auto value = object(
 		"whiteList", [](auto&& self) -> auto& { return self.filter.whiteList; },
 		"blackList", [](auto&& self) -> auto& { return self.filter.blackList; },
-		"points", &T::points,
-		"data", &T::data);
+		"points", [](auto&& self) -> auto& { return self.data.points; },
+		"data", [](auto&& self) -> auto& { return self.data.data; });
 };
 
 template <>
-struct glz::meta<Config::NodeData>
+struct glz::meta<Config::FilteredNodeData>
 {
-	using T = Config::NodeData;
+	using T = Config::FilteredNodeData;
 	static constexpr auto value = object(
 		"whiteList", [](auto&& self) -> auto& { return self.filter.whiteList; },
 		"blackList", [](auto&& self) -> auto& { return self.filter.blackList; },
-		"nodes", &T::nodes,
-		"data", &T::data);
+		"nodes", [](auto&& self) -> auto& { return self.data.nodes; },
+		"data", [](auto&& self) -> auto& { return self.data.data; });
+};
+
+template <>
+struct glz::meta<Config::MultiModelSet>
+{
+	using T = Config::MultiModelSet;
+	static constexpr auto value = object(
+		"models", &T::models,
+		"lights", &T::lights);
+};
+
+template <>
+struct glz::meta<Config::MultiVisualEffectSet>
+{
+	using T = Config::MultiVisualEffectSet;
+	static constexpr auto value = object(
+		"visualEffects", &T::visualEffects,
+		"lights", &T::lights);
+};
+
+template <>
+struct glz::meta<Config::MultiAddonSet>
+{
+	using T = Config::MultiAddonSet;
+	static constexpr auto value = object(
+		"addonNodes", &T::addonNodes,
+		"lights", &T::lights);
 };
