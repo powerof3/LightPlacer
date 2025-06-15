@@ -12,7 +12,7 @@ bool LightAnimData::GetValidTranslation() const { return IsValid(translation); }
 
 bool LightAnimData::GetValidRotation() const { return IsValid(rotation); }
 
-LightControllers::LightControllers(const LightSourceData& a_src)
+LightControllers::LightControllers(const LIGH::LightSourceData& a_src)
 {
 	const bool randomAnimStart = a_src.data.flags.any(LIGHT_FLAGS::RandomAnimStart);
 

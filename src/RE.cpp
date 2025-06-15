@@ -107,6 +107,12 @@ namespace RE
 		return a_ref->Is(FormType::ActorCharacter);
 	}
 
+	bool IsDynDOLODForm(const TESObjectREFR* a_ref)
+	{
+		auto file = a_ref->GetDescriptionOwnerFile();
+		return file && (strcmp(file->fileName, "DynDOLOD.esm") == 0 || strcmp(file->fileName, "DynDOLOD.esp") == 0);
+	}
+
 	float NiSinQImpl(float a_value)
 	{
 		static constexpr std::array<float, 512> sineTable = {

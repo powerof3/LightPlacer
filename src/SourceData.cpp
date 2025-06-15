@@ -32,10 +32,10 @@ bool SourceData::IsValid() const
 	return !ref->IsDisabled() && !ref->IsDeleted() && root != nullptr;
 }
 
-RE::NiNode* SourceData::GetAttachNode() const
+RE::NiNodePtr SourceData::GetAttachNode() const
 {
 	if (type == SOURCE_TYPE::kActorWorn && base->Is(RE::FormType::Armor)) {
-		return ref->Get3D()->AsNode();
+		return RE::NiNodePtr(ref->Get3D()->AsNode());
 	}
 	return root;
 }
@@ -43,13 +43,13 @@ RE::NiNode* SourceData::GetAttachNode() const
 std::string SourceData::GetWornItemNodeName() const
 {
 	if (type != SOURCE_TYPE::kActorWorn) {
-		return std::string();
+		return {};
 	}
 
 	char nodeName[MAX_PATH]{ '\0' };
 	if (auto armo = base->As<RE::TESObjectARMO>()) {
 		if (auto arma = RE::TESForm::LookupByID<RE::TESObjectARMA>(miscID)) {
-			arma->GetNodeName(nodeName, ref, armo, -1);
+			arma->GetNodeName(nodeName, ref.get(), armo, -1);
 		}
 	} else if (const auto weap = base->As<RE::TESObjectWEAP>()) {
 		weap->GetNodeName(nodeName);
@@ -58,28 +58,28 @@ std::string SourceData::GetWornItemNodeName() const
 	return nodeName;
 }
 
-bool SourceAttachData::Initialize(const SourceData& a_srcData)
+bool SourceAttachData::Initialize(const std::unique_ptr<SourceData>& a_srcData)
 {
 	if (!attachNode) {
-		if (auto parentCell = a_srcData.ref->GetParentCell()) {
-			type = a_srcData.type;
-			effectID = a_srcData.miscID;
-			ref = a_srcData.ref;
-			root = a_srcData.root;
-			attachNode = a_srcData.GetAttachNode();
-			handle = ref->CreateRefHandle().native_handle();
-			scale = ref->GetScale();
-			nodeName = std::move(a_srcData.GetWornItemNodeName());
+		const auto& srcRef = a_srcData->ref;
+		if (auto parentCell = srcRef ? srcRef->GetParentCell() : nullptr) {
+			type = a_srcData->type;
+			effectID = a_srcData->miscID;
+			ref = srcRef;
+			root = a_srcData->root;
+			attachNode = a_srcData->GetAttachNode();
+			scale = srcRef->GetScale();
+			nodeName = std::move(a_srcData->GetWornItemNodeName());
 
 			filterIDs.push_back(parentCell->GetFormID());
 
-			filterIDs.push_back(ref->GetFormID());
-			filterIDs.push_back(a_srcData.base->GetFormID());
+			filterIDs.push_back(srcRef->GetFormID());
+			filterIDs.push_back(a_srcData->base->GetFormID());
 
-			if (auto worldSpace = ref->GetWorldspace()) {
+			if (auto worldSpace = srcRef->GetWorldspace()) {
 				filterIDs.push_back(worldSpace->GetFormID());
 			}
-			if (auto location = ref->GetCurrentLocation()) {
+			if (auto location = srcRef->GetCurrentLocation()) {
 				filterIDs.push_back(location->GetFormID());
 				for (auto it = location->parentLoc; it; it = it->parentLoc) {
 					filterIDs.push_back(it->GetFormID());
@@ -88,5 +88,10 @@ bool SourceAttachData::Initialize(const SourceData& a_srcData)
 		}
 	}
 
+	return IsValid();
+}
+
+bool SourceAttachData::IsValid() const
+{
 	return attachNode != nullptr;
 }

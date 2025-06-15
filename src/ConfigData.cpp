@@ -16,7 +16,7 @@ void Config::Filter::PostProcess()
 	post_process(whiteList, whiteListForms);
 }
 
-bool Config::Filter::IsInvalid(const SourceAttachData& a_srcData) const
+bool Config::Filter::IsInvalid(const std::unique_ptr<SourceAttachData>& a_srcData) const
 {
 	if (!blackListForms.empty() && IsBlacklisted(a_srcData)) {
 		return true;
@@ -29,9 +29,9 @@ bool Config::Filter::IsInvalid(const SourceAttachData& a_srcData) const
 	return false;
 }
 
-bool Config::Filter::IsBlacklisted(const SourceAttachData& a_srcData) const
+bool Config::Filter::IsBlacklisted(const std::unique_ptr<SourceAttachData>& a_srcData) const
 {
-	for (const auto& id : a_srcData.filterIDs) {
+	for (const auto& id : a_srcData->filterIDs) {
 		if (blackListForms.contains(id)) {
 			return true;
 		}
@@ -40,9 +40,9 @@ bool Config::Filter::IsBlacklisted(const SourceAttachData& a_srcData) const
 	return false;
 }
 
-bool Config::Filter::IsWhitelisted(const SourceAttachData& a_srcData) const
+bool Config::Filter::IsWhitelisted(const std::unique_ptr<SourceAttachData>& a_srcData) const
 {
-	for (const auto& id : a_srcData.filterIDs) {
+	for (const auto& id : a_srcData->filterIDs) {
 		if (whiteListForms.contains(id)) {
 			return true;
 		}
@@ -56,14 +56,14 @@ void Config::PostProcess(Config::LightSourceVec& a_lightDataVec)
 	std::erase_if(a_lightDataVec, [](auto& attachLightData) {
 		bool failedPostProcess = false;
 		std::visit(overload{
-					   [&](Config::PointData& pointData) {
-						   failedPostProcess = !pointData.data.PostProcess();
+					   [&](Config::FilteredPointData& pointData) {
+						   failedPostProcess = !pointData.get().PostProcess();
 						   if (!failedPostProcess) {
 							   pointData.filter.PostProcess();
 						   }
 					   },
-					   [&](Config::NodeData& nodeData) {
-						   failedPostProcess = !nodeData.data.PostProcess();
+					   [&](Config::FilteredNodeData& nodeData) {
+						   failedPostProcess = !nodeData.get().PostProcess();
 						   if (!failedPostProcess) {
 							   nodeData.filter.PostProcess();
 						   }

@@ -52,11 +52,13 @@ namespace RE
 
 	static constexpr NiMatrix3 MATRIX_ZERO{};
 
+	using NiNodePtr = NiPointer<NiNode>;
+
 	template <class T>
-	void AttachNode(NiNode* a_root, T* a_obj)
+	void AttachNode(const NiNodePtr& a_root, T* a_obj)
 	{
 		if (TaskQueueInterface::ShouldUseTaskQueue()) {
-			TaskQueueInterface::GetSingleton()->QueueNodeAttach(a_obj, a_root);
+			TaskQueueInterface::GetSingleton()->QueueNodeAttach(a_obj, a_root.get());
 		} else {
 			a_root->AttachChild(a_obj, true);
 		}
@@ -90,7 +92,7 @@ namespace RE
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
 	BGSArtObject*   GetCastingArt(const MagicItem* a_magicItem);
 	BGSArtObject*   GetCastingArt(const ActorMagicCaster* a_actorMagicCaster);
-	bool            IsActor(const TESObjectREFR* a_ref);
+	bool            IsDynDOLODForm(const TESObjectREFR* a_ref);
 	float           NiSinQImpl(float a_value);
 	float           NiCosQImpl(float a_value);
 	float           NiSinQ(float a_radians);
