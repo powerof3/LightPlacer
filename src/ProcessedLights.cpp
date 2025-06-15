@@ -83,7 +83,7 @@ void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 
 	for (auto& lightData : lights) {
 		auto& niLight = lightData.output.GetLight();
-		
+
 		if (!niLight || lightData.output.DimLight(a_params.dimFactor)) {
 			continue;
 		}
