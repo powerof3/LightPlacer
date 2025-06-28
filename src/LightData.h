@@ -104,7 +104,7 @@ struct LightData
 	bool                                     IsDynamicLight(const RE::TESObjectREFR* a_ref) const;
 	bool                                     IsValid() const;
 
-	LightOutput GenLight(RE::TESObjectREFR* a_ref, const RE::NiNodePtr& a_node, std::string_view a_lightName, float a_scale) const;  // [bsLight, niLight, debugMarker]
+	LightOutput GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;  // [bsLight, niLight, debugMarker]
 
 	static LIGHT_CULL_FLAGS GetCulledFlag(RE::NiPointLight* a_light);
 	static void             CullLight(RE::NiPointLight* a_light, RE::NiAVObject* a_debugMarker, bool a_hide, LIGHT_CULL_FLAGS a_flags);
@@ -139,7 +139,7 @@ private:
 	};
 
 	static std::string   GetDebugMarkerName(std::string_view a_lightName);
-	RE::NiAVObject*      AttachDebugMarker(const RE::NiNodePtr& a_node, std::string_view a_debugMarkerName) const;
+	RE::NiAVObject*      AttachDebugMarker(RE::NiNode* a_node, std::string_view a_debugMarkerName) const;
 	static void          PostProcessDebugMarker(RE::NiAVObject* a_obj, const MARKER_CREATE_PARAMS& a_params, std::string_view a_debugMarkerName);
 	MARKER_CREATE_PARAMS GetDebugMarkerParams() const;
 };
@@ -155,9 +155,9 @@ namespace LIGH
 
 		bool IsStaticLight() const;
 
-		RE::NiNodePtr GetOrCreateNode(const RE::NiNodePtr& a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
-		RE::NiNodePtr GetOrCreateNode(const RE::NiNodePtr& a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
-		RE::NiNodePtr GetOrCreateNode(const RE::NiNodePtr& a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
 
 		// members
 		LightData                data;

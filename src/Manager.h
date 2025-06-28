@@ -141,7 +141,7 @@ private:
 	void AttachLightsImpl(const std::unique_ptr<SourceData>& a_srcData, RE::FormID a_formID = 0);
 	void CollectValidLights(const std::unique_ptr<SourceAttachData>& a_srcData, const Config::LightSourceData& a_lightData, std::vector<Config::PointData>& a_collectedPoints, std::vector<Config::NodeData>& a_collectedNodes);
 
-	void AttachLight(const LIGH::LightSourceData& a_lightSource, const std::unique_ptr<SourceAttachData>& a_srcData, const RE::NiNodePtr& a_node, std::uint32_t a_index = 0);
+	void AttachLight(const LIGH::LightSourceData& a_lightSource, const std::unique_ptr<SourceAttachData>& a_srcData, RE::NiNode* a_node, std::uint32_t a_index = 0);
 
 	// members
 	std::vector<Config::Format>                 configs;
