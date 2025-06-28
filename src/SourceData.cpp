@@ -32,10 +32,10 @@ bool SourceData::IsValid() const
 	return !ref->IsDisabled() && !ref->IsDeleted() && root != nullptr;
 }
 
-RE::NiNodePtr SourceData::GetAttachNode() const
+RE::NiNode* SourceData::GetAttachNode() const
 {
 	if (type == SOURCE_TYPE::kActorWorn && base->Is(RE::FormType::Armor)) {
-		return RE::NiNodePtr(ref->Get3D()->AsNode());
+		return ref->Get3D()->AsNode();
 	}
 	return root;
 }

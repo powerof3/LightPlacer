@@ -128,7 +128,7 @@ bool LightData::IsDynamicLight(const RE::TESObjectREFR* a_ref) const
 	return false;
 }
 
-RE::NiAVObject* LightData::AttachDebugMarker(const RE::NiNodePtr& a_node, std::string_view a_debugMarkerName) const
+RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_view a_debugMarkerName) const
 {
 	if (!Settings::GetSingleton()->LoadDebugMarkers()) {
 		return nullptr;
@@ -263,7 +263,7 @@ bool LightData::GetPortalStrict() const
 	return flags.any(LIGHT_FLAGS::PortalStrict) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
 }
 
-LightOutput LightData::GenLight(RE::TESObjectREFR* a_ref, const RE::NiNodePtr& a_node, std::string_view a_lightName, float a_scale) const
+LightOutput LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const
 {
 	RE::BSLight*      bsLight = nullptr;
 	RE::NiPointLight* niLight = nullptr;
@@ -451,7 +451,7 @@ bool LIGH::LightSourceData::IsStaticLight() const
 	return data.offset == RE::NiPoint3::Zero() && data.rotation == RE::MATRIX_ZERO && positionController.empty() && rotationController.empty();
 }
 
-RE::NiNodePtr LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const
+RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const
 {
 	if (!a_root) {
 		return nullptr;
@@ -472,10 +472,10 @@ RE::NiNodePtr LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root
 		RE::AttachNode(a_root, node);
 	}
 
-	return RE::NiNodePtr(node ? node->AsNode() : nullptr);
+	return node ? node->AsNode() : nullptr;
 }
 
-RE::NiNodePtr LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, const std::string& a_nodeName, std::uint32_t a_index) const
+RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
 {
 	if (!a_root) {
 		return nullptr;
@@ -485,7 +485,7 @@ RE::NiNodePtr LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root
 	return GetOrCreateNode(a_root, obj, a_index);
 }
 
-RE::NiNodePtr LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
+RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
 {
 	if (!a_root || !a_obj) {
 		return nullptr;
@@ -493,25 +493,25 @@ RE::NiNodePtr LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root
 
 	if (const auto node = a_obj->AsNode()) {
 		if (IsStaticLight()) {
-			return RE::NiNodePtr(node);
+			return node;
 		}
 	}
 
 	auto geometry = a_obj->AsGeometry();
 	if (geometry && geometry->parent && !geometry->parent->AsFadeNode()) {  // not top level BSFadeNode
 		if (geometry->local == RE::NiTransform{}) {
-			return RE::NiNodePtr(geometry->parent);
+			return geometry->parent;
 		}
 	}
 
 	const auto name = LightData::GetNodeName(a_obj, a_index);
 	if (const auto node = a_root->GetObjectByName(name)) {
-		return RE::NiNodePtr(node->AsNode());
+		return node->AsNode();
 	}
 
-	RE::NiNodePtr newNode = nullptr;
+	RE::NiNode* newNode = nullptr;
 
-	if (newNode.reset(RE::NiNode::Create(1)); newNode) {
+	if (newNode = RE::NiNode::Create(1); newNode) {
 		newNode->name = name;
 		if (geometry) {
 			newNode->local.translate = geometry->modelBound.center;
@@ -519,12 +519,11 @@ RE::NiNodePtr LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root
 		newNode->local.translate += data.offset;
 		newNode->local.rotate = data.rotation;
 		RE::AttachNode(geometry ? a_root :
-								  RE::NiNodePtr(a_obj->AsNode()),
-			newNode.get());
-		return newNode;
+								  a_obj->AsNode(),
+			newNode);
 	}
 
-	return nullptr;
+	return newNode;
 }
 
 void REFR_LIGH::NodeVisHelper::InsertConditionalNodes(const StringSet& a_nodes, bool a_isVisble)
@@ -587,7 +586,7 @@ void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 		return;
 	}
 
-	output = data.GenLight(a_ref, RE::NiNodePtr(niLight->parent), niLight->name, scale);
+	output = data.GenLight(a_ref, niLight->parent, niLight->name, scale);
 
 	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
 		output.ShowDebugMarker();

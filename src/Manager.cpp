@@ -367,7 +367,7 @@ void LightManager::AttachLightsImpl(const std::unique_ptr<SourceData>& a_srcData
 	for (auto& [nodes, lightData] : collectedNodes) {
 		std::vector<RE::NiAVObject*> nodeVec;
 		if (srcAttachData->attachNode) {
-			RE::BSVisit::TraverseScenegraphObjects(srcAttachData->attachNode.get(), [&](RE::NiAVObject* a_obj) {
+			RE::BSVisit::TraverseScenegraphObjects(srcAttachData->attachNode, [&](RE::NiAVObject* a_obj) {
 				if (nodes.contains(a_obj->name.c_str())) {
 					nodeVec.push_back(a_obj);
 				}
@@ -402,7 +402,7 @@ void LightManager::CollectValidLights(const std::unique_ptr<SourceAttachData>& a
 		a_lightData);
 }
 
-void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const std::unique_ptr<SourceAttachData>& a_srcData, const RE::NiNodePtr& a_node, std::uint32_t a_index)
+void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const std::unique_ptr<SourceAttachData>& a_srcData, RE::NiNode* a_node, std::uint32_t a_index)
 {
 	if (!a_node) {
 		return;

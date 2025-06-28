@@ -54,11 +54,15 @@ namespace RE
 
 	using NiNodePtr = NiPointer<NiNode>;
 
-	template <class T>
-	void AttachNode(const NiNodePtr& a_root, T* a_obj)
+	template <class T, class U>
+	void AttachNode(const U a_root, T* a_obj)
 	{
 		if (TaskQueueInterface::ShouldUseTaskQueue()) {
-			TaskQueueInterface::GetSingleton()->QueueNodeAttach(a_obj, a_root.get());
+			if constexpr (std::is_same_v<U, NiNodePtr>) {
+				TaskQueueInterface::GetSingleton()->QueueNodeAttach(a_obj, a_root.get());
+			} else {
+				TaskQueueInterface::GetSingleton()->QueueNodeAttach(a_obj, a_root);
+			}
 		} else {
 			a_root->AttachChild(a_obj, true);
 		}
