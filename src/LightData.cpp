@@ -163,36 +163,29 @@ RE::NiColor LightData::GetDiffuse() const
 
 float LightData::GetRadius() const
 {
-	return radius > 0.0f ? radius : static_cast<float>(light->data.radius);
+	return (radius > 0.0f ? radius : static_cast<float>(light->data.radius)) * Settings::GetSingleton()->GetGlobalLightRadius();
 }
 
 float LightData::GetFade() const
 {
-	return fade > 0.0f ? fade : light->fade;
+	return (fade > 0.0f ? fade : light->fade) * Settings::GetSingleton()->GetGlobalLightFade();
 }
 
-float LightData::GetScaledRadius(float a_radius, float a_scale) const
+float LightData::GetScaledValue(float a_value, float a_scale) const
 {
 	return flags.any(LIGHT_FLAGS::IgnoreScale) ?
-	           a_radius :
-	           a_radius * a_scale;
-}
-
-float LightData::GetScaledFade(float a_fade, float a_scale) const
-{
-	return flags.any(LIGHT_FLAGS::IgnoreScale) ?
-	           a_fade :
-	           a_fade * a_scale;
+	           a_value :
+	           a_value * a_scale;
 }
 
 float LightData::GetScaledRadius(float a_scale) const
 {
-	return GetScaledRadius(GetRadius(), a_scale);
+	return GetScaledValue(GetRadius(), a_scale);
 }
 
 float LightData::GetScaledFade(float a_scale) const
 {
-	return GetScaledFade(GetFade(), a_scale);
+	return GetScaledValue(GetFade(), a_scale);
 }
 
 float LightData::GetFOV() const
@@ -297,7 +290,7 @@ LightOutput LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, st
 		niLight->radius.z = lightRadius;
 
 		niLight->SetLightAttenuation(lightRadius);
-		niLight->fade = GetFade();
+		niLight->fade = GetScaledFade(a_scale);
 
 		auto* shadowSceneNode = RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0];
 		if (bsLight = shadowSceneNode->GetPointLight(niLight); !bsLight) {
@@ -326,10 +319,10 @@ void LightData::CullLight(RE::NiPointLight* a_light, RE::NiAVObject* a_debugMark
 {
 	a_light->SetAppCulled(a_hide);
 
-	uint32_t bits = std::bit_cast<uint32_t>(a_light->ambient.red);
+	std::uint32_t bits = std::bit_cast<std::uint32_t>(a_light->ambient.red);
 
 	if (a_hide) {
-		bits = (bits & 0x00FFFFFF) | (static_cast<uint32_t>(std::to_underlying(a_flags)) << 24);
+		bits = (bits & 0x00FFFFFF) | (static_cast<std::uint32_t>(std::to_underlying(a_flags)) << 24);
 	} else {
 		bits &= ~(static_cast<uint32_t>(std::to_underlying(a_flags)) << 24);
 	}

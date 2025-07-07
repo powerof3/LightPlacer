@@ -86,10 +86,9 @@ struct LightData
 	RE::NiColor                              GetDiffuse() const;
 	float                                    GetRadius() const;
 	float                                    GetFade() const;
-	float                                    GetScaledRadius(float a_radius, float a_scale) const;
-	float                                    GetScaledFade(float a_fade, float a_scale) const;
 	float                                    GetScaledRadius(float a_scale) const;
 	float                                    GetScaledFade(float a_scale) const;
+	float                                    GetScaledValue(float a_value, float a_scale) const;
 	float                                    GetFOV() const;
 	LIGHT_FLAGS                              GetLightFlags() const;
 	bool                                     GetInverseSquare() const;
