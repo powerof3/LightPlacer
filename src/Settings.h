@@ -29,9 +29,9 @@ namespace SETTINGS
 		void ReadSettings(std::string_view a_path);
 
 		// members
-		bool showDebugMarkers{ false };
-		bool loadDebugMarkers{ false };
-		bool disableAllGameLights{ false };
+		bool  showDebugMarkers{ false };
+		bool  loadDebugMarkers{ false };
+		bool  disableAllGameLights{ false };
 		float globalLightFade{ 1.0f };
 		float globalLightRadius{ 1.0f };
 
