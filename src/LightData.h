@@ -323,6 +323,8 @@ struct REFR_LIGH
 		return output == rhs;
 	}
 
+	const RE::NiPointer<RE::NiPointLight>& GetLight() const { return output.GetLight(); }
+
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
 	void UpdateAnimation(float a_delta, float a_scalingFactor);

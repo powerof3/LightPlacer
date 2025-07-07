@@ -27,6 +27,28 @@ void ProcessedLights::ShowDebugMarkers(bool a_show) const
 	}
 }
 
+void ProcessedLights::ToggleLightsScript(bool a_toggle)
+{
+	for (auto& light : lights) {
+		if (auto& niLight = light.GetLight()) {
+			auto& debugMarker = light.output.debugMarker;			
+			LightData::CullLight(niLight.get(), debugMarker.get(), a_toggle, LIGHT_CULL_FLAGS::Script);
+		}
+	}
+}
+
+bool ProcessedLights::GetLightsToggledScript()
+{
+	for (auto& light : lights) {
+		if (auto& niLight = light.GetLight()) {
+			if (niLight->GetAppCulled()) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 void ProcessedLights::ReattachLights(RE::TESObjectREFR* a_ref)
 {
 	for (auto& light : lights) {

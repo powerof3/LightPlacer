@@ -470,6 +470,7 @@ void LightManager::AddLightsToUpdateQueue(const RE::TESObjectCELL* a_cell, RE::T
 				innerMap.emplace(processedLight, handle, isObject);
 			});
 		});
+		return false;
 	});
 }
 
@@ -534,6 +535,7 @@ void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 					ForEachLight(ref.get(), handle, [&](const auto& a_nodeName, auto& processedLight) {
 						params.nodeName = a_nodeName;
 						processedLight.UpdateLightsAndRef(params);
+						return false;
 					});
 
 					return false;
