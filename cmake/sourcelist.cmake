@@ -11,6 +11,7 @@ set(sources ${sources}
 	src/LightData.cpp
 	src/Manager.cpp
 	src/PCH.cpp
+	src/Papyrus.cpp
 	src/ProcessedLights.cpp
 	src/RE.cpp
 	src/Settings.cpp

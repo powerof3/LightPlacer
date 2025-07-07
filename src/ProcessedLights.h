@@ -20,6 +20,9 @@ struct ProcessedLights
 
 	void ShowDebugMarkers(bool a_show) const;
 
+	void ToggleLightsScript(bool a_toggle);
+	bool GetLightsToggledScript();
+
 	void ReattachLights(RE::TESObjectREFR* a_ref);
 	void ReattachLights() const;
 	void RemoveLights(bool a_clearData) const;

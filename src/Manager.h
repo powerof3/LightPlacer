@@ -78,7 +78,9 @@ public:
 				if (auto it = map.find(a_handle); it != map.end()) {
 					it->second.read_unsafe([&](auto& nodeMap) {
 						for (auto& [nodeName, processedLights] : nodeMap) {
-							func(nodeName, processedLights);
+							if (func(nodeName, processedLights)) {
+								return;
+							}
 						}
 					});
 				}
@@ -86,7 +88,9 @@ public:
 		} else {
 			gameRefLights.read_unsafe([&](auto& map) {
 				if (auto it = map.find(a_handle); it != map.end()) {
-					func(""sv, it->second);
+					if (func(""sv, it->second)) {
+						return;
+					}
 				}
 			});
 		}

@@ -1,6 +1,7 @@
 #include "Debug.h"
 #include "Hooks.h"
 #include "Manager.h"
+#include "Papyrus.h"
 #include "Settings.h"
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
@@ -113,6 +114,8 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 
 	const auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(MessageHandler);
+
+	SKSE::GetPapyrusInterface()->Register(Papyrus::Register);
 
 	return true;
 }
