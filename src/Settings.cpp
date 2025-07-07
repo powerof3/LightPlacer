@@ -22,6 +22,9 @@ namespace SETTINGS
 		logger::info("");
 		logger::info("bShowMarkers : {}", showDebugMarkers);
 		logger::info("bDisableAllGameLights : {}", disableAllGameLights);
+		logger::info("fGlobalLightRadiusMult : {}", globalLightRadius);
+		logger::info("fGlobalLightFadeMult : {}", globalLightFade);
+		logger::info("bDisableAllGameLights : {}", disableAllGameLights);
 		logger::info("LightBlackList : {} entries", blackListedLights.size());
 		logger::info("LightWhiteList : {} entries", whiteListedLights.size());
 
@@ -65,6 +68,16 @@ namespace SETTINGS
 		showDebugMarkers = !showDebugMarkers;
 	}
 
+	float Cache::GetGlobalLightFade() const
+	{
+		return globalLightFade;
+	}
+
+	float Cache::GetGlobalLightRadius() const
+	{
+		return globalLightRadius;
+	}
+
 	bool Cache::ShouldDisableLights() const
 	{
 		return disableAllGameLights || !blackListedLights.empty() || !blackListedLightsRefs.empty();
@@ -98,6 +111,9 @@ namespace SETTINGS
 		if (!disableAllGameLights) {
 			disableAllGameLights = ini.GetBoolValue("Settings", "bDisableAllGameLights", false);
 		}
+
+		globalLightFade = static_cast<float>(ini.GetDoubleValue("Settings", "fGlobalLightFadeMult", 1.0));
+		globalLightRadius = static_cast<float>(ini.GetDoubleValue("Settings", "fGlobalLightRadiusMult", 1.0));
 
 		const auto add_to_list = [&](std::string_view a_listName, StringSet& a_list) {
 			CSimpleIniA::TNamesDepend keys;

@@ -19,6 +19,9 @@ namespace SETTINGS
 		bool LoadDebugMarkers() const;
 		void ToggleDebugMarkers();
 
+		float GetGlobalLightFade() const;
+		float GetGlobalLightRadius() const;
+
 		bool ShouldDisableLights() const;
 		bool GetGameLightDisabled(const RE::TESObjectREFR* a_ref, const RE::TESBoundObject* a_base) const;
 
@@ -29,6 +32,8 @@ namespace SETTINGS
 		bool showDebugMarkers{ false };
 		bool loadDebugMarkers{ false };
 		bool disableAllGameLights{ false };
+		float globalLightFade{ 1.0f };
+		float globalLightRadius{ 1.0f };
 
 		static Cache instance;
 	};
