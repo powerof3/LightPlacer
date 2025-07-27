@@ -9,7 +9,7 @@ namespace Hooks::Update
 	{
 		static void Install()
 		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(19002, 19413), OFFSET(0x9E1, (RE::GetGameVersion() >= SKSE::RUNTIME_LATEST ? 0x936 : 0x948)) };  //TESObjectCELL::AttachReference3D
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(19002, 19413), OFFSET(0x9E1, (RE::GetGameVersion() >= SKSE::RUNTIME_SSE_LATEST ? 0x936 : 0x948)) };  //TESObjectCELL::AttachReference3D
 
 			struct Patch : Xbyak::CodeGenerator
 			{
