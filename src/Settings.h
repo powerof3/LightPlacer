@@ -10,7 +10,7 @@ namespace SETTINGS
 		static Cache* GetSingleton()
 		{
 			return &instance;
-		};
+		}
 
 		void LoadSettings();
 		void OnDataLoad();

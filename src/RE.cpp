@@ -102,11 +102,6 @@ namespace RE
 		return nullptr;
 	}
 
-	bool IsActor(const TESObjectREFR* a_ref)
-	{
-		return a_ref->Is(FormType::ActorCharacter);
-	}
-
 	bool IsDynDOLODForm(const TESObjectREFR* a_ref)
 	{
 		auto file = a_ref->GetDescriptionOwnerFile();
@@ -1175,7 +1170,7 @@ namespace RE
 		func(a_light, a_ptLight, a_ref, a_wantDimmer);
 	}
 
-	void WrapRotation(NiPoint3& a_angle)
+	void WrapRotation(NiPoint3& a_rotation)
 	{
 		constexpr auto wrap_angle = [](float& angle) {
 			angle = RE::deg_to_rad(angle);
@@ -1187,8 +1182,8 @@ namespace RE
 			}
 		};
 
-		wrap_angle(a_angle.x);
-		wrap_angle(a_angle.y);
-		wrap_angle(a_angle.z);
+		wrap_angle(a_rotation.x);
+		wrap_angle(a_rotation.y);
+		wrap_angle(a_rotation.z);
 	}
 }

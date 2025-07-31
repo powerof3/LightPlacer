@@ -1,7 +1,5 @@
 #include "ProcessedLights.h"
 
-#include "SourceData.h"
-
 bool ProcessedLights::emplace_back(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale)
 {
 	if (std::find(lights.begin(), lights.end(), a_lightOutput) == lights.end()) {
@@ -37,7 +35,7 @@ void ProcessedLights::ToggleLightsScript(bool a_toggle)
 	}
 }
 
-bool ProcessedLights::GetLightsToggledScript()
+bool ProcessedLights::GetLightsToggledScript() const
 {
 	for (auto& light : lights) {
 		if (auto& niLight = light.GetLight()) {

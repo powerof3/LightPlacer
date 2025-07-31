@@ -72,8 +72,6 @@ struct LightOutput
 	void ShowDebugMarker() const;
 	void HideDebugMarker() const;
 	void UpdateDebugMarkerState(bool a_culled) const;
-	void UpdateEmittance() const;
-	void UpdateVanillaFlickering() const;
 
 	RE::NiPointer<RE::BSLight>      bsLight{};
 	RE::NiPointer<RE::NiPointLight> niLight{};
@@ -222,7 +220,7 @@ struct glz::meta<LIGH::LightSourceData>
 			}
 		}
 	};
-	static constexpr auto write_flags = [](auto& s) -> auto& { return ""; };
+	static constexpr auto write_flags = [](auto&) -> auto& { return ""; };
 
 	static constexpr auto read_aioController = [](auto& s) -> bool {
 		if (!s.aioController.empty()) {
@@ -332,7 +330,6 @@ struct REFR_LIGH
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
 	void UpdateAnimation(float a_delta, float a_scalingFactor);
-	void UpdateDebugMarkerState(bool a_culled) const;
 	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
 	void UpdateEmittance() const;
 	void UpdateVanillaFlickering() const;

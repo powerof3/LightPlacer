@@ -58,7 +58,7 @@ template <class T, std::uint32_t index = 0>
 class KeyframeSequence
 {
 public:
-	void clear() { keys.clear(); };
+	void clear() { keys.clear(); }
 	bool empty() const { return keys.empty(); }
 
 	float GetDuration() const { return keys.back().time - keys.front().time; }

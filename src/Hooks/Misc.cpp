@@ -1,6 +1,5 @@
 #include "Misc.h"
 
-#include "Manager.h"
 #include "Settings.h"
 
 namespace Hooks::Misc

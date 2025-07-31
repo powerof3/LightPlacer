@@ -21,7 +21,7 @@ struct ProcessedLights
 	void ShowDebugMarkers(bool a_show) const;
 
 	void ToggleLightsScript(bool a_toggle);
-	bool GetLightsToggledScript();
+	bool GetLightsToggledScript() const;
 
 	void ReattachLights(RE::TESObjectREFR* a_ref);
 	void ReattachLights() const;
