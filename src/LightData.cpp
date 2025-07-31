@@ -219,7 +219,19 @@ bool LightData::GetInverseSquare() const
 float LightData::GetCutoff() const
 {
 	const float lightCutoff = cutoff > 0.0f ? cutoff : light->data.fallofExponent;
-	return std::min(std::max(lightCutoff, 0.01f), 1.0f);
+	return std::clamp(lightCutoff, 0.01f, 1.0f);
+}
+
+float LightData::GetSize() const
+{
+	float lightSize = size > 0.0f ? size : light->data.fov;
+	lightSize = lightSize >= 50.0f ? 1.414f : lightSize;
+	return std::clamp(lightSize, 0.01f, 50.0f);
+}
+
+float LightData::GetScaledSize(float a_scale) const
+{
+	return GetScaledValue(GetSize(), a_scale);
 }
 
 float LightData::GetFalloff() const
@@ -287,7 +299,7 @@ LightOutput LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, st
 		const auto lightRadius = GetScaledRadius(a_scale);
 		niLight->radius.x = lightRadius;
 		niLight->radius.y = lightRadius;
-		niLight->radius.z = lightRadius;
+		niLight->radius.z = GetScaledSize(a_scale);
 
 		niLight->SetLightAttenuation(lightRadius);
 		niLight->fade = GetScaledFade(a_scale);
