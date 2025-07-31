@@ -24,7 +24,6 @@ namespace SETTINGS
 		logger::info("bDisableAllGameLights : {}", disableAllGameLights);
 		logger::info("fGlobalLightRadiusMult : {}", globalLightRadius);
 		logger::info("fGlobalLightFadeMult : {}", globalLightFade);
-		logger::info("bDisableAllGameLights : {}", disableAllGameLights);
 		logger::info("LightBlackList : {} entries", blackListedLights.size());
 		logger::info("LightWhiteList : {} entries", whiteListedLights.size());
 
