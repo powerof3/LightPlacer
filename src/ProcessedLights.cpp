@@ -1,5 +1,10 @@
 #include "ProcessedLights.h"
 
+ProcessedLights::ProcessedLights(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale)
+{
+	lights.emplace_back(a_lightSrcData, a_lightOutput, a_ref, a_scale);
+}
+
 bool ProcessedLights::emplace_back(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale)
 {
 	if (std::find(lights.begin(), lights.end(), a_lightOutput) == lights.end()) {
@@ -25,7 +30,7 @@ void ProcessedLights::ShowDebugMarkers(bool a_show) const
 	}
 }
 
-void ProcessedLights::ToggleLightsScript(bool a_toggle)
+void ProcessedLights::ToggleLightsScript(bool a_toggle) const
 {
 	for (auto& light : lights) {
 		if (auto& niLight = light.GetLight()) {

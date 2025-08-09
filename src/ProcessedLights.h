@@ -5,6 +5,7 @@
 struct ProcessedLights
 {
 	ProcessedLights() = default;
+	ProcessedLights(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale);
 
 	struct UpdateParams
 	{
@@ -20,7 +21,7 @@ struct ProcessedLights
 
 	void ShowDebugMarkers(bool a_show) const;
 
-	void ToggleLightsScript(bool a_toggle);
+	void ToggleLightsScript(bool a_toggle) const;
 	bool GetLightsToggledScript() const;
 
 	void ReattachLights(RE::TESObjectREFR* a_ref);
@@ -35,7 +36,7 @@ struct ProcessedLights
 	// members
 	float                    lastUpdateTime{ 0.0f };
 	std::vector<REFR_LIGH>   lights;
-	REFR_LIGH::NodeVisHelper nodeVisHelper;
+	REFR_LIGH::NodeVisHelper nodeVisHelper{};
 	bool                     firstLoad{ true };
 };
 

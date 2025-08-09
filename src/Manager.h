@@ -44,29 +44,19 @@ public:
 	template <class F>
 	void ForAllLights(F&& func)
 	{
-		gameRefLights.read_unsafe([&](auto& map) {
-			for (auto& [handle, processedLight] : map) {
-				func(processedLight);
-			}
+		gameRefLights.cvisit_all([&](auto& map) {
+			func(map.second);
 		});
-		gameActorWornLights.read_unsafe([&](auto& map) {
-			for (auto& [handle, nodes] : map) {
-				nodes.read_unsafe([&](auto& nodeMap) {
-					for (auto& [node, processedLight] : nodeMap) {
-						func(processedLight);
-					}
-				});
-			}
+		gameActorWornLights.cvisit_all([&](auto& map) {
+			map.second.cvisit_all([&](auto& nodeMap) {
+				func(nodeMap.second);
+			});
 		});
-		gameActorMagicLights.read_unsafe([&](auto& map) {
-			for (auto& [node, processedLights] : map) {
-				func(processedLights);
-			}
+		gameActorMagicLights.cvisit_all([&](auto& map) {
+			func(map.second);
 		});
-		gameVisualEffectLights.read_unsafe([&](auto& map) {
-			for (auto& [effectID, processedLights] : map) {
-				func(processedLights);
-			}
+		gameVisualEffectLights.cvisit_all([&](auto& map) {
+			func(map.second);
 		});
 	}
 
@@ -74,24 +64,30 @@ public:
 	void ForEachLight(RE::TESObjectREFR* a_ref, RE::RefHandle a_handle, F&& func)
 	{
 		if (a_ref->IsActor()) {
-			gameActorWornLights.read_unsafe([&](auto& map) {
-				if (auto it = map.find(a_handle); it != map.end()) {
-					it->second.read_unsafe([&](auto& nodeMap) {
-						for (auto& [nodeName, processedLights] : nodeMap) {
-							if (func(nodeName, processedLights)) {
-								return;
-							}
-						}
-					});
-				}
+			gameActorWornLights.cvisit(a_handle, [&](auto& map) {
+				map.second.cvisit_while([&](auto& nodeMap) {
+					return func(nodeMap.first, nodeMap.second);
+				});
 			});
 		} else {
-			gameRefLights.read_unsafe([&](auto& map) {
-				if (auto it = map.find(a_handle); it != map.end()) {
-					if (func(""sv, it->second)) {
-						return;
-					}
-				}
+			gameRefLights.cvisit(a_handle, [&](auto& map) {
+				return func(""sv, map.second);
+			});
+		}
+	}
+
+	template <class F>
+	void ForEachLightMutable(RE::TESObjectREFR* a_ref, RE::RefHandle a_handle, F&& func)
+	{
+		if (a_ref->IsActor()) {
+			gameActorWornLights.visit(a_handle, [&](auto& map) {
+				map.second.visit_while([&](auto& nodeMap) {
+					return func(nodeMap.first, nodeMap.second);
+				});
+			});
+		} else {
+			gameRefLights.visit(a_handle, [&](auto& map) {
+				return func(""sv, map.second);
 			});
 		}
 	}
@@ -99,28 +95,20 @@ public:
 	template <class F>
 	void ForEachValidLight(F&& func)
 	{
-		gameRefLights.read_unsafe([&](auto& map) {
-			for (auto& [handle, processedLights] : map) {
-				RE::TESObjectREFRPtr ref{};
-				RE::LookupReferenceByHandle(handle, ref);
-				if (!ref) {
-					continue;
-				}
-				func(ref.get(), ""sv, processedLights);
+		gameRefLights.visit_all([&](auto& map) {
+			RE::TESObjectREFRPtr ref{};
+			RE::LookupReferenceByHandle(map.first, ref);
+			if (ref) {
+				func(ref.get(), ""sv, map.second);
 			}
 		});
 
-		gameActorWornLights.read_unsafe([&](auto& map) {
-			for (auto& [handle, nodes] : map) {
-				RE::TESObjectREFRPtr ref{};
-				RE::LookupReferenceByHandle(handle, ref);
-				if (!ref) {
-					continue;
-				}
-				nodes.read_unsafe([&](auto& nodeMap) {
-					for (auto& [nodeName, processedLights] : nodeMap) {
-						func(ref.get(), nodeName, processedLights);
-					}
+		gameActorWornLights.visit_all([&](auto& map) {
+			RE::TESObjectREFRPtr ref{};
+			RE::LookupReferenceByHandle(map.first, ref);
+			if (ref) {
+				map.second.visit_all([&](auto& nodeMap) {
+					func(ref.get(), nodeMap.first, nodeMap.second);
 				});
 			}
 		});
@@ -129,10 +117,8 @@ public:
 	template <class F>
 	void ForEachFXLight(F&& func)
 	{
-		gameVisualEffectLights.read_unsafe([&](auto& map) {
-			for (auto& [effectID, processedLights] : map) {
-				func(processedLights);
-			}
+		gameVisualEffectLights.cvisit_all([&](auto& map) {
+			func(map.second);
 		});
 	}
 
@@ -157,6 +143,6 @@ private:
 	LockedNiPtrMap<RE::NiNode, ProcessedLights>                       gameActorMagicLights;    // castingArt3D
 	LockedMap<std::uint32_t, ProcessedLights>                         gameVisualEffectLights;  // effectID
 
-	LockedMap<RE::FormID, MutexGuard<LightsToUpdate>> lightsToBeUpdated;
-	std::optional<bool>                               lastCellWasInterior;
+	LockedMap<RE::FormID, LightsToUpdate> lightsToBeUpdated;
+	std::optional<bool>                   lastCellWasInterior;
 };

@@ -309,7 +309,7 @@ struct REFR_LIGH
 		bool            isVisible{ false };
 		bool            canCullAddonNodes{ false };
 		bool            canCullNodes{ false };
-		StringMap<bool> conditionalNodes;
+		StringMap<bool> conditionalNodes{};
 	};
 
 	REFR_LIGH() = default;
