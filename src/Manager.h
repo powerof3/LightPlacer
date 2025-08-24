@@ -21,6 +21,7 @@ public:
 	void AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root);
 	void ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
 	void DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData);
+	void DetachHazardLights(RE::Hazard* a_hazard);
 
 	void AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root);
 	void ReattachWornLights(const RE::ActorHandle& a_handle) const;
@@ -40,6 +41,7 @@ public:
 
 	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);
 	void UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta);
+	void UpdateHazardLights(RE::Hazard* a_hazard);
 
 	template <class F>
 	void ForAllLights(F&& func)
@@ -105,6 +107,14 @@ public:
 			}
 		});
 
+		gameHazardLights.visit_all([&](auto& map) {
+			RE::TESObjectREFRPtr ref{};
+			RE::LookupReferenceByHandle(map.first, ref);
+			if (ref) {
+				func(ref.get(), ""sv, map.second);
+			}
+		});
+
 		gameActorWornLights.visit_all([&](auto& map) {
 			RE::TESObjectREFRPtr ref{};
 			RE::LookupReferenceByHandle(map.first, ref);
@@ -144,6 +154,7 @@ private:
 	LockedMap<RE::RefHandle, LockedMap<std::string, ProcessedLights>>   gameActorWornLights;     // nodeName (armor node on attach isn't same ptr on detach)
 	LockedMap<RE::RefHandle, LockedMap<std::uint32_t, ProcessedLights>> gameActorMagicLights;    // magicNodeName
 	LockedMap<std::uint32_t, ProcessedLights>                           gameVisualEffectLights;  // effectID
+	LockedMap<RE::RefHandle, ProcessedLights>                           gameHazardLights;
 
 	LockedMap<RE::FormID, LightsToUpdate> lightsToBeUpdated;
 	std::optional<bool>                   lastCellWasInterior;

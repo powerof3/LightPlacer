@@ -151,6 +151,16 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 	}
 }
 
+void LightManager::DetachHazardLights(RE::Hazard* a_hazard)
+{
+	auto handle = a_hazard->CreateRefHandle().native_handle();
+
+	gameHazardLights.erase_if(handle, [&](auto& map) {
+		map.second.RemoveLights(true);
+		return true;
+	});
+}
+
 void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root)
 {
 	if (!a_ref || !a_root || a_slot == -1) {
@@ -385,7 +395,8 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 		switch (a_srcData->type) {
 		case SOURCE_TYPE::kRef:
 			{
-				gameRefLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
+				auto& map = ref->Is(RE::FormType::PlacedHazard) ? gameHazardLights : gameRefLights;
+				map.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
 					container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
 				});
 			}
@@ -589,5 +600,25 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 		map.second.visit(castingSrc, [&](auto& processedLights) {
 			processedLights.second.UpdateLightsAndRef(params);
 		});
+	});
+}
+
+void LightManager::UpdateHazardLights(RE::Hazard* a_hazard)
+{
+	auto handle = a_hazard->CreateRefHandle().native_handle();
+
+	gameHazardLights.visit(handle, [&](auto& map) {
+		ProcessedLights::UpdateParams params;
+		params.ref = a_hazard;
+		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+		params.delta = RE::BSTimer::GetSingleton()->delta;
+
+		constexpr auto MAX_WAIT_TIME = 3.0f;
+		const float    dimFactor = a_hazard->flags.any(RE::Hazard::Flags::kShuttingDown) ?
+		                               (a_hazard->lifetime + MAX_WAIT_TIME - a_hazard->age) / MAX_WAIT_TIME :
+		                               std::numeric_limits<float>::max();
+		params.dimFactor = dimFactor;
+
+		map.second.UpdateLightsAndRef(params);
 	});
 }
