@@ -102,6 +102,20 @@ namespace RE
 		return nullptr;
 	}
 
+	NiNode* GetCastingArtNode(ActorMagicCaster* a_actorMagicCaster)
+	{
+		if (auto actor = a_actorMagicCaster->GetCasterAsActor(); actor && actor->IsPlayerRef()) {
+			if (actor->Is3rdPersonVisible()) {
+				return a_actorMagicCaster->castingArtData.attachedArt.get();  // GetMagicNode doesn't properly detach on first attach
+			} else if (auto node = a_actorMagicCaster->GetMagicNode()) {
+				if (auto castingNode = RE::GetObjectByName(actor->Get3D(false), node->name)) {
+					return castingNode->AsNode();
+				}
+			}
+		}
+		return a_actorMagicCaster->GetMagicNode();
+	}
+
 	NiAVObject* GetObjectByName(RE::NiAVObject* a_root, std::string_view a_name)
 	{
 		if (!a_root) {

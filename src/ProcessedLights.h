@@ -16,6 +16,8 @@ struct ProcessedLights
 		float              dimFactor{ RE::NI_INFINITY };
 	};
 
+	std::size_t size() const { return lights.size(); }
+	
 	bool emplace_back(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale);
 	void emplace_back(const REFR_LIGH& a_lightREFRData);
 

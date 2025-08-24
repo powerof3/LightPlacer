@@ -198,13 +198,10 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 	auto handle = a_handle.native_handle();
 
 	gameActorWornLights.visit(handle, [&](auto& map) {
-		map.second.erase_if([&](auto& nodeMap) {
-			if (nodeMap.first == a_root->name.c_str()) {
+		map.second.visit(a_root->name.c_str(),[&](auto& nodeMap) {
 				nodeMap.second.RemoveLights(true);
-				return true;
-			}
-			return false;
 		});
+		map.second.erase(a_root->name.c_str());
 	});
 }
 
@@ -256,7 +253,7 @@ void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_
 
 void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 {
-	const auto& root = a_actorMagicCaster->GetMagicNode();
+	const auto& root = RE::GetCastingArtNode(a_actorMagicCaster);
 	const auto  ref = a_actorMagicCaster->GetCasterAsActor();
 	const auto  art = RE::GetCastingArt(a_actorMagicCaster);
 	if (!root || !ref || !art) {
@@ -274,7 +271,7 @@ void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 
 void LightManager::DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 {
-	const auto root = a_actorMagicCaster->GetMagicNode();
+	const auto& root = RE::GetCastingArtNode(a_actorMagicCaster);
 	const auto ref = a_actorMagicCaster->GetCasterAsActor();
 	if (!root || !ref) {
 		return;
@@ -284,13 +281,10 @@ void LightManager::DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 	auto castingSrc = static_cast<std::uint32_t>(a_actorMagicCaster->castingSource);
 
 	gameActorMagicLights.visit(handle, [&](auto& map) {
-		map.second.erase_if([&](auto& srcMap) {
-			if (srcMap.first == castingSrc) {
-				srcMap.second.RemoveLights(true);
-				return true;
-			}
-			return false;
+		map.second.visit(castingSrc, [&](auto& srcMap) {
+			srcMap.second.RemoveLights(true);
 		});
+		map.second.erase(castingSrc);
 	});
 }
 
@@ -573,7 +567,7 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 		return;
 	}
 
-	auto root = a_actorMagicCaster->GetMagicNode();
+	const auto& root = RE::GetCastingArtNode(a_actorMagicCaster);
 	if (!root) {
 		return;
 	}
