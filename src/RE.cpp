@@ -102,6 +102,25 @@ namespace RE
 		return nullptr;
 	}
 
+	NiAVObject* GetObjectByName(RE::NiAVObject* a_root, std::string_view a_name)
+	{
+		if (!a_root) {
+			return nullptr;
+		}
+
+		NiAVObject* object = nullptr;
+
+		RE::BSVisit::TraverseScenegraphObjects(a_root, [a_root, a_name, &object](RE::NiAVObject* a_object) -> RE::BSVisit::BSVisitControl {
+			if (a_object->name == a_name) {
+				object = a_object;
+				return RE::BSVisit::BSVisitControl::kStop;
+			}
+			return RE::BSVisit::BSVisitControl::kContinue;
+		});
+
+		return object;
+	}
+
 	bool IsDynDOLODForm(const TESObjectREFR* a_ref)
 	{
 		auto file = a_ref->GetDescriptionOwnerFile();

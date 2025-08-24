@@ -38,7 +38,7 @@ struct SourceAttachData
 
 	// members
 	SOURCE_TYPE             type{ SOURCE_TYPE::kNone };
-	std::uint32_t           effectID{ std::numeric_limits<std::uint32_t>::max() };
+	std::uint32_t           miscID{ std::numeric_limits<std::uint32_t>::max() };
 	RE::TESObjectREFRPtr    ref{};
 	RE::NiNode*             root{};
 	RE::NiNode*             attachNode{};

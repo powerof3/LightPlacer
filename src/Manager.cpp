@@ -256,37 +256,41 @@ void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_
 
 void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 {
-	const auto& root = a_actorMagicCaster->castingArtData.attachedArt;
-
-	if (!root) {
+	const auto& root = a_actorMagicCaster->GetMagicNode();
+	const auto  ref = a_actorMagicCaster->GetCasterAsActor();
+	const auto  art = RE::GetCastingArt(a_actorMagicCaster);
+	if (!root || !ref || !art) {
 		return;
 	}
 
-	const auto ref = a_actorMagicCaster->GetCasterAsActor();
-	const auto art = RE::GetCastingArt(a_actorMagicCaster);
-	if (!ref || !art) {
-		return;
-	}
-
-	auto srcData = std::make_unique<SourceData>(SOURCE_TYPE::kActorMagic, ref, root.get(), ref->GetActorBase(), art->GetAsModelTextureSwap());
+	auto srcData = std::make_unique<SourceData>(SOURCE_TYPE::kActorMagic, ref, root, ref->GetActorBase(), art->GetAsModelTextureSwap());
 	if (!srcData || !srcData->IsValid()) {
 		return;
 	}
+	srcData->miscID = std::to_underlying(a_actorMagicCaster->castingSource);
 
 	AttachLightsImpl(srcData, art->GetFormID());
 }
 
-void LightManager::DetachCastingLights(RE::RefAttachTechniqueInput& a_refAttachInput)
+void LightManager::DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 {
-	if (!a_refAttachInput.attachedArt) {
+	const auto root = a_actorMagicCaster->GetMagicNode();
+	const auto ref = a_actorMagicCaster->GetCasterAsActor();
+	if (!root || !ref) {
 		return;
 	}
 
-	gameActorMagicLights.erase_if(a_refAttachInput.attachedArt, [&](auto& map) {
-		for (auto& lightData : map.second.lights) {
-			lightData.output.RemoveLight(true);
-		}
-		return true;
+	auto handle = ref->CreateRefHandle().native_handle();
+	auto castingSrc = static_cast<std::uint32_t>(a_actorMagicCaster->castingSource);
+
+	gameActorMagicLights.visit(handle, [&](auto& map) {
+		map.second.erase_if([&](auto& srcMap) {
+			if (srcMap.first == castingSrc) {
+				srcMap.second.RemoveLights(true);
+				return true;
+			}
+			return false;
+		});
 	});
 }
 
@@ -410,14 +414,18 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 			break;
 		case SOURCE_TYPE::kActorMagic:
 			{
-				gameActorMagicLights.try_emplace_or_visit(a_srcData->root, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& map) {
-					map.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
-				});
+				auto updateFunc = [&](auto& map) {
+					map.second.try_emplace_or_visit(a_srcData->miscID, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
+						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
+					});
+				};
+
+				gameActorMagicLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
 			}
 			break;
 		case SOURCE_TYPE::kTempEffect:
 			{
-				gameVisualEffectLights.try_emplace_or_visit(a_srcData->effectID, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& map) {
+				gameVisualEffectLights.try_emplace_or_visit(a_srcData->miscID, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& map) {
 					map.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
 				});
 			}
@@ -561,7 +569,12 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 
 void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta)
 {
-	if (a_actorMagicCaster->flags.none(RE::ActorMagicCaster::Flags::kCastingArtAttached) || !a_actorMagicCaster->castingArtData.attachedArt) {
+	if (a_actorMagicCaster->flags.none(RE::ActorMagicCaster::Flags::kCastingArtAttached)) {
+		return;
+	}
+
+	auto root = a_actorMagicCaster->GetMagicNode();
+	if (!root) {
 		return;
 	}
 
@@ -570,12 +583,17 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 		return;
 	}
 
-	gameActorMagicLights.visit(a_actorMagicCaster->castingArtData.attachedArt, [&](auto& map) {
+	auto handle = actor->CreateRefHandle().native_handle();
+	auto castingSrc = std::to_underlying(a_actorMagicCaster->castingSource);
+
+	gameActorMagicLights.visit(handle, [&](auto& map) {
 		ProcessedLights::UpdateParams params;
 		params.ref = actor;
 		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 		params.delta = a_delta;
 
-		map.second.UpdateLightsAndRef(params);
+		map.second.visit(castingSrc, [&](auto& processedLights) {
+			processedLights.second.UpdateLightsAndRef(params);
+		});
 	});
 }

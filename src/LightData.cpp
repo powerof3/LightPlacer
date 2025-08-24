@@ -65,7 +65,7 @@ void LightOutput::UpdateDebugMarkerState(bool a_culled) const
 	constexpr auto COLOR_GREY = RE::NiColorA(0.682f, 0.682f, 0.682f, 1.0f);
 
 	if (debugMarker) {
-		const auto obj = debugMarker->GetObjectByName("MarkerGeo");
+		const auto obj = RE::GetObjectByName(debugMarker.get(), "MarkerGeo");
 		const auto shape = obj ? obj->AsGeometry() : nullptr;
 
 		if (!shape) {
@@ -93,8 +93,8 @@ std::string LightData::GetDebugMarkerName(std::string_view a_lightName)
 
 std::string LightData::GetLightName(const std::unique_ptr<SourceAttachData>& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index)
 {
-	if (a_srcData->effectID != std::numeric_limits<std::uint32_t>::max()) {
-		return std::format("{}[{}|{}]#{}", LP_LIGHT, a_srcData->effectID, a_lightEDID, a_index);
+	if (a_srcData->miscID != std::numeric_limits<std::uint32_t>::max()) {
+		return std::format("{}[{}|{}]#{}", LP_LIGHT, a_srcData->miscID, a_lightEDID, a_index);
 	}
 
 	return std::format("{}[{}]#{}", LP_LIGHT, a_lightEDID, a_index);
@@ -280,7 +280,7 @@ LightOutput LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, st
 
 	const auto debugMarkerName = GetDebugMarkerName(a_lightName);
 
-	niLight = netimmerse_cast<RE::NiPointLight*>(a_node->GetObjectByName(a_lightName));
+	niLight = netimmerse_cast<RE::NiPointLight*>(RE::GetObjectByName(a_node, a_lightName));
 	if (!niLight) {
 		niLight = RE::NiPointLight::Create();
 		niLight->name = a_lightName;
@@ -310,7 +310,7 @@ LightOutput LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, st
 		}
 
 		if (!debugMarker) {
-			debugMarker = a_node->GetObjectByName(debugMarkerName);
+			debugMarker = RE::GetObjectByName(a_node, debugMarkerName);
 		}
 
 		// immediately update state on attach. waiting for cell update is too slow
@@ -381,7 +381,7 @@ void LightData::PostProcessDebugMarker(RE::NiAVObject* a_obj, const MARKER_CREAT
 		a_obj->local.rotate.SetEulerAnglesXYZ(a_params.rotation.x, a_params.rotation.y, a_params.rotation.z);
 	}
 
-	if (const auto shape = a_obj->GetObjectByName(a_params.shapeName); shape && shape->AsGeometry()) {
+	if (const auto shape = RE::GetObjectByName(a_obj, a_params.shapeName); shape && shape->AsGeometry()) {
 		shape->name = "MarkerGeo"sv;
 
 		// make material unique so each bulb can turn red independently
@@ -458,26 +458,26 @@ bool LIGH::LightSourceData::IsStaticLight() const
 
 RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const
 {
-	if (!a_root) {
-		return nullptr;
+	if (a_root) {
+		if (a_point == RE::NiPoint3::Zero() && IsStaticLight()) {
+			return a_root;
+		}
+
+		auto name = LightData::GetNodeName(a_point, a_index);
+
+		auto node = RE::GetObjectByName(a_root, name);
+		if (!node) {
+			node = RE::NiNode::Create(1);
+			node->name = name;
+			node->local.translate = a_point + data.offset;
+			node->local.rotate = data.rotation;
+			RE::AttachNode(a_root, node);
+		}
+
+		return node ? node->AsNode() : nullptr;
 	}
 
-	if (a_point == RE::NiPoint3::Zero() && IsStaticLight()) {
-		return a_root;
-	}
-
-	auto name = LightData::GetNodeName(a_point, a_index);
-
-	auto node = a_root->GetObjectByName(name);
-	if (!node) {
-		node = RE::NiNode::Create(1);
-		node->name = name;
-		node->local.translate = a_point + data.offset;
-		node->local.rotate = data.rotation;
-		RE::AttachNode(a_root, node);
-	}
-
-	return node ? node->AsNode() : nullptr;
+	return nullptr;
 }
 
 RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const
@@ -486,7 +486,7 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const std
 		return nullptr;
 	}
 
-	const auto obj = a_root->GetObjectByName(a_nodeName);
+	const auto obj = RE::GetObjectByName(a_root, a_nodeName);
 	return GetOrCreateNode(a_root, obj, a_index);
 }
 
@@ -510,7 +510,7 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVO
 	}
 
 	const auto name = LightData::GetNodeName(a_obj, a_index);
-	if (const auto node = a_root->GetObjectByName(name)) {
+	if (const auto node = RE::GetObjectByName(a_root, name)) {
 		return node->AsNode();
 	}
 
@@ -545,7 +545,7 @@ void REFR_LIGH::NodeVisHelper::UpdateNodeVisibility(const RE::TESObjectREFR* a_r
 		if (a_nodeName.empty()) {
 			node = a_ref->Get3D();
 		} else {
-			node = a_ref->Get3D()->GetObjectByName(a_nodeName);
+			node = RE::GetObjectByName(a_ref->Get3D(), a_nodeName);
 		}
 		if (node) {
 			if (canCullAddonNodes) {

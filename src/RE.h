@@ -96,6 +96,7 @@ namespace RE
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
 	BGSArtObject*   GetCastingArt(const MagicItem* a_magicItem);
 	BGSArtObject*   GetCastingArt(const ActorMagicCaster* a_actorMagicCaster);
+	NiAVObject*     GetObjectByName(RE::NiAVObject* a_root, std::string_view a_name);
 	bool            IsDynDOLODForm(const TESObjectREFR* a_ref);
 	float           NiSinQImpl(float a_value);
 	float           NiCosQImpl(float a_value);

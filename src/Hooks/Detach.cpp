@@ -75,7 +75,8 @@ namespace Hooks::Detach
 	{
 		static bool thunk(RE::RefAttachTechniqueInput& a_this)
 		{
-			LightManager::GetSingleton()->DetachCastingLights(a_this);
+			auto actorMagicCaster = stl::adjust_pointer<RE::ActorMagicCaster>(&a_this, -static_cast<std::ptrdiff_t>(offsetof(RE::ActorMagicCaster, RE::ActorMagicCaster::castingArtData)));
+			LightManager::GetSingleton()->DetachCastingLights(actorMagicCaster);
 
 			return func(a_this);
 		}

@@ -64,7 +64,7 @@ bool SourceAttachData::Initialize(const std::unique_ptr<SourceData>& a_srcData)
 		const auto& srcRef = a_srcData->ref;
 		if (auto parentCell = srcRef ? srcRef->GetParentCell() : nullptr) {
 			type = a_srcData->type;
-			effectID = a_srcData->miscID;
+			miscID = a_srcData->miscID;
 			ref = srcRef;
 			root = a_srcData->root;
 			attachNode = a_srcData->GetAttachNode();

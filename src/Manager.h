@@ -31,7 +31,7 @@ public:
 	void DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData);
 
 	void AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
-	void DetachCastingLights(RE::RefAttachTechniqueInput& a_refAttachInput);
+	void DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
 
 	void AddLightsToUpdateQueue(const RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
 	void UpdateLights(const RE::TESObjectCELL* a_cell);
@@ -53,7 +53,9 @@ public:
 			});
 		});
 		gameActorMagicLights.cvisit_all([&](auto& map) {
-			func(map.second);
+			map.second.cvisit_all([&](auto& srcMap) {
+				func(srcMap.second);
+			});
 		});
 		gameVisualEffectLights.cvisit_all([&](auto& map) {
 			func(map.second);
@@ -138,10 +140,10 @@ private:
 	StringMap<Config::LightSourceVec>           gameModels;
 	FlatMap<RE::FormID, Config::LightSourceVec> gameVisualEffects;
 
-	LockedMap<RE::RefHandle, ProcessedLights>                         gameRefLights;
-	LockedMap<RE::RefHandle, LockedMap<std::string, ProcessedLights>> gameActorWornLights;     // nodeName (armor node on attach isn't same ptr on detach)
-	LockedNiPtrMap<RE::NiNode, ProcessedLights>                       gameActorMagicLights;    // castingArt3D
-	LockedMap<std::uint32_t, ProcessedLights>                         gameVisualEffectLights;  // effectID
+	LockedMap<RE::RefHandle, ProcessedLights>                           gameRefLights;
+	LockedMap<RE::RefHandle, LockedMap<std::string, ProcessedLights>>   gameActorWornLights;     // nodeName (armor node on attach isn't same ptr on detach)
+	LockedMap<RE::RefHandle, LockedMap<std::uint32_t, ProcessedLights>> gameActorMagicLights;    // magicNodeName
+	LockedMap<std::uint32_t, ProcessedLights>                           gameVisualEffectLights;  // effectID
 
 	LockedMap<RE::FormID, LightsToUpdate> lightsToBeUpdated;
 	std::optional<bool>                   lastCellWasInterior;
