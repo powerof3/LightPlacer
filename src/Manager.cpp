@@ -198,8 +198,8 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 	auto handle = a_handle.native_handle();
 
 	gameActorWornLights.visit(handle, [&](auto& map) {
-		map.second.visit(a_root->name.c_str(),[&](auto& nodeMap) {
-				nodeMap.second.RemoveLights(true);
+		map.second.visit(a_root->name.c_str(), [&](auto& nodeMap) {
+			nodeMap.second.RemoveLights(true);
 		});
 		map.second.erase(a_root->name.c_str());
 	});
@@ -272,7 +272,7 @@ void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 void LightManager::DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 {
 	const auto& root = RE::GetCastingArtNode(a_actorMagicCaster);
-	const auto ref = a_actorMagicCaster->GetCasterAsActor();
+	const auto  ref = a_actorMagicCaster->GetCasterAsActor();
 	if (!root || !ref) {
 		return;
 	}
