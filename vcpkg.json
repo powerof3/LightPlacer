@@ -15,7 +15,7 @@
     "spdlog",
     "xbyak"
   ],
-  "builtin-baseline": "f2e1c41da38c71be74ef48684666991929b45418",
+  "builtin-baseline": "6ecbbbdf31cba47aafa7cf6189b1e73e10ac61f8",
   "overrides": [
     {
       "name": "xbyak",
