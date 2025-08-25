@@ -49,6 +49,9 @@ public:
 		gameRefLights.cvisit_all([&](auto& map) {
 			func(map.second);
 		});
+		gameHazardLights.cvisit_all([&](auto& map) {
+			func(map.second);
+		});
 		gameActorWornLights.cvisit_all([&](auto& map) {
 			map.second.cvisit_all([&](auto& nodeMap) {
 				func(nodeMap.second);

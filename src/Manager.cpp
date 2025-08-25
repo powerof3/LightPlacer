@@ -557,8 +557,18 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 			return;
 		}
 
+		bool singleSequence = false;
+
+		if (auto modelEffect = a_effect->As<RE::ModelReferenceEffect>()) {
+			const auto artObj = modelEffect->artObject3D;
+			const auto controllers = artObj ? artObj->GetControllers() : nullptr;
+			const auto manager = controllers ? controllers->AsNiControllerManager() : nullptr;
+			
+			singleSequence = manager && manager->sequenceArray.size() == 1;
+		}
+
 		constexpr auto MAX_WAIT_TIME = 3.0f;
-		const float    dimFactor = a_effect->finished ?
+		const float    dimFactor = !singleSequence && a_effect->finished ?
 		                               (a_effect->lifetime + MAX_WAIT_TIME - a_effect->age) / MAX_WAIT_TIME :
 		                               std::numeric_limits<float>::max();
 
