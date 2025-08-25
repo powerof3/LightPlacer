@@ -563,7 +563,7 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 			const auto artObj = modelEffect->artObject3D;
 			const auto controllers = artObj ? artObj->GetControllers() : nullptr;
 			const auto manager = controllers ? controllers->AsNiControllerManager() : nullptr;
-			
+
 			singleSequence = manager && manager->sequenceArray.size() == 1;
 		}
 
