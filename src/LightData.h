@@ -334,11 +334,11 @@ struct REFR_LIGH
 	void UpdateEmittance() const;
 	void UpdateVanillaFlickering() const;
 
-	LightData           data;
-	LightOutput         output;
-	LightControllers    lightControllers;
+	LightData           data{};
+	LightOutput         output{};
+	LightControllers    lightControllers{};
 	float               scale{ 1.0f };
-	std::optional<bool> lastVisibleState;
+	std::optional<bool> lastVisibleState{};
 };
 
 using ConditionUpdateFlags = REFR_LIGH::ConditionUpdateFlags;

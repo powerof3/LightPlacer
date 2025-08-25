@@ -116,6 +116,24 @@ namespace Hooks::Detach
 		}
 	};
 
+	struct Explosion__Release3DRelatedData
+	{
+		static void thunk(RE::Explosion* a_this)
+		{
+			LightManager::GetSingleton()->DetachExplosionLights(a_this);
+
+			func(a_this);
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+		static constexpr std::size_t                   idx{ 0x6B };
+
+		static void Install()
+		{
+			stl::write_vfunc<RE::Explosion, Explosion__Release3DRelatedData>();
+			logger::info("Hooked Explosion::Release3DRelatedData");
+		}
+	};
+
 	struct Suspend
 	{
 		static void thunk(RE::ShaderReferenceEffect* a_this)
@@ -143,6 +161,7 @@ namespace Hooks::Detach
 		RunBiped3DDetach::Install();
 		BGSAttachTechniques__DetachItem::Install();
 		Hazard__Release3DRelatedData::Install();
+		Explosion__Release3DRelatedData::Install();
 		BSTempEffect::DetachImpl<RE::ShaderReferenceEffect>::Install();
 		BSTempEffect::DetachImpl<RE::ModelReferenceEffect>::Install();
 		Suspend::Install();

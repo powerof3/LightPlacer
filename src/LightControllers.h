@@ -237,9 +237,9 @@ struct LightControllers
 	void UpdateAnimation(const RE::NiPointer<RE::NiPointLight>& a_light, float a_delta, float a_scalingFactor);
 
 	// members
-	std::optional<ColorController>    colorController;
-	std::optional<FloatController>    radiusController;
-	std::optional<FloatController>    fadeController;
-	std::optional<PositionController> positionController;
-	std::optional<RotationController> rotationController;
+	std::optional<ColorController>    colorController{};
+	std::optional<FloatController>    radiusController{};
+	std::optional<FloatController>    fadeController{};
+	std::optional<PositionController> positionController{};
+	std::optional<RotationController> rotationController{};
 };

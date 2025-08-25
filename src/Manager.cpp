@@ -102,6 +102,14 @@ std::vector<RE::TESObjectREFRPtr> LightManager::GetLightAttachedRefs()
 		}
 	});
 
+	gameHazardLights.cvisit_all([&](auto& map) {
+		RE::TESObjectREFRPtr ref{};
+		RE::LookupReferenceByHandle(map.first, ref);
+		if (ref) {
+			refs.push_back(ref);
+		}
+	});
+
 	return refs;
 }
 
@@ -156,6 +164,16 @@ void LightManager::DetachHazardLights(RE::Hazard* a_hazard)
 	auto handle = a_hazard->CreateRefHandle().native_handle();
 
 	gameHazardLights.erase_if(handle, [&](auto& map) {
+		map.second.RemoveLights(true);
+		return true;
+	});
+}
+
+void LightManager::DetachExplosionLights(RE::Explosion* a_explosion)
+{
+	auto handle = a_explosion->CreateRefHandle().native_handle();
+
+	gameExplosionLights.erase_if(handle, [&](auto& map) {
 		map.second.RemoveLights(true);
 		return true;
 	});
@@ -395,10 +413,19 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 		switch (a_srcData->type) {
 		case SOURCE_TYPE::kRef:
 			{
-				auto& map = ref->Is(RE::FormType::PlacedHazard) ? gameHazardLights : gameRefLights;
-				map.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
-					container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
-				});
+				if (ref->Is(RE::FormType::PlacedHazard)) {
+					gameHazardLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
+						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
+					});
+				} else if (ref->Is(RE::FormType::Explosion)) {
+					gameExplosionLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
+						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
+					});
+				} else {
+					gameRefLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
+						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
+					});
+				}
 			}
 			break;
 		case SOURCE_TYPE::kActorWorn:
@@ -563,7 +590,7 @@ void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
 			const auto artObj = modelEffect->artObject3D;
 			const auto controllers = artObj ? artObj->GetControllers() : nullptr;
 			const auto manager = controllers ? controllers->AsNiControllerManager() : nullptr;
-			
+
 			singleSequence = manager && manager->sequenceArray.size() == 1;
 		}
 
@@ -629,6 +656,19 @@ void LightManager::UpdateHazardLights(RE::Hazard* a_hazard)
 		                               std::numeric_limits<float>::max();
 		params.dimFactor = dimFactor;
 
+		map.second.UpdateLightsAndRef(params);
+	});
+}
+
+void LightManager::UpdateExplosionLights(RE::Explosion* a_explosion)
+{
+	auto handle = a_explosion->CreateRefHandle().native_handle();
+
+	gameExplosionLights.visit(handle, [&](auto& map) {
+		ProcessedLights::UpdateParams params;
+		params.ref = a_explosion;
+		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+		params.delta = RE::BSTimer::GetSingleton()->delta;
 		map.second.UpdateLightsAndRef(params);
 	});
 }

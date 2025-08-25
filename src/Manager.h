@@ -22,6 +22,7 @@ public:
 	void ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
 	void DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData);
 	void DetachHazardLights(RE::Hazard* a_hazard);
+	void DetachExplosionLights(RE::Explosion* a_explosion);
 
 	void AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPointer<RE::BipedAnim>& a_bipedAnim, std::int32_t a_slot, RE::NiAVObject* a_root);
 	void ReattachWornLights(const RE::ActorHandle& a_handle) const;
@@ -42,6 +43,7 @@ public:
 	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);
 	void UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta);
 	void UpdateHazardLights(RE::Hazard* a_hazard);
+	void UpdateExplosionLights(RE::Explosion* a_explosion);
 
 	template <class F>
 	void ForAllLights(F&& func)
@@ -50,6 +52,9 @@ public:
 			func(map.second);
 		});
 		gameHazardLights.cvisit_all([&](auto& map) {
+			func(map.second);
+		});
+		gameExplosionLights.cvisit_all([&](auto& map) {
 			func(map.second);
 		});
 		gameActorWornLights.cvisit_all([&](auto& map) {
@@ -110,14 +115,6 @@ public:
 			}
 		});
 
-		gameHazardLights.visit_all([&](auto& map) {
-			RE::TESObjectREFRPtr ref{};
-			RE::LookupReferenceByHandle(map.first, ref);
-			if (ref) {
-				func(ref.get(), ""sv, map.second);
-			}
-		});
-
 		gameActorWornLights.visit_all([&](auto& map) {
 			RE::TESObjectREFRPtr ref{};
 			RE::LookupReferenceByHandle(map.first, ref);
@@ -158,6 +155,7 @@ private:
 	LockedMap<RE::RefHandle, LockedMap<std::uint32_t, ProcessedLights>> gameActorMagicLights;    // magicNodeName
 	LockedMap<std::uint32_t, ProcessedLights>                           gameVisualEffectLights;  // effectID
 	LockedMap<RE::RefHandle, ProcessedLights>                           gameHazardLights;
+	LockedMap<RE::RefHandle, ProcessedLights>                           gameExplosionLights;
 
 	LockedMap<RE::FormID, LightsToUpdate> lightsToBeUpdated;
 	std::optional<bool>                   lastCellWasInterior;

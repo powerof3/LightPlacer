@@ -116,6 +116,29 @@ namespace Hooks::Update
 		}
 	};
 
+	struct Explosion__CheckInit3D
+	{
+		static bool thunk(RE::Explosion* a_explosion)
+		{
+			auto result = func(a_explosion);
+
+			if (result && a_explosion) {
+				LightManager::GetSingleton()->UpdateExplosionLights(a_explosion);
+			}
+
+			return result;
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+
+		static void Install()
+		{
+			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(42664, 43836), 0x11 };  // Explosion::Update
+			stl::write_thunk_call<Explosion__CheckInit3D>(target.address());
+
+			logger::info("Hooked Explosion::CheckInit3D");
+		}
+	};
+
 	struct ActorMagicCaster__Update
 	{
 		static void thunk(RE::ActorMagicCaster* a_this, float a_delta)
@@ -209,6 +232,7 @@ namespace Hooks::Update
 		BSTempEffect::UpdatePosition<RE::ShaderReferenceEffect>::Install();
 		BSTempEffect::UpdatePosition<RE::ModelReferenceEffect>::Install();
 		Hazard__CheckInit3D::Install();
+		Explosion__CheckInit3D::Install();
 		ActorMagicCaster__Update::Install();
 		NiSwitchNode_UpdateDownwardsPass::Install();
 
