@@ -115,7 +115,7 @@ std::vector<RE::TESObjectREFRPtr> LightManager::GetLightAttachedRefs()
 
 void LightManager::AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root)
 {
-	if (!a_ref || !a_root || !a_base || RE::IsDynDOLODForm(a_ref)) {
+	if (!a_ref || !a_root || !a_base) {
 		return;
 	}
 
