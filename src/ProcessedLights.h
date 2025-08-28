@@ -45,6 +45,8 @@ struct ProcessedLights
 struct LightsToUpdate
 {
 	LightsToUpdate() = default;
+	LightsToUpdate(RE::RefHandle a_handle);
+	LightsToUpdate(const ProcessedLights& a_processedLights, RE::RefHandle a_handle, bool a_isObject);
 
 	void emplace(const ProcessedLights& a_processedLights, RE::RefHandle a_handle, bool a_isObject);
 	void emplace(RE::RefHandle a_handle);

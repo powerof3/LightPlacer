@@ -430,15 +430,13 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 			break;
 		case SOURCE_TYPE::kActorWorn:
 			{
-				auto lightUpdateFunc = [&](auto& lightsToUpdate) {
-					lightsToUpdate.second.emplace(handle);
-				};
-
 				auto updateFunc = [&](auto& map) {
 					map.second.try_emplace_or_visit(a_srcData->nodeName, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
 						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
 					});
-					lightsToBeUpdated.try_emplace_and_visit(a_srcData->filterIDs[0], lightUpdateFunc, lightUpdateFunc);
+					lightsToBeUpdated.try_emplace_or_visit(a_srcData->filterIDs[0], LightsToUpdate(handle), [&](auto& lightsToUpdate) {
+						lightsToUpdate.second.emplace(handle);
+					});
 				};
 
 				gameActorWornLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
@@ -475,7 +473,7 @@ void LightManager::AddLightsToUpdateQueue(const RE::TESObjectCELL* a_cell, RE::T
 	auto isObject = a_ref->IsNot(RE::FormType::ActorCharacter);
 
 	ForEachLight(a_ref, handle, [&](const auto&, const auto& processedLight) {
-		lightsToBeUpdated.visit(cellFormID, [&](auto& map) {
+		lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(processedLight, handle, isObject), [&](auto& map) {
 			map.second.emplace(processedLight, handle, isObject);
 		});
 		return true;

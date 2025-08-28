@@ -133,6 +133,16 @@ void ProcessedLights::UpdateEmittance() const
 	}
 }
 
+LightsToUpdate::LightsToUpdate(RE::RefHandle a_handle)
+{
+	emplace(a_handle);
+}
+
+LightsToUpdate::LightsToUpdate(const ProcessedLights& a_processedLights, RE::RefHandle a_handle, bool a_isObject)
+{
+	emplace(a_processedLights, a_handle, a_isObject);
+}
+
 void LightsToUpdate::emplace(const ProcessedLights& a_processedLights, RE::RefHandle a_handle, bool a_isObject)
 {
 	stl::unique_insert(updatingLights, a_handle);
