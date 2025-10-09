@@ -1,8 +1,7 @@
 #pragma once
 
 #include "LightControllers.h"
-
-struct SourceAttachData;
+#include "SourceData.h"
 
 enum class LIGHT_FLAGS
 {
@@ -95,7 +94,7 @@ struct LightData
 	float                                    GetScaledSize(float a_scale) const;
 	float                                    GetFalloff() const;
 	float                                    GetNearDistance() const;
-	static std::string                       GetLightName(const std::unique_ptr<SourceAttachData>& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index);
+	static std::string                       GetLightName(const SourceAttachDataPtr& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index);
 	static std::string                       GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index);
 	static std::string                       GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index);
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(const RE::TESObjectREFR* a_ref) const;
@@ -155,9 +154,9 @@ namespace LIGH
 
 		bool IsStaticLight() const;
 
-		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
-		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
-		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
 
 		// members
 		LightData                data;

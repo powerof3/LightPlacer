@@ -73,7 +73,7 @@ namespace stl
 					db(*reinterpret_cast<std::uint8_t*>(a_originalFuncAddr + i));
 				}
 
-				jmp(qword[rip]);
+				jmp(ptr[rip]);
 				dq(a_originalFuncAddr + a_originalByteLength);
 			}
 		};

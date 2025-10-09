@@ -1,5 +1,4 @@
 #include "Manager.h"
-#include "SourceData.h"
 
 bool LightManager::ReadConfigs(bool a_reload)
 {
@@ -316,14 +315,19 @@ void LightManager::DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 	});
 }
 
-void LightManager::AttachLightsImpl(const std::unique_ptr<SourceData>& a_srcData, RE::FormID a_formID)
+void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a_formID)
 {
-	std::uint32_t LP_INDEX{ 0 };
+	if (!a_srcData) {
+		return;
+	}
 
-	auto srcAttachData = std::make_unique<SourceAttachData>();
+	auto srcAttachData = std::make_shared<SourceAttachData>();
+	if (!srcAttachData) {
+		return;
+	}
 
-	std::vector<Config::PointData> collectedPoints{};
-	std::vector<Config::NodeData>  collectedNodes{};
+	std::vector<Config::PointData> collectedPoints;
+	std::vector<Config::NodeData>  collectedNodes;
 
 	if (!a_srcData->modelPath.empty()) {
 		if (auto it = gameModels.find(a_srcData->modelPath); it != gameModels.end()) {
@@ -345,41 +349,49 @@ void LightManager::AttachLightsImpl(const std::unique_ptr<SourceData>& a_srcData
 		}
 	}
 
-	if (!srcAttachData->IsValid()) {
+	if (collectedPoints.empty() && collectedNodes.empty()) {
 		return;
 	}
 
-	for (auto& [points, lightData] : collectedPoints) {
-		for (const auto [pointIdx, point] : std::views::enumerate(points)) {
-			auto lightPlacerNode = lightData.GetOrCreateNode(srcAttachData->attachNode, point, LP_INDEX);
-			if (lightPlacerNode) {
-				AttachLight(lightData, srcAttachData, lightPlacerNode, LP_INDEX);
-			}
-			LP_INDEX++;
-		}
-	}
+	SKSE::GetTaskInterface()->AddTask([points = std::move(collectedPoints), nodes = std::move(collectedNodes), srcAttachData, this]() mutable {
+		std::uint32_t LP_INDEX = 0;
 
-	for (auto& [nodes, lightData] : collectedNodes) {
-		std::vector<RE::NiAVObject*> nodeVec;
-		if (srcAttachData->attachNode) {
-			RE::BSVisit::TraverseScenegraphObjects(srcAttachData->attachNode, [&](RE::NiAVObject* a_obj) {
-				if (nodes.contains(a_obj->name.c_str())) {
-					nodeVec.push_back(a_obj);
+		auto processLightGroup = [&](auto& groups) {
+			for (auto& [entries, lightData] : groups) {
+				if constexpr (std::is_same_v<std::decay_t<decltype(groups)>, std::vector<Config::PointData>>) {
+					for (const auto& [i, point] : std::views::enumerate(entries)) {
+						if (auto node = lightData.GetOrCreateNode(srcAttachData->attachNode, point, LP_INDEX)) {
+							AttachLight(lightData, srcAttachData, node, LP_INDEX);
+						}
+						++LP_INDEX;
+					}
 				}
-				return RE::BSVisit::BSVisitControl::kContinue;
-			});
-		}
-		for (const auto [nodeIdx, node] : std::views::enumerate(nodeVec)) {
-			auto lightPlacerNode = lightData.GetOrCreateNode(srcAttachData->attachNode, node, LP_INDEX);
-			if (lightPlacerNode) {
-				AttachLight(lightData, srcAttachData, lightPlacerNode, LP_INDEX);
+				else {
+					std::vector<RE::NiAVObject*> nodeVec;
+					if (srcAttachData->attachNode) {
+						RE::BSVisit::TraverseScenegraphObjects(srcAttachData->attachNode.get(), [&](RE::NiAVObject* a_obj) {
+							if (entries.contains(a_obj->name.c_str())) {
+								nodeVec.push_back(a_obj);
+							}
+							return RE::BSVisit::BSVisitControl::kContinue;
+						});
+					}
+					for (const auto& [i, node] : std::views::enumerate(nodeVec)) {
+						if (auto lightNode = lightData.GetOrCreateNode(srcAttachData->attachNode, node, LP_INDEX)) {
+							AttachLight(lightData, srcAttachData, lightNode, LP_INDEX);
+						}
+						++LP_INDEX;
+					}
+				}
 			}
-			LP_INDEX++;
-		}
-	}
+		};
+
+		processLightGroup(points);
+		processLightGroup(nodes);
+	});
 }
 
-void LightManager::CollectValidLights(const std::unique_ptr<SourceAttachData>& a_srcData, const Config::LightSourceData& a_lightData, std::vector<Config::PointData>& a_collectedPoints, std::vector<Config::NodeData>& a_collectedNodes)
+void LightManager::CollectValidLights(const SourceAttachDataPtr& a_srcData, const Config::LightSourceData& a_lightData, std::vector<Config::PointData>& a_collectedPoints, std::vector<Config::NodeData>& a_collectedNodes)
 {
 	std::visit(overload{
 				   [&](const Config::FilteredPointData& pointData) {
@@ -397,7 +409,7 @@ void LightManager::CollectValidLights(const std::unique_ptr<SourceAttachData>& a
 		a_lightData);
 }
 
-void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const std::unique_ptr<SourceAttachData>& a_srcData, RE::NiNode* a_node, std::uint32_t a_index)
+void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const SourceAttachDataPtr& a_srcData, RE::NiNode* a_node, std::uint32_t a_index)
 {
 	if (!a_node) {
 		return;

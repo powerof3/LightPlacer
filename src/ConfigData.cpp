@@ -16,7 +16,7 @@ void Config::Filter::PostProcess()
 	post_process(whiteList, whiteListForms);
 }
 
-bool Config::Filter::IsInvalid(const std::unique_ptr<SourceAttachData>& a_srcData) const
+bool Config::Filter::IsInvalid(const SourceAttachDataPtr& a_srcData) const
 {
 	if (!blackListForms.empty() && IsBlacklisted(a_srcData)) {
 		return true;
@@ -29,7 +29,7 @@ bool Config::Filter::IsInvalid(const std::unique_ptr<SourceAttachData>& a_srcDat
 	return false;
 }
 
-bool Config::Filter::IsBlacklisted(const std::unique_ptr<SourceAttachData>& a_srcData) const
+bool Config::Filter::IsBlacklisted(const SourceAttachDataPtr& a_srcData) const
 {
 	for (const auto& id : a_srcData->filterIDs) {
 		if (blackListForms.contains(id)) {
@@ -40,7 +40,7 @@ bool Config::Filter::IsBlacklisted(const std::unique_ptr<SourceAttachData>& a_sr
 	return false;
 }
 
-bool Config::Filter::IsWhitelisted(const std::unique_ptr<SourceAttachData>& a_srcData) const
+bool Config::Filter::IsWhitelisted(const SourceAttachDataPtr& a_srcData) const
 {
 	for (const auto& id : a_srcData->filterIDs) {
 		if (whiteListForms.contains(id)) {

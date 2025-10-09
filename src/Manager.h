@@ -3,8 +3,7 @@
 #include "ConfigData.h"
 #include "LightData.h"
 #include "ProcessedLights.h"
-
-struct SourceData;
+#include "SourceData.h"
 
 class LightManager :
 	public REX::Singleton<LightManager>,
@@ -140,10 +139,10 @@ private:
 	RE::BSEventNotifyControl ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*) override;
 	RE::BSEventNotifyControl ProcessEvent(const RE::TESWaitStopEvent* a_event, RE::BSTEventSource<RE::TESWaitStopEvent>*) override;
 
-	void AttachLightsImpl(const std::unique_ptr<SourceData>& a_srcData, RE::FormID a_formID = 0);
-	void CollectValidLights(const std::unique_ptr<SourceAttachData>& a_srcData, const Config::LightSourceData& a_lightData, std::vector<Config::PointData>& a_collectedPoints, std::vector<Config::NodeData>& a_collectedNodes);
+	void AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a_formID = 0);
+	void CollectValidLights(const SourceAttachDataPtr& a_srcData, const Config::LightSourceData& a_lightData, std::vector<Config::PointData>& a_collectedPoints, std::vector<Config::NodeData>& a_collectedNodes);
 
-	void AttachLight(const LIGH::LightSourceData& a_lightSource, const std::unique_ptr<SourceAttachData>& a_srcData, RE::NiNode* a_node, std::uint32_t a_index = 0);
+	void AttachLight(const LIGH::LightSourceData& a_lightSource, const SourceAttachDataPtr& a_srcData, RE::NiNode* a_node, std::uint32_t a_index = 0);
 
 	// members
 	std::vector<Config::Format>                 configs;

@@ -10,9 +10,9 @@ namespace Config
 	{
 		void PostProcess();
 
-		bool IsInvalid(const std::unique_ptr<SourceAttachData>& a_srcData) const;
-		bool IsBlacklisted(const std::unique_ptr<SourceAttachData>& a_srcData) const;
-		bool IsWhitelisted(const std::unique_ptr<SourceAttachData>& a_srcData) const;
+		bool IsInvalid(const SourceAttachDataPtr& a_srcData) const;
+		bool IsBlacklisted(const SourceAttachDataPtr& a_srcData) const;
+		bool IsWhitelisted(const SourceAttachDataPtr& a_srcData) const;
 
 		// members
 		StringSet           whiteList;
