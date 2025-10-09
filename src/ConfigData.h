@@ -21,17 +21,16 @@ namespace Config
 		FlatSet<RE::FormID> blackListForms;
 	};
 
-	struct PointData
+	template <class T>
+	struct Data
 	{
-		std::vector<RE::NiPoint3> points;
-		LIGH::LightSourceData     data;
+		T                     attacher;
+		LIGH::LightSourceData data;
+		std::string           path;
 	};
 
-	struct NodeData
-	{
-		StringSet             nodes;
-		LIGH::LightSourceData data;
-	};
+	using PointData = Data<std::vector<RE::NiPoint3>>;
+	using NodeData = Data<StringSet>;
 
 	template <class T>
 	struct FilteredData
@@ -75,7 +74,7 @@ namespace Config
 
 	using Format = std::variant<MultiModelSet, MultiVisualEffectSet, MultiAddonSet>;
 
-	void PostProcess(LightSourceVec& a_lightDataVec);
+	void PostProcess(LightSourceVec& a_lightDataVec, const std::string& path);
 	void PostProcess(AddonLightSourceVec& a_lightDataVec);
 }
 
@@ -96,7 +95,7 @@ struct glz::meta<Config::FilteredPointData>
 	static constexpr auto value = object(
 		"whiteList", [](auto&& self) -> auto& { return self.filter.whiteList; },
 		"blackList", [](auto&& self) -> auto& { return self.filter.blackList; },
-		"points", [](auto&& self) -> auto& { return self.data.points; },
+		"points", [](auto&& self) -> auto& { return self.data.attacher; },
 		"data", [](auto&& self) -> auto& { return self.data.data; });
 };
 
@@ -107,7 +106,7 @@ struct glz::meta<Config::FilteredNodeData>
 	static constexpr auto value = object(
 		"whiteList", [](auto&& self) -> auto& { return self.filter.whiteList; },
 		"blackList", [](auto&& self) -> auto& { return self.filter.blackList; },
-		"nodes", [](auto&& self) -> auto& { return self.data.nodes; },
+		"nodes", [](auto&& self) -> auto& { return self.data.attacher; },
 		"data", [](auto&& self) -> auto& { return self.data.data; });
 };
 

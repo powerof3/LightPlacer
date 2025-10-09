@@ -51,21 +51,23 @@ bool Config::Filter::IsWhitelisted(const SourceAttachDataPtr& a_srcData) const
 	return false;
 }
 
-void Config::PostProcess(Config::LightSourceVec& a_lightDataVec)
+void Config::PostProcess(Config::LightSourceVec& a_lightDataVec, const std::string& path)
 {
-	std::erase_if(a_lightDataVec, [](auto& attachLightData) {
+	std::erase_if(a_lightDataVec, [&](auto& attachLightData) {
 		bool failedPostProcess = false;
 		std::visit(overload{
 					   [&](Config::FilteredPointData& pointData) {
 						   failedPostProcess = !pointData.get().PostProcess();
 						   if (!failedPostProcess) {
 							   pointData.filter.PostProcess();
+							   pointData.data.path = path;
 						   }
 					   },
 					   [&](Config::FilteredNodeData& nodeData) {
 						   failedPostProcess = !nodeData.get().PostProcess();
 						   if (!failedPostProcess) {
 							   nodeData.filter.PostProcess();
+							   nodeData.data.path = path;
 						   }
 					   } },
 			attachLightData);
@@ -75,7 +77,7 @@ void Config::PostProcess(Config::LightSourceVec& a_lightDataVec)
 
 void Config::PostProcess(Config::AddonLightSourceVec& a_lightDataVec)
 {
-	std::erase_if(a_lightDataVec, [](auto& filterData) {
+	std::erase_if(a_lightDataVec, [&](auto& filterData) {
 		bool failedPostProcess = !filterData.data.PostProcess();
 		if (!failedPostProcess) {
 			filterData.filter.PostProcess();

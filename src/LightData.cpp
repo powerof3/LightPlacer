@@ -91,15 +91,15 @@ std::string LightData::GetDebugMarkerName(std::string_view a_lightName)
 	return std::format("{}[{}]", LP_DEBUG, a_lightName);
 }
 
-std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index) const
+std::string LightData::GetNodeName(const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const
 {
-	return std::format("{}[{},{},{}]#{}", LP_NODE, a_point.x + offset.x, a_point.y + offset.y, a_point.z + offset.z, a_index);
+	return std::format("{}[{}|{},{},{}]#{}", LP_NODE, path, a_point.x + offset.x, a_point.y + offset.y, a_point.z + offset.z, a_index);
 }
 
-std::string LightData::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index) const
+std::string LightData::GetNodeName(RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const
 {
-	auto pos = a_obj->local.translate;
-	return std::format("{}[{}|{},{},{}]#{}", LP_NODE, a_obj->name.c_str(), pos.x + offset.x, pos.y + offset.y, pos.z + offset.z, a_index);
+	const auto& pos = a_obj->local.translate;
+	return std::format("{}[{}|{}({},{},{})]#{}", LP_NODE, path, a_obj->name.c_str(), pos.x + offset.x, pos.y + offset.y, pos.z + offset.z, a_index);
 }
 
 bool LightData::IsDynamicLight(const RE::TESObjectREFR* a_ref) const
@@ -133,6 +133,7 @@ RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_vie
 
 	if (const auto error = Demand(create_params.modelName, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
 		if (const auto clonedModel = loadedModel->Clone()) {
+			loadedModel.reset();
 			PostProcessDebugMarker(clonedModel, create_params, a_debugMarkerName);
 			RE::AttachNode(a_node, clonedModel);
 			return clonedModel;
@@ -448,14 +449,14 @@ bool LIGH::LightSourceData::IsStaticLight() const
 	return data.offset == RE::NiPoint3::Zero() && data.rotation == RE::MATRIX_ZERO && positionController.empty() && rotationController.empty();
 }
 
-RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const
+RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const
 {
 	if (a_root) {
 		if (a_point == RE::NiPoint3::Zero() && IsStaticLight()) {
 			return a_root.get();
 		}
 
-		auto name = data.GetNodeName(a_point, a_index);
+		auto name = data.GetNodeName(a_point, path, a_index);
 
 		auto node = RE::GetObjectByName(a_root.get(), name);
 		if (!node) {
@@ -473,17 +474,17 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 	return nullptr;
 }
 
-RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, const std::string& a_nodeName, std::uint32_t a_index) const
+RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, const std::string& a_nodeName, const std::string& path, std::uint32_t a_index) const
 {
 	if (!a_root) {
 		return nullptr;
 	}
 
 	const auto obj = RE::GetObjectByName(a_root.get(), a_nodeName);
-	return GetOrCreateNode(a_root, obj, a_index);
+	return GetOrCreateNode(a_root, obj, path, a_index);
 }
 
-RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const
+RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const
 {
 	if (!a_root || !a_obj) {
 		return nullptr;
@@ -502,7 +503,7 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 		}
 	}
 
-	const auto name = data.GetNodeName(a_obj, a_index);
+	const auto name = data.GetNodeName(a_obj, path, a_index);
 	if (const auto node = RE::GetObjectByName(a_root.get(), name)) {
 		return node->AsNode();
 	}
@@ -534,13 +535,13 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 	return newNode;
 }
 
-std::string LIGH::LightSourceData::GetLightName(const SourceAttachDataPtr& a_srcData, std::uint32_t a_index) const
+std::string LIGH::LightSourceData::GetLightName(const SourceAttachDataPtr& a_srcData, const std::string& path, std::uint32_t a_index) const
 {
 	if (a_srcData->miscID != std::numeric_limits<std::uint32_t>::max()) {
-		return std::format("{}[{}|{}]#{}", LightData::LP_LIGHT, a_srcData->miscID, lightEDID, a_index);
+		return std::format("{}[{}|{}]({})#{}", LightData::LP_LIGHT, path, lightEDID, a_srcData->miscID, a_index);
 	}
 
-	return std::format("{}[{}]#{}", LightData::LP_LIGHT, lightEDID, a_index);
+	return std::format("{}[{}|{}]#{}", LightData::LP_LIGHT, path, lightEDID, a_index);
 }
 
 void REFR_LIGH::NodeVisHelper::InsertConditionalNodes(const StringSet& a_nodes, bool a_isVisble)

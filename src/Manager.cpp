@@ -15,21 +15,30 @@ bool LightManager::ReadConfigs(bool a_reload)
 		configs.clear();
 	}
 
+	clib_util::Timer timer;
+	timer.start();
+
 	for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(dir)) {
 		if (dirEntry.is_directory() || dirEntry.path().extension() != ".json"sv) {
 			continue;
 		}
-		logger::info("{} {}...", a_reload ? "Reloading" : "Reading", dirEntry.path().string());
+
+		std::string path = dirEntry.path().string();
+		std::string truncPath = path.substr(strlen("Data\\LightPlacer\\"));
+		truncPath.erase(truncPath.size() - strlen(".json"));
+
+		logger::info("{} {}...", a_reload ? "Reloading" : "Reading", path);
 		std::string                 buffer;
-		std::vector<Config::Format> tmpConfig;
-		auto                        err = glz::read_file_json(tmpConfig, dirEntry.path().string(), buffer);
+		auto        err = glz::read_file_json(configs[truncPath], path, buffer);
 		if (err) {
 			logger::error("\terror:{}", glz::format_error(err, buffer));
 		} else {
-			logger::info("\t{} entries", tmpConfig.size());
-			configs.append_range(std::move(tmpConfig));
+			logger::info("\t{} entries", configs[truncPath].size());
 		}
 	}
+
+	timer.stop();
+	logger::info("Time taken: {}ms", timer.duration_ms());
 
 	return !configs.empty();
 }
@@ -67,26 +76,36 @@ void LightManager::ReloadConfigs()
 
 void LightManager::ProcessConfigs()
 {
-	for (auto& multiData : configs) {
-		std::visit(overload{
-					   [&](Config::MultiModelSet& models) {
-						   PostProcess(models.lights);
-						   for (auto& str : models.models) {
-							   gameModels[str].append_range(models.lights);
-						   }
-					   },
-					   [&](Config::MultiVisualEffectSet& visualEffects) {
-						   PostProcess(visualEffects.lights);
-						   for (auto& rawID : visualEffects.visualEffects) {
-							   if (auto formID = RE::GetFormID(rawID); formID != 0) {
-								   gameVisualEffects[formID].append_range(visualEffects.lights);
+	logger::info("{:*^50}", "PROCESSING");
+	
+	clib_util::Timer timer;
+	timer.start();
+	
+	for (auto& [path, config] : configs) {
+		for (auto& multiData : config) {
+			std::visit(overload{
+						   [&](Config::MultiModelSet& models) {
+							   PostProcess(models.lights, path);
+							   for (auto& str : models.models) {
+								   gameModels[str].append_range(models.lights);
 							   }
-						   }
-					   },
-					   [&](const Config::MultiAddonSet&) {
-					   } },
-			multiData);
+						   },
+						   [&](Config::MultiVisualEffectSet& visualEffects) {
+							   PostProcess(visualEffects.lights, path);
+							   for (auto& rawID : visualEffects.visualEffects) {
+								   if (auto formID = RE::GetFormID(rawID); formID != 0) {
+									   gameVisualEffects[formID].append_range(visualEffects.lights);
+								   }
+							   }
+						   },
+						   [&](const Config::MultiAddonSet&) {
+						   } },
+				multiData);
+		}
 	}
+
+	timer.stop();
+	logger::info("Processing time taken: {}ms", timer.duration_ms());
 }
 
 std::vector<RE::TESObjectREFRPtr> LightManager::GetLightAttachedRefs()
@@ -357,11 +376,11 @@ void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a
 		std::uint32_t LP_INDEX = 0;
 
 		auto processLightGroup = [&](auto& groups) {
-			for (auto& [entries, lightData] : groups) {
+			for (auto& [entries, lightData, path] : groups) {
 				if constexpr (std::is_same_v<std::decay_t<decltype(groups)>, std::vector<Config::PointData>>) {
 					for (const auto& [i, point] : std::views::enumerate(entries)) {
-						if (auto node = lightData.GetOrCreateNode(srcAttachData->attachNode, point, LP_INDEX)) {
-							AttachLight(lightData, srcAttachData, node, LP_INDEX);
+						if (auto node = lightData.GetOrCreateNode(srcAttachData->attachNode, point, path, LP_INDEX)) {
+							AttachLight(lightData, srcAttachData, node, path, LP_INDEX);
 						}
 						++LP_INDEX;
 					}
@@ -376,8 +395,8 @@ void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a
 						});
 					}
 					for (const auto& [i, node] : std::views::enumerate(nodeVec)) {
-						if (auto lightNode = lightData.GetOrCreateNode(srcAttachData->attachNode, node, LP_INDEX)) {
-							AttachLight(lightData, srcAttachData, lightNode, LP_INDEX);
+						if (auto lightNode = lightData.GetOrCreateNode(srcAttachData->attachNode, node, path, LP_INDEX)) {
+							AttachLight(lightData, srcAttachData, lightNode, path, LP_INDEX);
 						}
 						++LP_INDEX;
 					}
@@ -408,13 +427,13 @@ void LightManager::CollectValidLights(const SourceAttachDataPtr& a_srcData, cons
 		a_lightData);
 }
 
-void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const SourceAttachDataPtr& a_srcData, RE::NiNode* a_node, std::uint32_t a_index)
+void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const SourceAttachDataPtr& a_srcData, RE::NiNode* a_node, const std::string& path, std::uint32_t a_index)
 {
 	if (!a_node) {
 		return;
 	}
 
-	const auto name = a_lightSource.GetLightName(a_srcData, a_index);
+	const auto name = a_lightSource.GetLightName(a_srcData, path, a_index);
 	const auto ref = a_srcData->ref;
 	const auto scale = a_srcData->scale;
 

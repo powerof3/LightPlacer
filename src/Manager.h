@@ -142,12 +142,12 @@ private:
 	void AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a_formID = 0);
 	void CollectValidLights(const SourceAttachDataPtr& a_srcData, const Config::LightSourceData& a_lightData, std::vector<Config::PointData>& a_collectedPoints, std::vector<Config::NodeData>& a_collectedNodes);
 
-	void AttachLight(const LIGH::LightSourceData& a_lightSource, const SourceAttachDataPtr& a_srcData, RE::NiNode* a_node, std::uint32_t a_index = 0);
+	void AttachLight(const LIGH::LightSourceData& a_lightSource, const SourceAttachDataPtr& a_srcData, RE::NiNode* a_node, const std::string& path, std::uint32_t a_index = 0);
 
 	// members
-	std::vector<Config::Format>                 configs;
-	StringMap<Config::LightSourceVec>           gameModels;
-	FlatMap<RE::FormID, Config::LightSourceVec> gameVisualEffects;
+	FlatMap<std::string, std::vector<Config::Format>> configs;  // [path, configs]
+	StringMap<Config::LightSourceVec>                 gameModels;
+	FlatMap<RE::FormID, Config::LightSourceVec>       gameVisualEffects;
 
 	LockedMap<RE::RefHandle, ProcessedLights>                           gameRefLights;
 	LockedMap<RE::RefHandle, LockedMap<std::string, ProcessedLights>>   gameActorWornLights;     // nodeName (armor node on attach isn't same ptr on detach)

@@ -94,8 +94,8 @@ struct LightData
 	float                                    GetScaledSize(float a_scale) const;
 	float                                    GetFalloff() const;
 	float                                    GetNearDistance() const;
-	std::string                              GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index) const;
-	std::string                              GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index) const;
+	std::string                              GetNodeName(const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const;
+	std::string                              GetNodeName(RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const;
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(const RE::TESObjectREFR* a_ref) const;
 	bool                                     GetPortalStrict() const;
 	bool                                     IsDynamicLight(const RE::TESObjectREFR* a_ref) const;
@@ -153,11 +153,11 @@ namespace LIGH
 
 		bool IsStaticLight() const;
 
-		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, const RE::NiPoint3& a_point, std::uint32_t a_index) const;
-		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, const std::string& a_nodeName, std::uint32_t a_index) const;
-		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, RE::NiAVObject* a_obj, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, const std::string& a_nodeName, const std::string& path, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const;
 
-		std::string GetLightName(const SourceAttachDataPtr& a_srcData, std::uint32_t a_index) const;
+		std::string GetLightName(const SourceAttachDataPtr& a_srcData, const std::string& path, std::uint32_t a_index) const;
 
 		// members
 		LightData                data;

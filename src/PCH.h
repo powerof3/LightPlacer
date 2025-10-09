@@ -11,6 +11,7 @@
 #include <ClibUtil/RNG.hpp>
 #include <ClibUtil/distribution.hpp>
 #include <ClibUtil/simpleINI.hpp>
+#include <ClibUtil/timer.hpp>
 #include <MergeMapperPluginAPI.h>
 //#include <boost_unordered.hpp>
 #include <boost/unordered/concurrent_flat_map.hpp>
