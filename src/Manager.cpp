@@ -365,8 +365,7 @@ void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a
 						}
 						++LP_INDEX;
 					}
-				}
-				else {
+				} else {
 					std::vector<RE::NiAVObject*> nodeVec;
 					if (srcAttachData->attachNode) {
 						RE::BSVisit::TraverseScenegraphObjects(srcAttachData->attachNode.get(), [&](RE::NiAVObject* a_obj) {
