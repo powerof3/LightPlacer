@@ -53,6 +53,17 @@ namespace RE
 	static constexpr NiMatrix3 MATRIX_ZERO{};
 
 	using NiNodePtr = NiPointer<NiNode>;
+	
+	template <class T>
+	void UpdateNode(T* a_obj)
+	{
+		if (TaskQueueInterface::ShouldUseTaskQueue()) {
+			TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(a_obj);
+		} else {
+			NiUpdateData updateData;
+			a_obj->Update(updateData);
+		}
+	}
 
 	template <class T, class U>
 	void AttachNode(const U a_root, T* a_obj)
@@ -64,19 +75,10 @@ namespace RE
 				TaskQueueInterface::GetSingleton()->QueueNodeAttach(a_obj, a_root);
 			}
 		} else {
-			a_root->AttachChild(a_obj, true);
+			a_root->AttachChild(a_obj, false);
 		}
-	}
 
-	template <class T>
-	void UpdateNode(T* a_obj)
-	{
-		if (TaskQueueInterface::ShouldUseTaskQueue()) {
-			TaskQueueInterface::GetSingleton()->QueueUpdateNiObject(a_obj);
-		} else {
-			NiUpdateData updateData;
-			a_obj->Update(updateData);
-		}
+		UpdateNode(a_obj);
 	}
 
 	FormID GetFormID(const std::string& a_str);
