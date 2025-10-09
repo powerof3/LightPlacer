@@ -53,7 +53,7 @@ namespace RE
 	static constexpr NiMatrix3 MATRIX_ZERO{};
 
 	using NiNodePtr = NiPointer<NiNode>;
-	
+
 	template <class T>
 	void UpdateNode(T* a_obj)
 	{

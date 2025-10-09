@@ -28,7 +28,7 @@ bool LightManager::ReadConfigs(bool a_reload)
 		truncPath.erase(truncPath.size() - strlen(".json"));
 
 		logger::info("{} {}...", a_reload ? "Reloading" : "Reading", path);
-		std::string                 buffer;
+		std::string buffer;
 		auto        err = glz::read_file_json(configs[truncPath], path, buffer);
 		if (err) {
 			logger::error("\terror:{}", glz::format_error(err, buffer));
@@ -77,10 +77,10 @@ void LightManager::ReloadConfigs()
 void LightManager::ProcessConfigs()
 {
 	logger::info("{:*^50}", "PROCESSING");
-	
+
 	clib_util::Timer timer;
 	timer.start();
-	
+
 	for (auto& [path, config] : configs) {
 		for (auto& multiData : config) {
 			std::visit(overload{
