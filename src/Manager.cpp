@@ -414,7 +414,7 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 		return;
 	}
 
-	const auto name = LightData::GetLightName(a_srcData, a_lightSource.lightEDID, a_index);
+	const auto name = a_lightSource.GetLightName(a_srcData, a_index);
 	const auto ref = a_srcData->ref;
 	const auto scale = a_srcData->scale;
 

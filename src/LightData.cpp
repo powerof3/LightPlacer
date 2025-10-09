@@ -91,23 +91,15 @@ std::string LightData::GetDebugMarkerName(std::string_view a_lightName)
 	return std::format("{}[{}]", LP_DEBUG, a_lightName);
 }
 
-std::string LightData::GetLightName(const SourceAttachDataPtr& a_srcData, std::string_view a_lightEDID, std::uint32_t a_index)
+std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index) const
 {
-	if (a_srcData->miscID != std::numeric_limits<std::uint32_t>::max()) {
-		return std::format("{}[{}|{}]#{}", LP_LIGHT, a_srcData->miscID, a_lightEDID, a_index);
-	}
-
-	return std::format("{}[{}]#{}", LP_LIGHT, a_lightEDID, a_index);
+	return std::format("{}[{},{},{}]#{}", LP_NODE, a_point.x + offset.x, a_point.y + offset.y, a_point.z + offset.z, a_index);
 }
 
-std::string LightData::GetNodeName(const RE::NiPoint3& a_point, std::uint32_t a_index)
+std::string LightData::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index) const
 {
-	return std::format("{}[{},{},{}]#{}", LP_NODE, a_point.x, a_point.y, a_point.z, a_index);
-}
-
-std::string LightData::GetNodeName(RE::NiAVObject* a_obj, std::uint32_t a_index)
-{
-	return std::format("{}[{}]#{}", LP_NODE, a_obj->name.c_str(), a_index);
+	auto pos = a_obj->local.translate;
+	return std::format("{}[{}|{},{},{}]#{}", LP_NODE, a_obj->name.c_str(), pos.x + offset.x, pos.y + offset.y, pos.z + offset.z, a_index);
 }
 
 bool LightData::IsDynamicLight(const RE::TESObjectREFR* a_ref) const
@@ -463,15 +455,16 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 			return a_root.get();
 		}
 
-		auto name = LightData::GetNodeName(a_point, a_index);
+		auto name = data.GetNodeName(a_point, a_index);
 
 		auto node = RE::GetObjectByName(a_root.get(), name);
 		if (!node) {
-			node = RE::NiNode::Create(1);
-			node->name = name;
-			node->local.translate = a_point + data.offset;
-			node->local.rotate = data.rotation;
-			RE::AttachNode(a_root, node);
+			if (node = RE::NiNode::Create(1); node) {
+				node->name = name;
+				node->local.translate = a_point + data.offset;
+				node->local.rotate = data.rotation;
+				RE::AttachNode(a_root, node);
+			}
 		}
 
 		return node ? node->AsNode() : nullptr;
@@ -504,12 +497,12 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 
 	auto geometry = a_obj->AsGeometry();
 	if (geometry && geometry->parent && !geometry->parent->AsFadeNode()) {  // not top level BSFadeNode
-		if (geometry->local == RE::NiTransform{}) {
+		if (geometry->local == RE::NiTransform{} && data.offset == RE::NiPoint3{}) {
 			return geometry->parent;
 		}
 	}
 
-	const auto name = LightData::GetNodeName(a_obj, a_index);
+	const auto name = data.GetNodeName(a_obj, a_index);
 	if (const auto node = RE::GetObjectByName(a_root.get(), name)) {
 		return node->AsNode();
 	}
@@ -518,17 +511,36 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 
 	if (newNode = RE::NiNode::Create(1); newNode) {
 		newNode->name = name;
+
+		const auto getGeometryAttachNode = [&](const RE::BSGeometry* geom) {
+			for (auto* parent = geom->parent; parent; parent = parent->parent) {
+				if (parent->AsSwitchNode()) {
+					return geom->parent;
+				}
+			}
+			return a_root.get();
+		};
+
+		auto attachNode = geometry ? getGeometryAttachNode(geometry) : a_obj->AsNode();
 		if (geometry) {
-			newNode->local.translate = geometry->modelBound.center;
+			newNode->local.translate = attachNode == a_root.get() ? geometry->modelBound.center : geometry->local.translate;
 		}
 		newNode->local.translate += data.offset;
 		newNode->local.rotate = data.rotation;
-		RE::AttachNode(geometry ? a_root.get() :
-								  a_obj->AsNode(),
-			newNode);
+
+		RE::AttachNode(attachNode, newNode);
 	}
 
 	return newNode;
+}
+
+std::string LIGH::LightSourceData::GetLightName(const SourceAttachDataPtr& a_srcData, std::uint32_t a_index) const
+{
+	if (a_srcData->miscID != std::numeric_limits<std::uint32_t>::max()) {
+		return std::format("{}[{}|{}]#{}", LightData::LP_LIGHT, a_srcData->miscID, lightEDID, a_index);
+	}
+
+	return std::format("{}[{}]#{}", LightData::LP_LIGHT, lightEDID, a_index);
 }
 
 void REFR_LIGH::NodeVisHelper::InsertConditionalNodes(const StringSet& a_nodes, bool a_isVisble)
