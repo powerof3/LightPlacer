@@ -156,8 +156,8 @@ namespace Debug
 							toggled = !processedLights.GetLightsToggled(LIGHT_CULL_FLAGS::Script);
 							processedLights.ToggleLights(toggled, LIGHT_CULL_FLAGS::Script);
 						});
-						RE::ConsoleLog::GetSingleton()->Print("Light Placer Lights %s", !toggled ? "ON" : "OFF");					
-					}	
+						RE::ConsoleLog::GetSingleton()->Print("Light Placer Lights %s", !toggled ? "ON" : "OFF");
+					}
 				}
 				break;
 			case 1:
