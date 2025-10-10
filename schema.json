@@ -198,8 +198,6 @@
                 "PortalStrict",
                 "Shadow",
                 "Simple",
-                "Initialised",
-                "Disabled",
                 "InverseSquare",
                 "UpdateOnWaiting",
                 "UpdateOnCellTransition",
@@ -210,12 +208,12 @@
               ]
             },
             {
-              "pattern": "^PortalStrict|Shadow|Simple|Initialised|Disabled|InverseSquare|UpdateOnWaiting|UpdateOnCellTransition|NeedsUpdate|SyncAddonNodes|IgnoreScale|RandomAnimStart|NoExternalEmittance"
+              "pattern": "^PortalStrict|Shadow|Simple|InverseSquare|UpdateOnWaiting|UpdateOnCellTransition|NeedsUpdate|SyncAddonNodes|IgnoreScale|RandomAnimStart|NoExternalEmittance"
             }
           ],
           "type": "string",
           "minLength": 1,
-          "description": "Set of flags used to mark lights for rendering purposes. Can be multiple separated with \"|\" Flags should be written exactly as shown. \n- PortalStrict\n- Shadow\n- Simple\n- Initialised\n- Disabled\n- InverseSquare\n- UpdateOnWaiting\n- UpdateOnCellTransition\n- NeedsUpdate\n- SyncAddonNodes\n- IgnoreScale\n- RandomAnimStart\n- NoExternalEmittance"
+          "description": "Set of flags used to mark lights for rendering purposes. Can be multiple separated with \"|\" Flags should be written exactly as shown. \n- PortalStrict\n- Shadow\n- Simple\n- InverseSquare\n- UpdateOnWaiting\n- UpdateOnCellTransition\n- NeedsUpdate\n- SyncAddonNodes\n- IgnoreScale\n- RandomAnimStart\n- NoExternalEmittance"
         },
         "colorController": {
           "type": "object",
