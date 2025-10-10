@@ -59,28 +59,6 @@ void LightOutput::HideDebugMarker() const
 	}
 }
 
-void LightOutput::UpdateDebugMarkerState(bool a_culled) const
-{
-	constexpr auto COLOR_RED = RE::NiColorA(1.0f, 0.0f, 0.0f, 1.0f);
-	constexpr auto COLOR_GREY = RE::NiColorA(0.682f, 0.682f, 0.682f, 1.0f);
-
-	if (debugMarker) {
-		const auto obj = RE::GetObjectByName(debugMarker.get(), "MarkerGeo");
-		const auto shape = obj ? obj->AsGeometry() : nullptr;
-
-		if (!shape) {
-			return;
-		}
-
-		const auto effectProp = netimmerse_cast<RE::BSEffectShaderProperty*>(shape->properties[RE::BSGeometry::States::kEffect].get());
-		const auto effectMaterial = effectProp ? static_cast<RE::BSEffectShaderMaterial*>(effectProp->material) : nullptr;
-
-		if (effectMaterial) {
-			effectMaterial->baseColor = a_culled ? COLOR_RED : COLOR_GREY;
-		}
-	}
-}
-
 bool LightData::IsValid() const
 {
 	return light != nullptr;
@@ -372,29 +350,6 @@ void LightData::PostProcessDebugMarker(RE::NiAVObject* a_obj, const MARKER_CREAT
 	a_obj->local.scale = a_params.scale;
 	if (a_params.rotation != RE::NiPoint3::Zero()) {
 		a_obj->local.rotate.SetEulerAnglesXYZ(a_params.rotation.x, a_params.rotation.y, a_params.rotation.z);
-	}
-
-	if (const auto shape = RE::GetObjectByName(a_obj, a_params.shapeName); shape && shape->AsGeometry()) {
-		shape->name = "MarkerGeo"sv;
-
-		// make material unique so each bulb can turn red independently
-		if (const auto effectProp = netimmerse_cast<RE::BSEffectShaderProperty*>(shape->AsGeometry()->properties[RE::BSGeometry::States::kEffect].get())) {
-			effectProp->SetFlags(RE::BSShaderProperty::EShaderPropertyFlag8::kVertexColors, false);
-
-			if (const auto effectMaterial = static_cast<RE::BSEffectShaderMaterial*>(effectProp->material)) {
-				if (const auto newMaterial = static_cast<RE::BSEffectShaderMaterial*>(effectMaterial->Create())) {
-					newMaterial->CopyMembers(effectMaterial);
-
-					effectProp->lastRenderPassState = std::numeric_limits<std::int32_t>::max();
-					effectProp->SetMaterial(newMaterial, true);
-					effectProp->SetupGeometry(shape->AsGeometry());
-					effectProp->FinishSetupGeometry(shape->AsGeometry());
-
-					newMaterial->~BSEffectShaderMaterial();
-					RE::free(newMaterial);
-				}
-			}
-		}
 	}
 }
 

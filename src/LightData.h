@@ -70,8 +70,8 @@ struct LightOutput
 	void RemoveLight(bool a_clearData) const;
 	void ShowDebugMarker() const;
 	void HideDebugMarker() const;
-	void UpdateDebugMarkerState(bool a_culled) const;
 
+	// members
 	RE::NiPointer<RE::BSLight>      bsLight{};
 	RE::NiPointer<RE::NiPointLight> niLight{};
 	RE::NiPointer<RE::NiAVObject>   debugMarker{};
