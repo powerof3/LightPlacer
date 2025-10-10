@@ -54,7 +54,7 @@ void LightManager::OnDataLoad()
 	logger::info("{:*^50}", "RESULTS");
 
 	logger::info("Models : {} entries", gameModels.size());
-	logger::info("VisualEffects : {} entries", gameVisualEffects.size());
+	logger::info("FormIDs : {} entries", gameFormIDs.size());
 
 	RE::PlayerCharacter::GetSingleton()->AddEventSink<RE::BGSActorCellEvent>(GetSingleton());
 	RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESWaitStopEvent>(GetSingleton());
@@ -69,7 +69,7 @@ void LightManager::ReloadConfigs()
 	}
 
 	gameModels.clear();
-	gameVisualEffects.clear();
+	gameFormIDs.clear();
 
 	ProcessConfigs();
 }
@@ -90,11 +90,11 @@ void LightManager::ProcessConfigs()
 								   gameModels[str].append_range(models.lights);
 							   }
 						   },
-						   [&](Config::MultiVisualEffectSet& visualEffects) {
-							   PostProcess(visualEffects.lights, path);
-							   for (auto& rawID : visualEffects.visualEffects) {
+						   [&](Config::MultiFormIDSet& formIDs) {
+							   PostProcess(formIDs.lights, path);
+							   for (auto& rawID : formIDs.formIDs) {
 								   if (auto formID = RE::GetFormID(rawID); formID != 0) {
-									   gameVisualEffects[formID].append_range(visualEffects.lights);
+									   gameFormIDs[formID].append_range(formIDs.lights);
 								   }
 							   }
 						   },
@@ -142,7 +142,7 @@ void LightManager::AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_bas
 		return;
 	}
 
-	AttachLightsImpl(srcData);
+	AttachLightsImpl(srcData, a_base->GetFormID());
 }
 
 void LightManager::ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base)
@@ -221,7 +221,7 @@ void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPoi
 		return;
 	}
 
-	AttachLightsImpl(srcData);
+	AttachLightsImpl(srcData, bipObject.item->GetFormID());
 }
 
 void LightManager::ReattachWornLights(const RE::ActorHandle& a_handle) const
@@ -359,7 +359,7 @@ void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a
 	}
 
 	if (a_formID != 0) {
-		if (auto it = gameVisualEffects.find(a_formID); it != gameVisualEffects.end()) {
+		if (auto it = gameFormIDs.find(a_formID); it != gameFormIDs.end()) {
 			if (srcAttachData->Initialize(a_srcData)) {
 				for (const auto& data : it->second) {
 					CollectValidLights(srcAttachData, data, collectedPoints, collectedNodes);

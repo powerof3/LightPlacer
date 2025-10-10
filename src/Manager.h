@@ -147,7 +147,7 @@ private:
 	// members
 	FlatMap<std::string, std::vector<Config::Format>> configs;  // [path, configs]
 	StringMap<Config::LightSourceVec>                 gameModels;
-	FlatMap<RE::FormID, Config::LightSourceVec>       gameVisualEffects;
+	FlatMap<RE::FormID, Config::LightSourceVec>       gameFormIDs;
 
 	LockedMap<RE::RefHandle, ProcessedLights>                           gameRefLights;
 	LockedMap<RE::RefHandle, LockedMap<std::string, ProcessedLights>>   gameActorWornLights;     // nodeName (armor node on attach isn't same ptr on detach)

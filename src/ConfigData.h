@@ -59,9 +59,9 @@ namespace Config
 		LightSourceVec lights;
 	};
 
-	struct MultiVisualEffectSet
+	struct MultiFormIDSet
 	{
-		StringSet      visualEffects;
+		StringSet      formIDs;
 		LightSourceVec lights;
 	};
 
@@ -72,7 +72,7 @@ namespace Config
 		std::vector<FilteredRawData> lights;
 	};
 
-	using Format = std::variant<MultiModelSet, MultiVisualEffectSet, MultiAddonSet>;
+	using Format = std::variant<MultiModelSet, MultiFormIDSet, MultiAddonSet>;
 
 	void PostProcess(LightSourceVec& a_lightDataVec, const std::string& path);
 	void PostProcess(AddonLightSourceVec& a_lightDataVec);
@@ -120,11 +120,12 @@ struct glz::meta<Config::MultiModelSet>
 };
 
 template <>
-struct glz::meta<Config::MultiVisualEffectSet>
+struct glz::meta<Config::MultiFormIDSet>
 {
-	using T = Config::MultiVisualEffectSet;
-	static constexpr auto value = object(
-		"visualEffects", &T::visualEffects,
+	using T = Config::MultiFormIDSet;
+	static constexpr auto modify = glz::object(
+		"formIDs", &T::formIDs,
+		"visualEffects", &T::formIDs,
 		"lights", &T::lights);
 };
 
