@@ -253,15 +253,25 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 
 void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectFormID)
 {
-	if (!a_effect) {
+	if (!a_effect || a_effectFormID == 0) {
 		return;
 	}
 
 	const auto ref = a_effect->target.get();
-	const auto root = RE::GetReferenceAttachRoot(a_effect);
-
-	if (!ref || !root) {
+	if (!ref) {
 		return;
+	}
+
+	auto root = RE::GetReferenceAttachRoot(a_effect);
+	if (!root) {
+		return;
+	}
+
+	if (ref->IsPlayerRef() && !RE::PlayerCharacter::GetSingleton()->Is3rdPersonVisible()) {
+		auto thirdPersonRoot = ref->Get3D(false) ? ref->Get3D(false)->GetObjectByName(root->name) : nullptr;
+		if (thirdPersonRoot) {
+			root = thirdPersonRoot;
+		}
 	}
 
 	const auto base = RE::GetReferenceEffectBase(ref, a_effect);
