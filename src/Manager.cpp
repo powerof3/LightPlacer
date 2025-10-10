@@ -449,6 +449,7 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 
 	if (auto lightDataOutput = a_lightSource.data.GenLight(ref.get(), a_node, name, scale); lightDataOutput.bsLight && lightDataOutput.niLight) {
 		auto handle = ref->CreateRefHandle().native_handle();
+		auto cellFormID = a_srcData->filterIDs[0];
 
 		switch (a_srcData->type) {
 		case SOURCE_TYPE::kRef:
@@ -466,6 +467,9 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
 					});
 				}
+				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(a_lightSource.data, handle), [&](auto& lightsToUpdate) {
+					lightsToUpdate.second.emplace(a_lightSource.data, handle);
+				});
 			}
 			break;
 		case SOURCE_TYPE::kActorWorn:
@@ -474,7 +478,7 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 					map.second.try_emplace_or_visit(a_srcData->nodeName, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
 						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
 					});
-					lightsToBeUpdated.try_emplace_or_visit(a_srcData->filterIDs[0], LightsToUpdate(handle), [&](auto& lightsToUpdate) {
+					lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle), [&](auto& lightsToUpdate) {
 						lightsToUpdate.second.emplace(handle);
 					});
 				};
@@ -504,20 +508,6 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 			break;
 		}
 	}
-}
-
-void LightManager::AddLightsToUpdateQueue(const RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref)
-{
-	auto cellFormID = a_cell->GetFormID();
-	auto handle = a_ref->CreateRefHandle().native_handle();
-	auto isObject = a_ref->IsNot(RE::FormType::ActorCharacter);
-
-	ForEachLight(a_ref, handle, [&](const auto&, const auto& processedLight) {
-		lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(processedLight, handle, isObject), [&](auto& map) {
-			map.second.emplace(processedLight, handle, isObject);
-		});
-		return true;
-	});
 }
 
 RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*)
@@ -590,6 +580,7 @@ void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 void LightManager::UpdateEmittance(const RE::TESObjectCELL* a_cell)
 {
 	lightsToBeUpdated.visit(a_cell->GetFormID(), [&](auto& map) {
+		logger::info("{}: {}", a_cell->GetFormID(), map.second.emittanceLights.size());
 		std::erase_if(map.second.emittanceLights, [&](const auto& handle) {
 			RE::TESObjectREFRPtr ref{};
 			RE::LookupReferenceByHandle(handle, ref);
@@ -597,6 +588,8 @@ void LightManager::UpdateEmittance(const RE::TESObjectCELL* a_cell)
 			if (!ref) {
 				return true;
 			}
+
+			logger::info("\tUpdating emittance for {:X} {}", ref->GetFormID(), ref->GetBaseObject()->As<RE::TESModel>()->GetModel());
 
 			gameRefLights.cvisit(handle, [&](auto& lightsMap) {
 				lightsMap.second.UpdateEmittance();

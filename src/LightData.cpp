@@ -649,6 +649,9 @@ void REFR_LIGH::UpdateEmittance() const
 			emittanceColor = lightForm->emittanceColor;
 		} else if (const auto region = data.emittanceForm->As<RE::TESRegion>()) {
 			emittanceColor = region->emittanceColor;
+			if (emittanceColor == RE::COLOR_BLACK) {
+				RE::UpdateRegionEmittance(emittanceColor, region);
+			}
 		}
 		niLight->diffuse = data.GetDiffuse() * emittanceColor;
 	}

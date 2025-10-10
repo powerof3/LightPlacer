@@ -92,11 +92,13 @@ namespace stl
 	}
 
 	template <class T, class F>
-	void unique_insert(std::vector<T>& vec, const F& element)
+	bool unique_insert(std::vector<T>& vec, const F& element)
 	{
 		if (std::find(vec.begin(), vec.end(), element) == vec.end()) {
 			vec.push_back(element);
+			return true;
 		}
+		return false;
 	}
 
 	template <class T, class F>

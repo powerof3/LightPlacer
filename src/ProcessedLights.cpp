@@ -138,20 +138,16 @@ LightsToUpdate::LightsToUpdate(RE::RefHandle a_handle)
 	emplace(a_handle);
 }
 
-LightsToUpdate::LightsToUpdate(const ProcessedLights& a_processedLights, RE::RefHandle a_handle, bool a_isObject)
+LightsToUpdate::LightsToUpdate(const LightData& a_lightData, RE::RefHandle a_handle)
 {
-	emplace(a_processedLights, a_handle, a_isObject);
+	emplace(a_lightData, a_handle);
 }
 
-void LightsToUpdate::emplace(const ProcessedLights& a_processedLights, RE::RefHandle a_handle, bool a_isObject)
+void LightsToUpdate::emplace(const LightData& a_lightData, RE::RefHandle a_handle)
 {
 	stl::unique_insert(updatingLights, a_handle);
-
-	for (auto& lightData : a_processedLights.lights) {
-		if (a_isObject && lightData.data.emittanceForm) {
-			stl::unique_insert(emittanceLights, a_handle);
-			break;
-		}
+	if (a_lightData.emittanceForm) {
+		stl::unique_insert(emittanceLights, a_handle);
 	}
 }
 

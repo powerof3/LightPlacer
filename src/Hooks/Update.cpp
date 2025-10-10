@@ -4,50 +4,6 @@
 
 namespace Hooks::Update
 {
-	// add lights to queue
-	struct CheckUsesExternalEmittancePatch
-	{
-		static void Install()
-		{
-			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(19002, 19413), OFFSET(0x9E1, (RE::GetGameVersion() >= SKSE::RUNTIME_SSE_LATEST ? 0x936 : 0x948)) };  //TESObjectCELL::AttachReference3D
-
-			struct Patch : Xbyak::CodeGenerator
-			{
-				Patch(std::uintptr_t a_func)
-				{
-					Xbyak::Label f;
-#if defined(SKYRIM_AE) || defined(SKYRIMVR)
-					mov(rdx, r15);
-#else
-					mov(rdx, r14);
-#endif
-					jmp(ptr[rip + f]);
-
-					L(f);
-					dq(a_func);
-				}
-			};
-
-			Patch patch{ reinterpret_cast<std::uintptr_t>(CheckUsesExternalEmittance) };
-			patch.ready();
-
-			auto& trampoline = SKSE::GetTrampoline();
-			_CheckUsesExternalEmittance = trampoline.write_call<5>(target.address(), trampoline.allocate(patch));
-
-			logger::info("Patched TESObjectREFR::CheckUsesExternalEmittance");
-		}
-
-	private:
-		static bool CheckUsesExternalEmittance(RE::TESObjectREFR* a_ref, RE::TESObjectCELL* a_cell)
-		{
-			if (a_cell && a_cell->loadedData && a_ref && a_ref->Get3D()) {
-				LightManager::GetSingleton()->AddLightsToUpdateQueue(a_cell, a_ref);
-			}
-			return _CheckUsesExternalEmittance(a_ref);
-		}
-		static inline REL::Relocation<bool(RE::TESObjectREFR*)> _CheckUsesExternalEmittance;
-	};
-
 	// update flickering
 	struct UpdateActivateParents
 	{
@@ -225,8 +181,6 @@ namespace Hooks::Update
 
 	void Install()
 	{
-		CheckUsesExternalEmittancePatch::Install();
-
 		UpdateActivateParents::Install();
 		UpdateManagedNodes::Install();
 		BSTempEffect::UpdatePosition<RE::ShaderReferenceEffect>::Install();

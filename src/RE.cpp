@@ -1203,6 +1203,34 @@ namespace RE
 		func(a_light, a_ptLight, a_ref, a_wantDimmer);
 	}
 
+	void UpdateRegionEmittance(RE::NiColor& a_color, RE::TESRegion* a_region)
+	{
+		using namespace literals;
+
+		auto weather = a_region->currentWeather;
+		if (!weather) {
+			weather = a_region->SelectWeather();
+			if (weather) {
+				a_region->SetCurrentWeather(weather);
+			}
+		}
+		if (!weather) {
+			if (auto defaultWeather = TESForm::LookupByID<TESWeather>(0x15E)) {
+				weather = defaultWeather;
+			}
+		}
+		if (weather) {
+			Sky::COLOR_BLEND      colorBlend{};
+			TESWeather::ColorTime time1{};
+			TESWeather::ColorTime time2{};
+
+			auto sky = Sky::GetSingleton();
+			sky->FillColorBlend(colorBlend, weather, 1.0f, time1, time2);
+			sky->FillColorBlendColors(colorBlend, weather, nullptr, TESWeather::ColorType::kEffectLighting, time1, time2);
+			sky->SetColor(a_color, &colorBlend, sky->flash * "fWeatherFlashDirectional"_gs.value_or(1.0f));
+		}
+	}
+
 	void WrapRotation(NiPoint3& a_rotation)
 	{
 		constexpr auto wrap_angle = [](float& angle) {

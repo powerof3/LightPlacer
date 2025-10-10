@@ -34,7 +34,6 @@ public:
 	void AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
 	void DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
 
-	void AddLightsToUpdateQueue(const RE::TESObjectCELL* a_cell, RE::TESObjectREFR* a_ref);
 	void UpdateLights(const RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(const RE::TESObjectCELL* a_cell);
 	void RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
