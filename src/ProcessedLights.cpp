@@ -30,21 +30,21 @@ void ProcessedLights::ShowDebugMarkers(bool a_show) const
 	}
 }
 
-void ProcessedLights::ToggleLightsScript(bool a_toggle) const
+void ProcessedLights::ToggleLights(bool a_toggle, LIGHT_CULL_FLAGS a_flags) const
 {
 	for (auto& light : lights) {
 		if (auto& niLight = light.GetLight()) {
 			auto& debugMarker = light.output.debugMarker;
-			LightData::CullLight(niLight.get(), debugMarker.get(), a_toggle, LIGHT_CULL_FLAGS::Script);
+			LightData::CullLight(niLight.get(), debugMarker.get(), a_toggle, a_flags);
 		}
 	}
 }
 
-bool ProcessedLights::GetLightsToggledScript() const
+bool ProcessedLights::GetLightsToggled(LIGHT_CULL_FLAGS a_flags) const
 {
 	for (auto& light : lights) {
 		if (auto& niLight = light.GetLight()) {
-			if (niLight->GetAppCulled()) {
+			if (niLight->GetAppCulled() && ((uint32_t)LightData::GetCulledFlag(niLight.get()) & (uint32_t)a_flags) != 0) {
 				return true;
 			}
 		}

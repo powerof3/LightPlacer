@@ -33,7 +33,7 @@ enum class LIGHT_CULL_FLAGS
 	None = 0,
 	Conditions = (1 << 0),
 	Game = (1 << 1),
-	Script = (1 << 2),
+	Script = (1 << 2)
 };
 
 enum class TES_LIGHT_FLAGS_EXT

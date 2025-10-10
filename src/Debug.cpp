@@ -123,31 +123,63 @@ namespace Debug
 		}
 	};
 
-	struct ToggleLightMarkers
+	struct ToggleLightPlacer
 	{
 		constexpr static auto OG_COMMAND = "TogglePoolTracking"sv;
 
-		constexpr static auto LONG_NAME = "ToggleLPMarkers"sv;
-		constexpr static auto SHORT_NAME = "tlpm"sv;
-		constexpr static auto HELP = "Toggle Light Markers\n"sv;
+		constexpr static auto LONG_NAME = "ToggleLP"sv;
+		constexpr static auto SHORT_NAME = "tlp"sv;
+		constexpr static auto HELP = "Toggle Light Placer functionality.\n(<id>: 0 - Lights | 1 - Debug Markers"sv;
 
-		static bool Execute(const RE::SCRIPT_PARAMETER*, RE::SCRIPT_FUNCTION::ScriptData*, RE::TESObjectREFR*, RE::TESObjectREFR*, RE::Script*, RE::ScriptLocals*, double&, std::uint32_t&)
+		constexpr static RE::SCRIPT_PARAMETER SCRIPT_PARAMS = { "Integer", RE::SCRIPT_PARAM_TYPE::kInt, false };
+
+		static bool Execute(const RE::SCRIPT_PARAMETER*, RE::SCRIPT_FUNCTION::ScriptData* a_scriptData, RE::TESObjectREFR*, RE::TESObjectREFR*, RE::Script*, RE::ScriptLocals*, double&, std::uint32_t&)
 		{
 			const auto settings = Settings::GetSingleton();
 
-			if (!settings->LoadDebugMarkers()) {
-				RE::ConsoleLog::GetSingleton()->Print("bShowMarkers not enabled in Data/SKSE/Plugins/po3_LightPlacer.ini");
-				return false;
+			switch (a_scriptData->GetIntegerChunk()->GetInteger()) {
+			case 0:
+				{
+					auto consoleRefHandle = RE::Console::GetSelectedRefHandle();
+					auto consoleRef = consoleRefHandle.get();
+					if (consoleRef) {
+						bool toggled = false;
+						LightManager::GetSingleton()->ForEachLight(consoleRef.get(), consoleRefHandle.native_handle(), [&](const auto&, const auto& processedLights) {
+							toggled = !processedLights.GetLightsToggled(LIGHT_CULL_FLAGS::Script);
+							processedLights.ToggleLights(toggled, LIGHT_CULL_FLAGS::Script);
+							return true;
+						});
+						RE::ConsoleLog::GetSingleton()->Print("Light Placer Lights %s on %u", !toggled ? "ON" : "OFF", consoleRef->GetFormID());
+					} else {
+						bool toggled = false;
+						LightManager::GetSingleton()->ForAllLights([&](const auto& processedLights) {
+							toggled = !processedLights.GetLightsToggled(LIGHT_CULL_FLAGS::Script);
+							processedLights.ToggleLights(toggled, LIGHT_CULL_FLAGS::Script);
+						});
+						RE::ConsoleLog::GetSingleton()->Print("Light Placer Lights %s", !toggled ? "ON" : "OFF");					
+					}	
+				}
+				break;
+			case 1:
+				{
+					if (!settings->LoadDebugMarkers()) {
+						RE::ConsoleLog::GetSingleton()->Print("bShowMarkers not enabled in Data/SKSE/Plugins/po3_LightPlacer.ini");
+						return false;
+					}
+
+					settings->ToggleDebugMarkers();
+
+					bool showDebugMarkers = settings->CanShowDebugMarkers();
+					LightManager::GetSingleton()->ForAllLights([&](const auto& processedLights) {
+						processedLights.ShowDebugMarkers(showDebugMarkers);
+					});
+
+					RE::ConsoleLog::GetSingleton()->Print("Light Placer Markers %s", showDebugMarkers ? "ON" : "OFF");
+				}
+				break;
+			default:
+				break;
 			}
-
-			settings->ToggleDebugMarkers();
-
-			bool showDebugMarkers = settings->CanShowDebugMarkers();
-			LightManager::GetSingleton()->ForAllLights([&](const auto& processedLights) {
-				processedLights.ShowDebugMarkers(showDebugMarkers);
-			});
-
-			RE::ConsoleLog::GetSingleton()->Print("Light Placer Markers %s", showDebugMarkers ? "ON" : "OFF");
 
 			return false;
 		}
@@ -188,7 +220,7 @@ namespace Debug
 		logger::info("{:*^50}", "DEBUG");
 
 		ConsoleCommandHandler<LogLights>::Install();
-		ConsoleCommandHandler<ToggleLightMarkers>::Install();
+		ConsoleCommandHandler<ToggleLightPlacer>::Install();
 		ConsoleCommandHandler<ReloadConfig>::Install();
 	}
 }

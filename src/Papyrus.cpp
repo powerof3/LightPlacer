@@ -12,7 +12,7 @@ namespace Papyrus
 
 		auto refHandle = a_ref->CreateRefHandle();
 		LightManager::GetSingleton()->ForEachLight(a_ref, refHandle.native_handle(), [&](const auto&, auto& processedLight) {
-			processedLight.ToggleLightsScript(a_hide);
+			processedLight.ToggleLights(a_hide, LIGHT_CULL_FLAGS::Script);
 			return true;
 		});
 	}
@@ -27,7 +27,7 @@ namespace Papyrus
 
 		auto refHandle = a_ref->CreateRefHandle();
 		LightManager::GetSingleton()->ForEachLight(a_ref, refHandle.native_handle(), [&](const auto&, auto& processedLight) {
-			result = processedLight.GetLightsToggledScript();
+			result = processedLight.GetLightsToggled(LIGHT_CULL_FLAGS::Script);
 			return !result;
 		});
 
