@@ -134,14 +134,14 @@ namespace Hooks::Detach
 		}
 	};
 
-	struct Suspend
+	struct ShaderReferenceEffect_Suspend
 	{
 		static void thunk(RE::ShaderReferenceEffect* a_this)
 		{
 			bool suspended = a_this->flags.any(RE::ShaderReferenceEffect::Flag::kSuspended);
 			func(a_this);
 			if (suspended != a_this->flags.any(RE::ShaderReferenceEffect::Flag::kSuspended)) {
-				LightManager::GetSingleton()->DetachTempEffectLights(a_this, false);
+				LightManager::GetSingleton()->DetachReferenceEffectLights(a_this, false);
 			}
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
@@ -149,7 +149,7 @@ namespace Hooks::Detach
 
 		static void Install()
 		{
-			stl::write_vfunc<RE::ShaderReferenceEffect, Suspend>();
+			stl::write_vfunc<RE::ShaderReferenceEffect, ShaderReferenceEffect_Suspend>();
 			logger::info("Hooked ShaderReferenceEffect::Suspend"sv);
 		}
 	};
@@ -162,8 +162,8 @@ namespace Hooks::Detach
 		BGSAttachTechniques__DetachItem::Install();
 		Hazard__Release3DRelatedData::Install();
 		Explosion__Release3DRelatedData::Install();
-		BSTempEffect::DetachImpl<RE::ShaderReferenceEffect>::Install();
-		BSTempEffect::DetachImpl<RE::ModelReferenceEffect>::Install();
-		Suspend::Install();
+		BSTempEffect::Detach<RE::ShaderReferenceEffect>::Install();
+		BSTempEffect::Detach<RE::ModelReferenceEffect>::Install();
+		ShaderReferenceEffect_Suspend::Install();
 	}
 }

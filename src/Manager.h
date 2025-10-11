@@ -27,9 +27,9 @@ public:
 	void ReattachWornLights(const RE::ActorHandle& a_handle) const;
 	void DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObject* a_root);
 
-	void AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectFormID);
-	void ReattachTempEffectLights(RE::ReferenceEffect* a_effect) const;
-	void DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData);
+	void AddReferenceEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectFormID);
+	void ReattachReferenceEffectLights(RE::ReferenceEffect* a_effect) const;
+	void DetachReferenceEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData);
 
 	void AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
 	void DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
@@ -38,7 +38,7 @@ public:
 	void UpdateEmittance(RE::TESObjectCELL* a_cell);
 	void RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
 
-	void UpdateTempEffectLights(RE::ReferenceEffect* a_effect);
+	void UpdateReferenceEffectLights(RE::ReferenceEffect* a_effect);
 	void UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta);
 	void UpdateHazardLights(RE::Hazard* a_hazard);
 	void UpdateExplosionLights(RE::Explosion* a_explosion);
@@ -65,7 +65,7 @@ public:
 				func(srcMap.second);
 			});
 		});
-		gameVisualEffectLights.cvisit_all([&](auto& map) {
+		gameReferenceEffectLights.cvisit_all([&](auto& map) {
 			func(map.second);
 		});
 	}
@@ -127,7 +127,7 @@ public:
 	template <class F>
 	void ForEachFXLight(F&& func)
 	{
-		gameVisualEffectLights.cvisit_all([&](auto& map) {
+		gameReferenceEffectLights.cvisit_all([&](auto& map) {
 			func(map.second);
 		});
 	}
@@ -149,9 +149,9 @@ private:
 	FlatMap<RE::FormID, Config::LightSourceVec>       gameFormIDs;
 
 	LockedMap<RE::RefHandle, ProcessedLights>                           gameRefLights;
-	LockedMap<RE::RefHandle, LockedMap<std::string, ProcessedLights>>   gameActorWornLights;     // nodeName (armor node on attach isn't same ptr on detach)
-	LockedMap<RE::RefHandle, LockedMap<std::uint32_t, ProcessedLights>> gameActorMagicLights;    // magicNodeName
-	LockedMap<std::uint32_t, ProcessedLights>                           gameVisualEffectLights;  // effectID
+	LockedMap<RE::RefHandle, LockedMap<std::string, ProcessedLights>>   gameActorWornLights;        // nodeName (armor node on attach isn't same ptr on detach)
+	LockedMap<RE::RefHandle, LockedMap<std::uint32_t, ProcessedLights>> gameActorMagicLights;       // magicNodeName
+	LockedMap<std::uint32_t, ProcessedLights>                           gameReferenceEffectLights;  // effectID
 	LockedMap<RE::RefHandle, ProcessedLights>                           gameHazardLights;
 	LockedMap<RE::RefHandle, ProcessedLights>                           gameExplosionLights;
 

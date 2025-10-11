@@ -7,20 +7,21 @@ namespace Hooks::Detach
 	namespace BSTempEffect
 	{
 		template <class T>
-		struct DetachImpl
+		struct Detach
 		{
 			static void thunk(T* a_this)
 			{
+				LightManager::GetSingleton()->DetachReferenceEffectLights(a_this, true);
+				
 				func(a_this);
-				LightManager::GetSingleton()->DetachTempEffectLights(a_this, true);
 			}
 			static inline REL::Relocation<decltype(thunk)> func;
-			static constexpr std::size_t                   idx{ 0x3E };
+			static constexpr std::size_t                   idx{ 0x27 };
 
 			static void Install()
 			{
-				stl::write_vfunc<T, DetachImpl>();
-				logger::info("Hooked {}::DetachImpl"sv, typeid(T).name());
+				stl::write_vfunc<T, Detach>();
+				logger::info("Hooked {}::Detach"sv, typeid(T).name());
 			}
 		};
 	}

@@ -6,7 +6,7 @@ enum class SOURCE_TYPE
 	kRef,
 	kActorWorn,
 	kActorMagic,
-	kTempEffect
+	kReferenceEffect
 };
 
 struct SourceData

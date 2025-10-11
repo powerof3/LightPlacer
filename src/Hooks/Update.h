@@ -4,7 +4,7 @@
 
 namespace Hooks::Update
 {
-	namespace BSTempEffect
+	namespace ReferenceEffect
 	{
 		template <class T>
 		struct UpdatePosition
@@ -13,7 +13,7 @@ namespace Hooks::Update
 			{
 				func(a_this);
 
-				LightManager::GetSingleton()->UpdateTempEffectLights(a_this);
+				LightManager::GetSingleton()->UpdateReferenceEffectLights(a_this);
 			}
 			static inline REL::Relocation<decltype(thunk)> func;
 			static constexpr std::size_t                   idx{ 0x3B };

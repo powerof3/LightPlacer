@@ -28,7 +28,7 @@ namespace Hooks::Attach
 		}
 	};
 
-	namespace BSTempEffect
+	namespace ReferenceEffect
 	{
 		template <class T>
 		struct Init
@@ -48,7 +48,7 @@ namespace Hooks::Attach
 							effectID = a_this->artObject->GetFormID();
 						}
 					}
-					LightManager::GetSingleton()->AddTempEffectLights(a_this, effectID);
+					LightManager::GetSingleton()->AddReferenceEffectLights(a_this, effectID);
 				}
 
 				return result;

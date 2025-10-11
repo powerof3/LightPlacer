@@ -183,8 +183,8 @@ namespace Hooks::Update
 	{
 		UpdateActivateParents::Install();
 		UpdateManagedNodes::Install();
-		BSTempEffect::UpdatePosition<RE::ShaderReferenceEffect>::Install();
-		BSTempEffect::UpdatePosition<RE::ModelReferenceEffect>::Install();
+		ReferenceEffect::UpdatePosition<RE::ShaderReferenceEffect>::Install();
+		ReferenceEffect::UpdatePosition<RE::ModelReferenceEffect>::Install();
 		Hazard__CheckInit3D::Install();
 		Explosion__CheckInit3D::Install();
 		ActorMagicCaster__Update::Install();

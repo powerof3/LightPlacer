@@ -82,14 +82,14 @@ namespace Hooks::Attach
 		}
 	};
 
-	struct Resume
+	struct ShaderReferenceEffect_Resume
 	{
 		static void thunk(RE::ShaderReferenceEffect* a_this)
 		{
 			bool suspended = a_this->flags.any(RE::ShaderReferenceEffect::Flag::kSuspended);
 			func(a_this);
 			if (suspended != a_this->flags.any(RE::ShaderReferenceEffect::Flag::kSuspended)) {
-				LightManager::GetSingleton()->ReattachTempEffectLights(a_this);
+				LightManager::GetSingleton()->ReattachReferenceEffectLights(a_this);
 			}
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
@@ -97,7 +97,7 @@ namespace Hooks::Attach
 
 		static void Install()
 		{
-			stl::write_vfunc<RE::ShaderReferenceEffect, Resume>();
+			stl::write_vfunc<RE::ShaderReferenceEffect, ShaderReferenceEffect_Resume>();
 			logger::info("Hooked ShaderReferenceEffect::Resume"sv);
 		}
 	};
@@ -123,13 +123,13 @@ namespace Hooks::Attach
 		Clone3D<RE::TESFlora>::Install();
 		Clone3D<RE::TESObjectTREE>::Install();
 
-		BSTempEffect::Init<RE::ShaderReferenceEffect>::Install();
-		BSTempEffect::Init<RE::ModelReferenceEffect>::Install();
+		ReferenceEffect::Init<RE::ShaderReferenceEffect>::Install();
+		ReferenceEffect::Init<RE::ModelReferenceEffect>::Install();
 		AttachEnchantmentVisuals::Install();
 		AddAddonNodes::Install();
 
 		AttachLight::Install();
 		ReAddCasterLights::Install();
-		Resume::Install();
+		ShaderReferenceEffect_Resume::Install();
 	}
 }

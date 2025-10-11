@@ -251,7 +251,7 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 	});
 }
 
-void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectFormID)
+void LightManager::AddReferenceEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectFormID)
 {
 	if (!a_effect || a_effectFormID == 0) {
 		return;
@@ -283,7 +283,7 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 		return;
 	}
 
-	auto srcData = std::make_unique<SourceData>(SOURCE_TYPE::kTempEffect, ref.get(), root, base);
+	auto srcData = std::make_unique<SourceData>(SOURCE_TYPE::kReferenceEffect, ref.get(), root, base);
 	if (!srcData || !srcData->IsValid()) {
 		return;
 	}
@@ -292,16 +292,16 @@ void LightManager::AddTempEffectLights(RE::ReferenceEffect* a_effect, RE::FormID
 	AttachLightsImpl(srcData, a_effectFormID);
 }
 
-void LightManager::ReattachTempEffectLights(RE::ReferenceEffect* a_effect) const
+void LightManager::ReattachReferenceEffectLights(RE::ReferenceEffect* a_effect) const
 {
-	gameVisualEffectLights.cvisit(a_effect->effectID, [&](auto& map) {
+	gameReferenceEffectLights.cvisit(a_effect->effectID, [&](auto& map) {
 		map.second.ReattachLights();
 	});
 }
 
-void LightManager::DetachTempEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData)
+void LightManager::DetachReferenceEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData)
 {
-	gameVisualEffectLights.erase_if(a_effect->effectID, [&](auto& map) {
+	gameReferenceEffectLights.erase_if(a_effect->effectID, [&](auto& map) {
 		map.second.RemoveLights(a_clearData);
 		return a_clearData;
 	});
@@ -497,9 +497,9 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 				gameActorMagicLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
 			}
 			break;
-		case SOURCE_TYPE::kTempEffect:
+		case SOURCE_TYPE::kReferenceEffect:
 			{
-				gameVisualEffectLights.try_emplace_or_visit(a_srcData->miscID, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& map) {
+				gameReferenceEffectLights.try_emplace_or_visit(a_srcData->miscID, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& map) {
 					map.second.emplace_back(a_lightSource, lightDataOutput, ref);
 				});
 			}
@@ -604,9 +604,9 @@ void LightManager::RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, 
 	});
 }
 
-void LightManager::UpdateTempEffectLights(RE::ReferenceEffect* a_effect)
+void LightManager::UpdateReferenceEffectLights(RE::ReferenceEffect* a_effect)
 {
-	gameVisualEffectLights.visit(a_effect->effectID, [&](auto& map) {
+	gameReferenceEffectLights.visit(a_effect->effectID, [&](auto& map) {
 		const auto ref = a_effect->target.get();
 		if (!ref) {
 			return;
