@@ -138,7 +138,7 @@ public:
 	bool GetValidFade() const { return false; }
 	bool GetValidTranslation() const { return false; }
 
-	bool     empty() const { return sequence.empty(); }
+	bool empty() const { return sequence.empty(); }
 	explicit operator bool() const { return !empty(); }
 
 private:
