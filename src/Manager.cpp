@@ -577,10 +577,9 @@ void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 	});
 }
 
-void LightManager::UpdateEmittance(const RE::TESObjectCELL* a_cell)
+void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 {
 	lightsToBeUpdated.visit(a_cell->GetFormID(), [&](auto& map) {
-		logger::info("{}: {}", a_cell->GetFormID(), map.second.emittanceLights.size());
 		std::erase_if(map.second.emittanceLights, [&](const auto& handle) {
 			RE::TESObjectREFRPtr ref{};
 			RE::LookupReferenceByHandle(handle, ref);
@@ -589,10 +588,8 @@ void LightManager::UpdateEmittance(const RE::TESObjectCELL* a_cell)
 				return true;
 			}
 
-			logger::info("\tUpdating emittance for {:X} {}", ref->GetFormID(), ref->GetBaseObject()->As<RE::TESModel>()->GetModel());
-
 			gameRefLights.cvisit(handle, [&](auto& lightsMap) {
-				lightsMap.second.UpdateEmittance();
+				lightsMap.second.UpdateEmittance(a_cell);
 			});
 
 			return false;

@@ -334,7 +334,7 @@ struct REFR_LIGH
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
 	void UpdateAnimation(float a_delta, float a_scalingFactor);
 	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
-	void UpdateEmittance() const;
+	void UpdateEmittance(RE::TESObjectCELL* a_cell) const;
 	void UpdateVanillaFlickering() const;
 
 	LightData           data{};

@@ -33,7 +33,7 @@ struct ProcessedLights
 	bool UpdateTimer(float a_delta, float a_interval);
 	void UpdateConditions(RE::TESObjectREFR* a_ref, std::string_view a_nodeName, ConditionUpdateFlags a_flags);
 	void UpdateLightsAndRef(const UpdateParams& a_params);
-	void UpdateEmittance() const;
+	void UpdateEmittance(RE::TESObjectCELL* a_cell) const;
 
 	// members
 	float                    lastUpdateTime{ std::numeric_limits<float>::max() };

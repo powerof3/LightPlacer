@@ -125,10 +125,10 @@ void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 	nodeVisHelper.UpdateNodeVisibility(a_params.ref, a_params.nodeName);
 }
 
-void ProcessedLights::UpdateEmittance() const
+void ProcessedLights::UpdateEmittance(RE::TESObjectCELL* a_cell) const
 {
 	for (auto& light : lights) {
-		light.UpdateEmittance();
+		light.UpdateEmittance(a_cell);
 	}
 }
 

@@ -643,7 +643,7 @@ void REFR_LIGH::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_node
 	}
 }
 
-void REFR_LIGH::UpdateEmittance() const
+void REFR_LIGH::UpdateEmittance(RE::TESObjectCELL* a_cell) const
 {
 	auto& niLight = output.GetLight();
 
@@ -652,8 +652,12 @@ void REFR_LIGH::UpdateEmittance() const
 		if (const auto lightForm = data.emittanceForm->As<RE::TESObjectLIGH>()) {
 			emittanceColor = lightForm->emittanceColor;
 		} else if (const auto region = data.emittanceForm->As<RE::TESRegion>()) {
+			auto& emittanceSrcMap = a_cell->loadedData->emittanceSourceRefMap;
+			
 			emittanceColor = region->emittanceColor;
-			RE::UpdateRegionEmittance(emittanceColor, region);
+			if (emittanceColor == RE::COLOR_BLACK || emittanceSrcMap.find(region) == emittanceSrcMap.end()) {
+				RE::UpdateRegionEmittance(emittanceColor, region);
+			}
 		}
 		niLight->diffuse = data.GetDiffuse() * emittanceColor;
 	}
