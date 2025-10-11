@@ -60,6 +60,9 @@ struct LightOutput
 
 	bool operator==(const LightOutput& rhs) const
 	{
+		if (!niLight || !rhs.niLight) {
+			return false;
+		}
 		return niLight->name == rhs.niLight->name;
 	}
 
@@ -117,11 +120,11 @@ struct LightData
 	float                                    size{ 0.0f };
 	float                                    shadowDepthBias{ 1.0f };
 	RE::NiPoint3                             offset;
-	RE::NiMatrix3                            rotation;
+	RE::NiPoint3                             rotation;
 	REX::EnumSet<LIGHT_FLAGS, std::uint32_t> flags{ LIGHT_FLAGS::None };
 	RE::TESForm*                             emittanceForm{ nullptr };
 	std::shared_ptr<RE::TESCondition>        conditions;
-	StringSet                                conditionalNodes;
+	std::vector<std::string>                 conditionalNodes;
 
 	constexpr static auto LP_LIGHT = "LP_Light"sv;
 	constexpr static auto LP_NODE = "LP_Node"sv;
@@ -301,7 +304,7 @@ struct REFR_LIGH
 	// cull nodes based on condition state
 	struct NodeVisHelper
 	{
-		void InsertConditionalNodes(const StringSet& a_nodes, bool a_isVisble);
+		void InsertConditionalNodes(const std::vector<std::string>& a_nodes, bool a_isVisble);
 		void UpdateNodeVisibility(const RE::TESObjectREFR* a_ref, std::string_view a_nodeName);
 		void Reset();
 
@@ -313,7 +316,7 @@ struct REFR_LIGH
 	};
 
 	REFR_LIGH() = default;
-	REFR_LIGH(const LIGH::LightSourceData& a_lightSource, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale);
+	REFR_LIGH(const LIGH::LightSourceData& a_lightSource, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref);
 
 	bool operator==(const REFR_LIGH& rhs) const
 	{
@@ -337,7 +340,6 @@ struct REFR_LIGH
 	LightData           data{};
 	LightOutput         output{};
 	LightControllers    lightControllers{};
-	float               scale{ 1.0f };
 	std::optional<bool> lastVisibleState{};
 };
 

@@ -1189,6 +1189,13 @@ namespace RE
 		return NiCosQImpl((512.0f / NI_TWO_PI) * a_radians);
 	}
 
+	NiMatrix3 ToMatrix(const NiPoint3& a_point)
+	{
+		NiMatrix3 input;
+		input.SetEulerAnglesXYZ(RE::deg_to_rad(a_point.x), RE::deg_to_rad(a_point.y), RE::deg_to_rad(a_point.z));
+		return input;
+	}
+
 	bool ToggleMasterParticleAddonNodes(const NiNode* a_node, bool a_enable)
 	{
 		using func_t = decltype(&ToggleMasterParticleAddonNodes);

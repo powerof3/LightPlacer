@@ -5,7 +5,7 @@
 struct ProcessedLights
 {
 	ProcessedLights() = default;
-	ProcessedLights(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale);
+	ProcessedLights(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref);
 
 	struct UpdateParams
 	{
@@ -18,7 +18,7 @@ struct ProcessedLights
 
 	std::size_t size() const { return lights.size(); }
 
-	bool emplace_back(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale);
+	bool emplace_back(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref);
 	void emplace_back(const REFR_LIGH& a_lightREFRData);
 
 	void ShowDebugMarkers(bool a_show) const;
@@ -36,10 +36,9 @@ struct ProcessedLights
 	void UpdateEmittance() const;
 
 	// members
-	float                    lastUpdateTime{ 0.0f };
+	float                    lastUpdateTime{ std::numeric_limits<float>::max() };
 	std::vector<REFR_LIGH>   lights;
 	REFR_LIGH::NodeVisHelper nodeVisHelper{};
-	bool                     firstLoad{ true };
 };
 
 struct LightsToUpdate

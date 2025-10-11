@@ -401,7 +401,7 @@ bool LIGH::LightSourceData::PostProcess()
 
 bool LIGH::LightSourceData::IsStaticLight() const
 {
-	return data.offset == RE::NiPoint3::Zero() && data.rotation == RE::MATRIX_ZERO && positionController.empty() && rotationController.empty();
+	return data.offset == RE::NiPoint3::Zero() && data.rotation == RE::NiPoint3::Zero() && positionController.empty() && rotationController.empty();
 }
 
 RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const
@@ -418,7 +418,10 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 			if (node = RE::NiNode::Create(1); node) {
 				node->name = name;
 				node->local.translate = a_point + data.offset;
-				node->local.rotate = data.rotation;
+				if (data.rotation != RE::NiPoint3::Zero()) {
+					node->local.rotate = RE::ToMatrix(data.rotation);
+				}
+				node->local.rotate = RE::ToMatrix(data.rotation);
 				RE::AttachNode(a_root, node);
 			}
 		}
@@ -482,7 +485,9 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 			newNode->local.translate = attachNode == a_root.get() ? geometry->modelBound.center : geometry->local.translate;
 		}
 		newNode->local.translate += data.offset;
-		newNode->local.rotate = data.rotation;
+		if (data.rotation != RE::NiPoint3::Zero()) {
+			newNode->local.rotate = RE::ToMatrix(data.rotation);
+		}
 
 		RE::AttachNode(attachNode, newNode);
 	}
@@ -499,7 +504,7 @@ std::string LIGH::LightSourceData::GetLightName(const SourceAttachDataPtr& a_src
 	return std::format("{}[{}|{}]#{}", LightData::LP_LIGHT, path, lightEDID, a_index);
 }
 
-void REFR_LIGH::NodeVisHelper::InsertConditionalNodes(const StringSet& a_nodes, bool a_isVisble)
+void REFR_LIGH::NodeVisHelper::InsertConditionalNodes(const std::vector<std::string>& a_nodes, bool a_isVisble)
 {
 	for (const auto& nodeName : a_nodes) {
 		conditionalNodes.insert_or_assign(nodeName, a_isVisble);
@@ -539,11 +544,10 @@ void REFR_LIGH::NodeVisHelper::Reset()
 	canCullNodes = false;
 }
 
-REFR_LIGH::REFR_LIGH(const LIGH::LightSourceData& a_lightSource, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale) :
+REFR_LIGH::REFR_LIGH(const LIGH::LightSourceData& a_lightSource, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref) :
 	data(a_lightSource.data),
 	output(a_lightOutput),
-	lightControllers(a_lightSource),
-	scale(a_scale)
+	lightControllers(a_lightSource)
 {
 	if (!data.emittanceForm && data.flags.none(LIGHT_FLAGS::NoExternalEmittance)) {
 		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
@@ -559,7 +563,7 @@ void REFR_LIGH::ReattachLight(RE::TESObjectREFR* a_ref)
 		return;
 	}
 
-	output = data.GenLight(a_ref, niLight->parent, niLight->name, scale);
+	output = data.GenLight(a_ref, niLight->parent, niLight->name, a_ref->GetScale());
 
 	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
 		output.ShowDebugMarker();
@@ -606,7 +610,7 @@ bool REFR_LIGH::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) const
 
 void REFR_LIGH::UpdateAnimation(float a_delta, float a_scalingFactor)
 {
-	scale = data.flags.any(LIGHT_FLAGS::IgnoreScale) ? 1.0f : a_scalingFactor;
+	auto scale = data.flags.any(LIGHT_FLAGS::IgnoreScale) ? 1.0f : a_scalingFactor;
 	lightControllers.UpdateAnimation(output.GetLight(), a_delta, scale);
 }
 
@@ -649,9 +653,7 @@ void REFR_LIGH::UpdateEmittance() const
 			emittanceColor = lightForm->emittanceColor;
 		} else if (const auto region = data.emittanceForm->As<RE::TESRegion>()) {
 			emittanceColor = region->emittanceColor;
-			if (emittanceColor == RE::COLOR_BLACK) {
-				RE::UpdateRegionEmittance(emittanceColor, region);
-			}
+			RE::UpdateRegionEmittance(emittanceColor, region);
 		}
 		niLight->diffuse = data.GetDiffuse() * emittanceColor;
 	}

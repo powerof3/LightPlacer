@@ -33,22 +33,22 @@ LightControllers::LightControllers(const LIGH::LightSourceData& a_src)
 void LightControllers::UpdateAnimation(const RE::NiPointer<RE::NiPointLight>& a_light, float a_delta, float a_scalingFactor)
 {
 	if (colorController) {
-		a_light->diffuse = colorController->GetValue(a_delta);
+		a_light->diffuse = colorController.GetValue(a_delta);
 	}
 	if (radiusController) {
-		const auto newRadius = radiusController->GetValue(a_delta) * a_scalingFactor;
+		const auto newRadius = radiusController.GetValue(a_delta) * a_scalingFactor;
 		a_light->radius = { newRadius, newRadius, newRadius };
 		a_light->SetLightAttenuation(newRadius);
 	}
 	if (fadeController) {
-		a_light->fade = fadeController->GetValue(a_delta);
+		a_light->fade = fadeController.GetValue(a_delta);
 	}
 	if (const auto parentNode = a_light->parent) {
 		if (positionController) {
-			parentNode->local.translate = positionController->GetValue(a_delta);
+			parentNode->local.translate = positionController.GetValue(a_delta);
 		}
 		if (rotationController) {
-			auto rotation = rotationController->GetValue(a_delta);
+			auto rotation = rotationController.GetValue(a_delta);
 			RE::WrapRotation(rotation);
 			parentNode->local.rotate.SetEulerAnglesXYZ(rotation.x, rotation.y, rotation.z);
 		}

@@ -1,14 +1,14 @@
 #include "ProcessedLights.h"
 
-ProcessedLights::ProcessedLights(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale)
+ProcessedLights::ProcessedLights(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref)
 {
-	lights.emplace_back(a_lightSrcData, a_lightOutput, a_ref, a_scale);
+	lights.emplace_back(a_lightSrcData, a_lightOutput, a_ref);
 }
 
-bool ProcessedLights::emplace_back(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref, float a_scale)
+bool ProcessedLights::emplace_back(const LIGH::LightSourceData& a_lightSrcData, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref)
 {
 	if (std::find(lights.begin(), lights.end(), a_lightOutput) == lights.end()) {
-		lights.emplace_back(a_lightSrcData, a_lightOutput, a_ref, a_scale);
+		lights.emplace_back(a_lightSrcData, a_lightOutput, a_ref);
 		return true;
 	}
 	return false;
@@ -97,7 +97,8 @@ void ProcessedLights::UpdateConditions(RE::TESObjectREFR* a_ref, std::string_vie
 void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 {
 	auto conditionUpdateFlags = ConditionUpdateFlags::Skip;
-	if (firstLoad) {
+	if (lastUpdateTime == std::numeric_limits<float>::max()) {
+		lastUpdateTime = 0.0f;
 		conditionUpdateFlags = ConditionUpdateFlags::Forced;
 	} else if (UpdateTimer(a_params.delta, 1.0f)) {
 		conditionUpdateFlags = ConditionUpdateFlags::Normal;
@@ -122,8 +123,6 @@ void ProcessedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 	}
 
 	nodeVisHelper.UpdateNodeVisibility(a_params.ref, a_params.nodeName);
-
-	firstLoad = false;
 }
 
 void ProcessedLights::UpdateEmittance() const

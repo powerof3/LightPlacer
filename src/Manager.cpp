@@ -455,16 +455,16 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 		case SOURCE_TYPE::kRef:
 			{
 				if (ref->Is(RE::FormType::PlacedHazard)) {
-					gameHazardLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
-						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
+					gameHazardLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
+						container.second.emplace_back(a_lightSource, lightDataOutput, ref);
 					});
 				} else if (ref->Is(RE::FormType::Explosion)) {
-					gameExplosionLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
-						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
+					gameExplosionLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
+						container.second.emplace_back(a_lightSource, lightDataOutput, ref);
 					});
 				} else {
-					gameRefLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
-						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
+					gameRefLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
+						container.second.emplace_back(a_lightSource, lightDataOutput, ref);
 					});
 				}
 				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(a_lightSource.data, handle), [&](auto& lightsToUpdate) {
@@ -475,8 +475,8 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 		case SOURCE_TYPE::kActorWorn:
 			{
 				auto updateFunc = [&](auto& map) {
-					map.second.try_emplace_or_visit(a_srcData->nodeName, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
-						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
+					map.second.try_emplace_or_visit(a_srcData->nodeName, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
+						container.second.emplace_back(a_lightSource, lightDataOutput, ref);
 					});
 					lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle), [&](auto& lightsToUpdate) {
 						lightsToUpdate.second.emplace(handle);
@@ -489,8 +489,8 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 		case SOURCE_TYPE::kActorMagic:
 			{
 				auto updateFunc = [&](auto& map) {
-					map.second.try_emplace_or_visit(a_srcData->miscID, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& container) {
-						container.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
+					map.second.try_emplace_or_visit(a_srcData->miscID, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
+						container.second.emplace_back(a_lightSource, lightDataOutput, ref);
 					});
 				};
 
@@ -499,8 +499,8 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 			break;
 		case SOURCE_TYPE::kTempEffect:
 			{
-				gameVisualEffectLights.try_emplace_or_visit(a_srcData->miscID, ProcessedLights(a_lightSource, lightDataOutput, ref, scale), [&](auto& map) {
-					map.second.emplace_back(a_lightSource, lightDataOutput, ref, scale);
+				gameVisualEffectLights.try_emplace_or_visit(a_srcData->miscID, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& map) {
+					map.second.emplace_back(a_lightSource, lightDataOutput, ref);
 				});
 			}
 			break;

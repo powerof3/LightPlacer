@@ -138,9 +138,12 @@ public:
 	bool GetValidFade() const { return false; }
 	bool GetValidTranslation() const { return false; }
 
+	bool     empty() const { return sequence.empty(); }
+	explicit operator bool() const { return !empty(); }
+
 private:
 	// members
-	KeyframeSequence<T, index> sequence;
+	KeyframeSequence<T, index> sequence{};
 	float                      cycleDuration{ -1.0f };
 	float                      currentTime{ 0.0f };
 };
@@ -237,9 +240,9 @@ struct LightControllers
 	void UpdateAnimation(const RE::NiPointer<RE::NiPointLight>& a_light, float a_delta, float a_scalingFactor);
 
 	// members
-	std::optional<ColorController>    colorController{};
-	std::optional<FloatController>    radiusController{};
-	std::optional<FloatController>    fadeController{};
-	std::optional<PositionController> positionController{};
-	std::optional<RotationController> rotationController{};
+	ColorController    colorController{};
+	FloatController    radiusController{};
+	FloatController    fadeController{};
+	PositionController positionController{};
+	RotationController rotationController{};
 };
