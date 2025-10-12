@@ -12,7 +12,7 @@ namespace Hooks::Detach
 			static void thunk(T* a_this)
 			{
 				LightManager::GetSingleton()->DetachReferenceEffectLights(a_this, true);
-				
+
 				func(a_this);
 			}
 			static inline REL::Relocation<decltype(thunk)> func;
