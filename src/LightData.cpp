@@ -653,7 +653,7 @@ void REFR_LIGH::UpdateEmittance(RE::TESObjectCELL* a_cell) const
 			emittanceColor = lightForm->emittanceColor;
 		} else if (const auto region = data.emittanceForm->As<RE::TESRegion>()) {
 			auto& emittanceSrcMap = a_cell->loadedData->emittanceSourceRefMap;
-			
+
 			emittanceColor = region->emittanceColor;
 			if (emittanceColor == RE::COLOR_BLACK || emittanceSrcMap.find(region) == emittanceSrcMap.end()) {
 				RE::UpdateRegionEmittance(emittanceColor, region);
