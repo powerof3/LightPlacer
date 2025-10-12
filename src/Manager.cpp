@@ -458,7 +458,7 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 					gameHazardLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
 						container.second.emplace_back(a_lightSource, lightDataOutput, ref);
 					});
-				} else if (ref->Is(RE::FormType::Explosion)) {
+				} else if (ref->AsExplosion()) {
 					gameExplosionLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
 						container.second.emplace_back(a_lightSource, lightDataOutput, ref);
 					});
@@ -466,10 +466,10 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 					gameRefLights.try_emplace_or_visit(handle, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
 						container.second.emplace_back(a_lightSource, lightDataOutput, ref);
 					});
+					lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(a_lightSource.data, handle), [&](auto& lightsToUpdate) {
+						lightsToUpdate.second.emplace(a_lightSource.data, handle);
+					});
 				}
-				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(a_lightSource.data, handle), [&](auto& lightsToUpdate) {
-					lightsToUpdate.second.emplace(a_lightSource.data, handle);
-				});
 			}
 			break;
 		case SOURCE_TYPE::kActorWorn:

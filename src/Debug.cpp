@@ -144,12 +144,16 @@ namespace Debug
 					auto consoleRef = consoleRefHandle.get();
 					if (consoleRef) {
 						bool toggled = false;
+						bool hasLight = false;
 						LightManager::GetSingleton()->ForEachLight(consoleRef.get(), consoleRefHandle.native_handle(), [&](const auto&, const auto& processedLights) {
+							hasLight = true;
 							toggled = !processedLights.GetLightsToggled(LIGHT_CULL_FLAGS::Script);
 							processedLights.ToggleLights(toggled, LIGHT_CULL_FLAGS::Script);
 							return true;
 						});
-						RE::ConsoleLog::GetSingleton()->Print("Light Placer Lights %s on %u", !toggled ? "ON" : "OFF", consoleRef->GetFormID());
+						if (hasLight) {
+							RE::ConsoleLog::GetSingleton()->Print("Light Placer Lights %s on %08X", !toggled ? "ON" : "OFF", consoleRef->GetFormID());
+						}
 					} else {
 						bool toggled = false;
 						LightManager::GetSingleton()->ForAllLights([&](const auto& processedLights) {
