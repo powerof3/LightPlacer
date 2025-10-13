@@ -24,7 +24,7 @@ namespace Hooks::Attach
 			logger::info("Hooked TESObjectREFR::Load3D"sv);
 		}
 	};
-	
+
 	// armor/weapons
 	struct AddAddonNodes
 	{
