@@ -60,7 +60,7 @@ std::string SourceData::GetWornItemNodeName() const
 
 bool SourceAttachData::Initialize(const SourceDataPtr& a_srcData)
 {
-	if (attachNode) {
+	if (ref) {
 		return true;
 	}
 
@@ -73,8 +73,10 @@ bool SourceAttachData::Initialize(const SourceDataPtr& a_srcData)
 		type = a_srcData->type;
 		miscID = a_srcData->miscID;
 		ref = srcRef;
-		root = RE::NiNodePtr(a_srcData->root);
-		attachNode = a_srcData->GetAttachNode();
+		if (a_srcData->type != SOURCE_TYPE::kRef) {
+			root = RE::NiNodePtr(a_srcData->root);
+			attachNode = a_srcData->GetAttachNode();
+		}
 		scale = srcRef->GetScale();
 		nodeName = a_srcData->GetWornItemNodeName();
 
@@ -94,5 +96,5 @@ bool SourceAttachData::Initialize(const SourceDataPtr& a_srcData)
 		}
 	}
 
-	return attachNode != nullptr;
+	return a_srcData->type == SOURCE_TYPE::kRef ? ref != nullptr : attachNode != nullptr;
 }
