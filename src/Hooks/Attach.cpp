@@ -2,6 +2,29 @@
 
 namespace Hooks::Attach
 {
+	// adds light on 3d load
+	struct Load3D
+	{
+		static RE::NiAVObject* thunk(RE::TESObjectREFR* a_this, bool a_backgroundLoading)
+		{
+			auto node = func(a_this, a_backgroundLoading);
+			if (node) {
+				if (auto baseObject = a_this->GetObjectReference(); baseObject && RE::ShouldAttachLight(baseObject)) {
+					LightManager::GetSingleton()->AddLights(a_this, baseObject, node);
+				}
+			}
+			return node;
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+		static constexpr std::size_t                   idx{ 0x6A };
+
+		static void Install()
+		{
+			stl::write_vfunc<RE::TESObjectREFR, Load3D>();
+			logger::info("Hooked TESObjectREFR::Load3D"sv);
+		}
+	};
+	
 	// armor/weapons
 	struct AddAddonNodes
 	{
@@ -104,24 +127,7 @@ namespace Hooks::Attach
 
 	void Install()
 	{
-		Clone3D<RE::BGSMovableStatic, 2>::Install();
-		Clone3D<RE::BGSProjectile>::Install();
-		Clone3D<RE::BGSExplosion>::Install();
-		Clone3D<RE::BGSHazard>::Install();
-		Clone3D<RE::TESFurniture>::Install();
-		Clone3D<RE::TESObjectDOOR>::Install();
-		Clone3D<RE::TESObjectMISC>::Install();
-		Clone3D<RE::TESObjectSTAT>::Install();
-		Clone3D<RE::TESObjectCONT>::Install();
-		Clone3D<RE::TESSoulGem>::Install();
-		Clone3D<RE::TESObjectACTI>::Install();
-		Clone3D<RE::TESObjectBOOK>::Install();
-		Clone3D<RE::TESObjectWEAP>::Install();
-		Clone3D<RE::TESObjectARMO>::Install();
-		Clone3D<RE::AlchemyItem>::Install();
-		Clone3D<RE::IngredientItem>::Install();
-		Clone3D<RE::TESFlora>::Install();
-		Clone3D<RE::TESObjectTREE>::Install();
+		Load3D::Install();
 
 		ReferenceEffect::Init<RE::ShaderReferenceEffect>::Install();
 		ReferenceEffect::Init<RE::ModelReferenceEffect>::Install();

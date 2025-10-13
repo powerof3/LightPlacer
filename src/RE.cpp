@@ -46,6 +46,33 @@ namespace RE
 	}
 #endif
 
+	bool ShouldAttachLight(TESBoundObject* a_obj)
+	{
+		switch (a_obj->GetFormType()) {
+		case RE::FormType::MovableStatic:
+		case RE::FormType::Projectile:
+		case RE::FormType::Explosion:
+		case RE::FormType::Hazard:
+		case RE::FormType::Furniture:
+		case RE::FormType::Door:
+		case RE::FormType::Misc:
+		case RE::FormType::Static:
+		case RE::FormType::Container:
+		case RE::FormType::SoulGem:
+		case RE::FormType::Activator:
+		case RE::FormType::Book:
+		case RE::FormType::Weapon:
+		case RE::FormType::Armor:
+		case RE::FormType::AlchemyItem:
+		case RE::FormType::Ingredient:
+		case RE::FormType::Flora:
+		case RE::FormType::Tree:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	NiAVObject* GetReferenceAttachRoot(ReferenceEffect* a_referenceEffect)
 	{
 		if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {

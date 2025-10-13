@@ -94,6 +94,7 @@ namespace RE
 	REL::Version GetGameVersion();
 #endif
 
+	bool            ShouldAttachLight(TESBoundObject* a_obj);
 	NiAVObject*     GetReferenceAttachRoot(ReferenceEffect* a_referenceEffect);
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
 	BGSArtObject*   GetCastingArt(const MagicItem* a_magicItem);
