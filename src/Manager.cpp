@@ -394,7 +394,7 @@ void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a
 		if (!srcAttachData->root || !srcAttachData->attachNode) {
 			return;
 		}
-		
+
 		std::uint32_t LP_INDEX = 0;
 
 		auto processLightGroup = [&](auto& groups) {
