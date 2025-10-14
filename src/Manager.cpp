@@ -384,17 +384,9 @@ void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a
 
 	SKSE::GetTaskInterface()->AddTask([points = std::move(collectedPoints), nodes = std::move(collectedNodes), srcAttachData, this]() mutable {
 		if (!srcAttachData->root || !srcAttachData->attachNode) {
-			if (const auto& ref = srcAttachData->ref) {
-				auto root = ref->GetCurrent3D();
-				srcAttachData->root.reset(root ? root->AsNode() : nullptr);
-				srcAttachData->attachNode = srcAttachData->root;
-			}
-		}
-
-		if (!srcAttachData->root || !srcAttachData->attachNode) {
 			return;
 		}
-
+		
 		std::uint32_t LP_INDEX = 0;
 
 		auto processLightGroup = [&](auto& groups) {
