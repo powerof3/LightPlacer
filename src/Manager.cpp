@@ -593,7 +593,7 @@ void LightManager::RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, 
 	if (a_handle.native_handle() == 0) {
 		return;
 	}
-	
+
 	lightsToBeUpdated.visit(a_cell->GetFormID(), [&](auto& map) {
 		map.second.erase(a_handle.native_handle());
 	});
