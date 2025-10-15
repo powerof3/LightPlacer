@@ -31,7 +31,7 @@ bool Config::Filter::IsInvalid(const SourceAttachDataPtr& a_srcData) const
 
 bool Config::Filter::IsBlacklisted(const SourceAttachDataPtr& a_srcData) const
 {
-	for (const auto& id : a_srcData->filterIDs) {
+	for (const auto& id : a_srcData.filterIDs) {
 		if (blackListForms.contains(id)) {
 			return true;
 		}
@@ -42,7 +42,7 @@ bool Config::Filter::IsBlacklisted(const SourceAttachDataPtr& a_srcData) const
 
 bool Config::Filter::IsWhitelisted(const SourceAttachDataPtr& a_srcData) const
 {
-	for (const auto& id : a_srcData->filterIDs) {
+	for (const auto& id : a_srcData.filterIDs) {
 		if (whiteListForms.contains(id)) {
 			return true;
 		}

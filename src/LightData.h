@@ -156,9 +156,9 @@ namespace LIGH
 
 		bool IsStaticLight() const;
 
-		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const;
-		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, const std::string& a_nodeName, const std::string& path, std::uint32_t a_index) const;
-		RE::NiNode* GetOrCreateNode(const RE::NiNodePtr& a_root, RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, const std::string& path, std::uint32_t a_index) const;
+		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const;
 
 		std::string GetLightName(const SourceAttachDataPtr& a_srcData, const std::string& path, std::uint32_t a_index) const;
 

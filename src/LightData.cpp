@@ -404,16 +404,16 @@ bool LIGH::LightSourceData::IsStaticLight() const
 	return data.offset == RE::NiPoint3::Zero() && data.rotation == RE::NiPoint3::Zero() && positionController.empty() && rotationController.empty();
 }
 
-RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const
+RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const
 {
 	if (a_root) {
 		if (a_point == RE::NiPoint3::Zero() && IsStaticLight()) {
-			return a_root.get();
+			return a_root;
 		}
 
 		auto name = data.GetNodeName(a_point, path, a_index);
 
-		auto node = RE::GetObjectByName(a_root.get(), name);
+		auto node = RE::GetObjectByName(a_root, name);
 		if (!node) {
 			if (node = RE::NiNode::Create(1); node) {
 				node->name = name;
@@ -432,17 +432,17 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 	return nullptr;
 }
 
-RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, const std::string& a_nodeName, const std::string& path, std::uint32_t a_index) const
+RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, const std::string& path, std::uint32_t a_index) const
 {
 	if (!a_root) {
 		return nullptr;
 	}
 
-	const auto obj = RE::GetObjectByName(a_root.get(), a_nodeName);
+	const auto obj = RE::GetObjectByName(a_root, a_nodeName);
 	return GetOrCreateNode(a_root, obj, path, a_index);
 }
 
-RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const
+RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const
 {
 	if (!a_root || !a_obj) {
 		return nullptr;
@@ -462,7 +462,7 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 	}
 
 	const auto name = data.GetNodeName(a_obj, path, a_index);
-	if (const auto node = RE::GetObjectByName(a_root.get(), name)) {
+	if (const auto node = RE::GetObjectByName(a_root, name)) {
 		return node->AsNode();
 	}
 
@@ -477,12 +477,12 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 					return geom->parent;
 				}
 			}
-			return a_root.get();
+			return a_root;
 		};
 
 		auto attachNode = geometry ? getGeometryAttachNode(geometry) : a_obj->AsNode();
 		if (geometry) {
-			newNode->local.translate = attachNode == a_root.get() ? geometry->modelBound.center : geometry->local.translate;
+			newNode->local.translate = attachNode == a_root ? geometry->modelBound.center : geometry->local.translate;
 		}
 		newNode->local.translate += data.offset;
 		if (data.rotation != RE::NiPoint3::Zero()) {
@@ -497,8 +497,8 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(const RE::NiNodePtr& a_root, 
 
 std::string LIGH::LightSourceData::GetLightName(const SourceAttachDataPtr& a_srcData, const std::string& path, std::uint32_t a_index) const
 {
-	if (a_srcData->miscID != std::numeric_limits<std::uint32_t>::max()) {
-		return std::format("{}[{}|{}]({})#{}", LightData::LP_LIGHT, path, lightEDID, a_srcData->miscID, a_index);
+	if (a_srcData.miscID != std::numeric_limits<std::uint32_t>::max()) {
+		return std::format("{}[{}|{}]({})#{}", LightData::LP_LIGHT, path, lightEDID, a_srcData.miscID, a_index);
 	}
 
 	return std::format("{}[{}|{}]#{}", LightData::LP_LIGHT, path, lightEDID, a_index);

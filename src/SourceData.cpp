@@ -32,12 +32,12 @@ bool SourceData::IsValid() const
 	return !ref->IsDisabled() && !ref->IsDeleted() && root != nullptr;
 }
 
-RE::NiNodePtr SourceData::GetAttachNode() const
+RE::NiNode* SourceData::GetAttachNode() const
 {
 	if (type == SOURCE_TYPE::kActorWorn && base->Is(RE::FormType::Armor)) {
-		return RE::NiNodePtr(ref->Get3D()->AsNode());
+		return ref->Get3D()->AsNode();
 	}
-	return RE::NiNodePtr(root);
+	return root;
 }
 
 std::string SourceData::GetWornItemNodeName() const
@@ -64,24 +64,24 @@ bool SourceAttachData::Initialize(const SourceDataPtr& a_srcData)
 		return true;
 	}
 
-	const auto& srcRef = a_srcData->ref;
+	const auto& srcRef = a_srcData.ref;
 	if (!srcRef) {
 		return false;
 	}
 
 	if (auto parentCell = srcRef->GetParentCell()) {
-		type = a_srcData->type;
-		miscID = a_srcData->miscID;
+		type = a_srcData.type;
+		miscID = a_srcData.miscID;
 		ref = srcRef;
-		root = RE::NiNodePtr(a_srcData->root);
-		attachNode = a_srcData->GetAttachNode();
+		root = a_srcData.root;
+		attachNode = a_srcData.GetAttachNode();
 		scale = srcRef->GetScale();
-		nodeName = a_srcData->GetWornItemNodeName();
+		nodeName = a_srcData.GetWornItemNodeName();
 
 		filterIDs.push_back(parentCell->GetFormID());
 
 		filterIDs.push_back(srcRef->GetFormID());
-		filterIDs.push_back(a_srcData->base->GetFormID());
+		filterIDs.push_back(a_srcData.base->GetFormID());
 
 		if (auto worldSpace = srcRef->GetWorldspace()) {
 			filterIDs.push_back(worldSpace->GetFormID());

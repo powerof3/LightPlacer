@@ -137,8 +137,8 @@ void LightManager::AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_bas
 		return;
 	}
 
-	auto srcData = std::make_unique<SourceData>(SOURCE_TYPE::kRef, a_ref, a_root, a_base);
-	if (!srcData || !srcData->IsValid()) {
+	auto srcData = SourceData(SOURCE_TYPE::kRef, a_ref, a_root, a_base);
+	if (!srcData.IsValid()) {
 		return;
 	}
 
@@ -216,8 +216,8 @@ void LightManager::AddWornLights(RE::TESObjectREFR* a_ref, const RE::BSTSmartPoi
 		return;
 	}
 
-	auto srcData = std::make_unique<SourceData>(SOURCE_TYPE::kActorWorn, a_ref, a_root, bipObject);
-	if (!srcData || !srcData->IsValid()) {
+	auto srcData = SourceData(SOURCE_TYPE::kActorWorn, a_ref, a_root, bipObject);
+	if (!srcData.IsValid()) {
 		return;
 	}
 
@@ -283,11 +283,11 @@ void LightManager::AddReferenceEffectLights(RE::ReferenceEffect* a_effect, RE::F
 		return;
 	}
 
-	auto srcData = std::make_unique<SourceData>(SOURCE_TYPE::kReferenceEffect, ref.get(), root, base);
-	if (!srcData || !srcData->IsValid()) {
+	auto srcData = SourceData(SOURCE_TYPE::kReferenceEffect, ref.get(), root, base);
+	if (!srcData.IsValid()) {
 		return;
 	}
-	srcData->miscID = a_effect->effectID;
+	srcData.miscID = a_effect->effectID;
 
 	AttachLightsImpl(srcData, a_effectFormID);
 }
@@ -316,11 +316,11 @@ void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 		return;
 	}
 
-	auto srcData = std::make_unique<SourceData>(SOURCE_TYPE::kActorMagic, ref, root, ref->GetActorBase(), art->GetAsModelTextureSwap());
-	if (!srcData || !srcData->IsValid()) {
+	auto srcData = SourceData(SOURCE_TYPE::kActorMagic, ref, root, ref->GetActorBase(), art->GetAsModelTextureSwap());
+	if (!srcData.IsValid()) {
 		return;
 	}
-	srcData->miscID = std::to_underlying(a_actorMagicCaster->castingSource);
+	srcData.miscID = std::to_underlying(a_actorMagicCaster->castingSource);
 
 	AttachLightsImpl(srcData, art->GetFormID());
 }
@@ -346,21 +346,14 @@ void LightManager::DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 
 void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a_formID)
 {
-	if (!a_srcData) {
-		return;
-	}
-
-	auto srcAttachData = std::make_shared<SourceAttachData>();
-	if (!srcAttachData) {
-		return;
-	}
+	SourceAttachData srcAttachData;
 
 	std::vector<Config::PointData> collectedPoints;
 	std::vector<Config::NodeData>  collectedNodes;
 
-	if (!a_srcData->modelPath.empty()) {
-		if (auto it = gameModels.find(a_srcData->modelPath); it != gameModels.end()) {
-			if (srcAttachData->Initialize(a_srcData)) {
+	if (!a_srcData.modelPath.empty()) {
+		if (auto it = gameModels.find(a_srcData.modelPath); it != gameModels.end()) {
+			if (srcAttachData.Initialize(a_srcData)) {
 				for (const auto& data : it->second) {
 					CollectValidLights(srcAttachData, data, collectedPoints, collectedNodes);
 				}
@@ -370,7 +363,7 @@ void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a
 
 	if (a_formID != 0) {
 		if (auto it = gameFormIDs.find(a_formID); it != gameFormIDs.end()) {
-			if (srcAttachData->Initialize(a_srcData)) {
+			if (srcAttachData.Initialize(a_srcData)) {
 				for (const auto& data : it->second) {
 					CollectValidLights(srcAttachData, data, collectedPoints, collectedNodes);
 				}
@@ -378,49 +371,43 @@ void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a
 		}
 	}
 
-	if (collectedPoints.empty() && collectedNodes.empty()) {
+	if (collectedPoints.empty() && collectedNodes.empty() || (!srcAttachData.root || !srcAttachData.attachNode)) {
 		return;
 	}
 
-	SKSE::GetTaskInterface()->AddTask([points = std::move(collectedPoints), nodes = std::move(collectedNodes), srcAttachData, this]() mutable {
-		if (!srcAttachData->root || !srcAttachData->attachNode) {
-			return;
-		}
+	std::uint32_t LP_INDEX = 0;
 
-		std::uint32_t LP_INDEX = 0;
-
-		auto processLightGroup = [&](auto& groups) {
-			for (auto& [entries, lightData, path] : groups) {
-				if constexpr (std::is_same_v<std::decay_t<decltype(groups)>, std::vector<Config::PointData>>) {
-					for (const auto& [i, point] : std::views::enumerate(entries)) {
-						if (auto node = lightData.GetOrCreateNode(srcAttachData->attachNode, point, path, LP_INDEX)) {
-							AttachLight(lightData, srcAttachData, node, path, LP_INDEX);
+	auto processLightGroup = [&](auto& groups) {
+		for (auto& [entries, lightData, path] : groups) {
+			if constexpr (std::is_same_v<std::decay_t<decltype(groups)>, std::vector<Config::PointData>>) {
+				for (const auto& [i, point] : std::views::enumerate(entries)) {
+					if (auto node = lightData.GetOrCreateNode(srcAttachData.attachNode, point, path, LP_INDEX)) {
+						AttachLight(lightData, srcAttachData, node, path, LP_INDEX);
+					}
+					++LP_INDEX;
+				}
+			} else {
+				std::vector<RE::NiAVObject*> nodeVec;
+				if (srcAttachData.attachNode) {
+					RE::BSVisit::TraverseScenegraphObjects(srcAttachData.attachNode, [&](RE::NiAVObject* a_obj) {
+						if (entries.contains(a_obj->name.c_str())) {
+							nodeVec.push_back(a_obj);
 						}
-						++LP_INDEX;
+						return RE::BSVisit::BSVisitControl::kContinue;
+					});
+				}
+				for (const auto& [i, node] : std::views::enumerate(nodeVec)) {
+					if (auto lightNode = lightData.GetOrCreateNode(srcAttachData.attachNode, node, path, LP_INDEX)) {
+						AttachLight(lightData, srcAttachData, lightNode, path, LP_INDEX);
 					}
-				} else {
-					std::vector<RE::NiAVObject*> nodeVec;
-					if (srcAttachData->attachNode) {
-						RE::BSVisit::TraverseScenegraphObjects(srcAttachData->attachNode.get(), [&](RE::NiAVObject* a_obj) {
-							if (entries.contains(a_obj->name.c_str())) {
-								nodeVec.push_back(a_obj);
-							}
-							return RE::BSVisit::BSVisitControl::kContinue;
-						});
-					}
-					for (const auto& [i, node] : std::views::enumerate(nodeVec)) {
-						if (auto lightNode = lightData.GetOrCreateNode(srcAttachData->attachNode, node, path, LP_INDEX)) {
-							AttachLight(lightData, srcAttachData, lightNode, path, LP_INDEX);
-						}
-						++LP_INDEX;
-					}
+					++LP_INDEX;
 				}
 			}
-		};
+		}
+	};
 
-		processLightGroup(points);
-		processLightGroup(nodes);
-	});
+	processLightGroup(collectedPoints);
+	processLightGroup(collectedNodes);
 }
 
 void LightManager::CollectValidLights(const SourceAttachDataPtr& a_srcData, const Config::LightSourceData& a_lightData, std::vector<Config::PointData>& a_collectedPoints, std::vector<Config::NodeData>& a_collectedNodes)
@@ -448,14 +435,14 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 	}
 
 	const auto name = a_lightSource.GetLightName(a_srcData, path, a_index);
-	const auto ref = a_srcData->ref;
-	const auto scale = a_srcData->scale;
+	const auto ref = a_srcData.ref;
+	const auto scale = a_srcData.scale;
 
 	if (auto lightDataOutput = a_lightSource.data.GenLight(ref.get(), a_node, name, scale); lightDataOutput.bsLight && lightDataOutput.niLight) {
 		auto handle = ref->CreateRefHandle().native_handle();
-		auto cellFormID = a_srcData->filterIDs[0];
+		auto cellFormID = a_srcData.filterIDs[0];
 
-		switch (a_srcData->type) {
+		switch (a_srcData.type) {
 		case SOURCE_TYPE::kRef:
 			{
 				if (ref->Is(RE::FormType::PlacedHazard)) {
@@ -479,7 +466,7 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 		case SOURCE_TYPE::kActorWorn:
 			{
 				auto updateFunc = [&](auto& map) {
-					map.second.try_emplace_or_visit(a_srcData->nodeName, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
+					map.second.try_emplace_or_visit(a_srcData.nodeName, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
 						container.second.emplace_back(a_lightSource, lightDataOutput, ref);
 					});
 					lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle), [&](auto& lightsToUpdate) {
@@ -493,7 +480,7 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 		case SOURCE_TYPE::kActorMagic:
 			{
 				auto updateFunc = [&](auto& map) {
-					map.second.try_emplace_or_visit(a_srcData->miscID, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
+					map.second.try_emplace_or_visit(a_srcData.miscID, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& container) {
 						container.second.emplace_back(a_lightSource, lightDataOutput, ref);
 					});
 				};
@@ -503,7 +490,7 @@ void LightManager::AttachLight(const LIGH::LightSourceData& a_lightSource, const
 			break;
 		case SOURCE_TYPE::kReferenceEffect:
 			{
-				gameReferenceEffectLights.try_emplace_or_visit(a_srcData->miscID, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& map) {
+				gameReferenceEffectLights.try_emplace_or_visit(a_srcData.miscID, ProcessedLights(a_lightSource, lightDataOutput, ref), [&](auto& map) {
 					map.second.emplace_back(a_lightSource, lightDataOutput, ref);
 				});
 			}
@@ -603,6 +590,10 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 
 void LightManager::RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle)
 {
+	if (a_handle.native_handle() == 0) {
+		return;
+	}
+	
 	lightsToBeUpdated.visit(a_cell->GetFormID(), [&](auto& map) {
 		map.second.erase(a_handle.native_handle());
 	});
