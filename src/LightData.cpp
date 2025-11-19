@@ -179,12 +179,20 @@ LIGHT_FLAGS LightData::GetLightFlags() const
 	if (GetInverseSquare()) {
 		lightFlags |= LIGHT_FLAGS::InverseSquare;
 	}
+	if (GetLinear()) {
+		lightFlags |= LIGHT_FLAGS::Linear;
+	}
 	return lightFlags.get();
 }
 
 bool LightData::GetInverseSquare() const
 {
 	return flags.any(LIGHT_FLAGS::InverseSquare) || light->data.flags.any(static_cast<RE::TES_LIGHT_FLAGS>(TES_LIGHT_FLAGS_EXT::kInverseSquare));
+}
+
+bool LightData::GetLinear() const
+{
+	return flags.any(LIGHT_FLAGS::Linear) || light->data.flags.any(static_cast<RE::TES_LIGHT_FLAGS>(TES_LIGHT_FLAGS_EXT::kLinear));
 }
 
 float LightData::GetCutoff() const

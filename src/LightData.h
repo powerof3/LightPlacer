@@ -16,6 +16,9 @@ enum class LIGHT_FLAGS
 	Disabled = (1 << 9),
 	InverseSquare = (1 << 10),
 
+	// CS LL flag
+	Linear = (1 << 11),
+
 	// LP flags
 	UpdateOnWaiting = (1 << 18),
 	UpdateOnCellTransition = (1 << 19),
@@ -39,6 +42,7 @@ enum class LIGHT_CULL_FLAGS
 enum class TES_LIGHT_FLAGS_EXT
 {
 	kInverseSquare = 1 << 14,
+	kLinear = 1 << 15
 };
 
 struct LightOutput
@@ -92,6 +96,7 @@ struct LightData
 	float                                    GetFOV() const;
 	LIGHT_FLAGS                              GetLightFlags() const;
 	bool                                     GetInverseSquare() const;
+	bool                                     GetLinear() const;
 	float                                    GetCutoff() const;
 	float                                    GetSize() const;
 	float                                    GetScaledSize(float a_scale) const;
@@ -198,7 +203,9 @@ struct glz::meta<LIGH::LightSourceData>
 				case "InverseSquare"_h:
 					s.data.flags.set(LIGHT_FLAGS::InverseSquare);
 					break;
-
+				case "Linear"_h:
+					s.data.flags.set(LIGHT_FLAGS::Linear);
+					break;
 				case "UpdateOnWaiting"_h:
 					s.data.flags.set(LIGHT_FLAGS::UpdateOnWaiting);
 					break;
