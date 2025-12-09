@@ -29,15 +29,29 @@ SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObj
 
 bool SourceData::IsValid() const
 {
-	return !ref->IsDisabled() && !ref->IsDeleted() && root != nullptr;
+	return !ref->IsDisabled() && !ref->IsDeleted() && ref->GetParentCell() && root != nullptr;
 }
 
 RE::NiNode* SourceData::GetAttachNode() const
 {
-	if (type == SOURCE_TYPE::kActorWorn && base->Is(RE::FormType::Armor)) {
-		return ref->Get3D()->AsNode();
+	switch (type) {
+	case SOURCE_TYPE::kRef:
+		{
+			if (base->Is(RE::FormType::NPC)) {
+				return ref->Get3D()->AsNode();
+			}
+			return root;
+		}
+	case SOURCE_TYPE::kActorWorn:
+		{
+			if (base->Is(RE::FormType::Armor)) {
+				return ref->Get3D()->AsNode();
+			}
+			return root;
+		}
+	default:
+		return root;
 	}
-	return root;
 }
 
 std::string SourceData::GetWornItemNodeName() const

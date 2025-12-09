@@ -2,29 +2,6 @@
 
 namespace Hooks::Attach
 {
-	// adds light on 3d load
-	struct Load3D
-	{
-		static RE::NiAVObject* thunk(RE::TESObjectREFR* a_this, bool a_backgroundLoading)
-		{
-			auto node = func(a_this, a_backgroundLoading);
-			if (node) {
-				if (auto baseObject = a_this->GetObjectReference(); baseObject && RE::ShouldAttachLight(baseObject)) {
-					LightManager::GetSingleton()->AddLights(a_this, baseObject, node);
-				}
-			}
-			return node;
-		}
-		static inline REL::Relocation<decltype(thunk)> func;
-		static constexpr std::size_t                   idx{ 0x6A };
-
-		static void Install()
-		{
-			stl::write_vfunc<RE::TESObjectREFR, Load3D>();
-			logger::info("Hooked TESObjectREFR::Load3D"sv);
-		}
-	};
-
 	// armor/weapons
 	struct AddAddonNodes
 	{
@@ -127,7 +104,15 @@ namespace Hooks::Attach
 
 	void Install()
 	{
-		Load3D::Install();
+		ObjectReference::Load3D<RE::TESObjectREFR>::Install();
+		ObjectReference::Load3D<RE::Hazard>::Install();
+		ObjectReference::Load3D<RE::Explosion>::Install();
+		ObjectReference::Load3D<RE::BarrierProjectile>::Install();
+		ObjectReference::Load3D<RE::BeamProjectile>::Install();
+		ObjectReference::Load3D<RE::ConeProjectile>::Install();
+		ObjectReference::Load3D<RE::MissileProjectile>::Install();
+		ObjectReference::Load3D<RE::GrenadeProjectile>::Install();
+		ObjectReference::Load3D<RE::ArrowProjectile>::Install();
 
 		ReferenceEffect::Init<RE::ShaderReferenceEffect>::Install();
 		ReferenceEffect::Init<RE::ModelReferenceEffect>::Install();

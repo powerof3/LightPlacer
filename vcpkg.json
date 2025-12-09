@@ -1,19 +1,24 @@
 {
   "name": "light-placer",
-  "version-string": "4.0.4",
+  "version-string": "4.1.0",
   "description": "",
   "homepage": "",
   "license": "MIT",
   "dependencies": [
     "boost-unordered",
     "clib-util",
+    "freetype",
     "frozen",
     "glaze",
+    {
+      "name": "imgui",
+      "features": [ "dx11-binding", "win32-binding", "freetype", "wchar32" ]
+    },
     "mergemapper",
     "rsm-binary-io",
     "srell",
     "spdlog",
     "xbyak"
   ],
-  "builtin-baseline": "8ce02b3d9a447071083436ad36f318dd19dd19ad"
+  "builtin-baseline": "edffab1bcd2cb5b8c17d6ba34d5651ea0bf82979"
 }
