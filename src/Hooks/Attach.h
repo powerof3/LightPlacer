@@ -29,7 +29,7 @@ namespace Hooks::Attach
 			}
 		};
 	}
-	
+
 	namespace ReferenceEffect
 	{
 		template <class T>

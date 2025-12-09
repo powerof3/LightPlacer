@@ -361,7 +361,7 @@ void LightManager::AttachLightsImpl(const SourceDataPtr& a_srcData, RE::FormID a
 		}
 	}
 
-	if (a_formID != 0) {	
+	if (a_formID != 0) {
 		if (auto it = gameFormIDs.find(a_formID); it != gameFormIDs.end()) {
 			if (srcAttachData.Initialize(a_srcData)) {
 				for (const auto& data : it->second) {
