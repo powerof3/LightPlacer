@@ -10,7 +10,7 @@ namespace Hooks::Detach
 		struct Detach
 		{
 			static void thunk(T* a_this)
-			{			
+			{
 				LightManager::GetSingleton()->DetachReferenceEffectLights(a_this, true);
 
 				func(a_this);
