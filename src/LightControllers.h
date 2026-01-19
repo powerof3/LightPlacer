@@ -61,7 +61,7 @@ public:
 	void clear() { keys.clear(); }
 	bool empty() const { return keys.empty(); }
 
-	float GetDuration() const { return keys.back().time - keys.front().time; }
+	float GetDuration() const { return keys.empty() ? 0.0f : keys.back().time - keys.front().time; }
 	T     GetValue(const float a_time)
 	{
 		for (std::size_t i = lastIndex; i < keys.size() - 1; ++i) {
@@ -86,7 +86,13 @@ public:
 private:
 	T Interpolate(float a_time, const Keyframe<T, index>& a_start, const Keyframe<T, index>& a_end)
 	{
-		float t = (a_time - a_start.time) / (a_end.time - a_start.time);
+		float dt = a_end.time - a_start.time;
+
+		if (dt <= 0.0f) {
+			return a_start.value;
+		}
+
+		float t = (a_time - a_start.time) / dt;
 
 		switch (interpolation) {
 		case INTERPOLATION::kStep:
@@ -98,16 +104,15 @@ private:
 				// Hermite interpolation formula
 				float t2 = t * t;
 				float t3 = t2 * t;
-
-				float h1 = (2 * t3) - (3 * t2) + 1;
-				float h2 = 1 - h1;
-				float h3 = t3 - (2 * t2) + t;
+				float h1 = 2 * t3 - 3 * t2 + 1;
+				float h2 = -2 * t3 + 3 * t2;
+				float h3 = t3 - 2 * t2 + t;
 				float h4 = t3 - t2;
 
 				return h1 * a_start.value +
 				       h2 * a_end.value +
-				       h3 * a_start.forward +
-				       h4 * a_end.backward;
+				       h3 * a_start.forward * dt +
+				       h4 * a_end.backward * dt;
 			}
 		default:
 			return T();

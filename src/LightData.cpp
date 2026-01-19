@@ -10,7 +10,7 @@ const RE::NiPointer<RE::NiPointLight>& LightOutput::GetLight() const
 
 bool LightOutput::DimLight(const float a_dimmer) const
 {
-	if (a_dimmer <= 1.0f) {
+	if (a_dimmer < 1.0f) {
 		niLight->fade *= a_dimmer;
 		return true;
 	}
@@ -38,6 +38,7 @@ void LightOutput::RemoveLight(bool a_clearData) const
 	if (bsLight) {
 		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->RemoveLight(bsLight);
 	}
+
 	if (a_clearData) {
 		if (niLight && niLight->parent) {
 			niLight->parent->DetachChild(niLight.get());

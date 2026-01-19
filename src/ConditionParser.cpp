@@ -769,6 +769,8 @@ void ConditionParser::BuildCondition(std::shared_ptr<RE::TESCondition>& a_condit
 		// subject
 		if (subject.str() == "Self") {
 			condData.object = RE::CONDITIONITEMOBJECT::kSelf;
+		} else if (subject.str() == "Target") {
+			condData.object = RE::CONDITIONITEMOBJECT::kTarget;
 		} else if (subject.str() == "CombatTarget") {
 			condData.object = RE::CONDITIONITEMOBJECT::kCombatTarget;
 		} else {

@@ -14,10 +14,10 @@ template <class K, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
 using FlatSet = boost::unordered_flat_set<K, H, KEqual>;
 
 template <class K, class D, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
-using LockedMap = boost::concurrent_flat_map<K, D, H, KEqual>;
+using LockedMap = boost::concurrent_node_map<K, D, H, KEqual>;
 
 template <class K, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
-using LockedSet = boost::unordered_flat_set<K, H, KEqual>;
+using LockedSet = boost::concurrent_node_set<K, H, KEqual>;
 
 struct string_hash
 {
@@ -79,6 +79,10 @@ struct NiPointer_Cmp
 	bool operator()(const RE::NiPointer<T>& lhs, const RE::NiPointer<T>& rhs) const
 	{
 		return lhs == rhs;
+	}
+	bool operator()(const RE::NiPointer<T>& lhs, T* rhs) const
+	{
+		return lhs.get() == rhs;
 	}
 };
 
