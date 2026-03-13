@@ -749,7 +749,7 @@ bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_par
 
 void ConditionParser::BuildCondition(std::shared_ptr<RE::TESCondition>& a_condition, const std::vector<std::string>& a_conditionList)
 {
-	static srell::regex condRegex{ R"((\w+)?\s*(\w+)\s+(\w+)(?:\s+(\w+))?\s*([=!<>]+)\s*([\d.]+)\s*(AND|OR)?)" };
+	static srell::regex condRegex{ R"((\w+)?\s*(\w+)\s+([\w.~]+)(?:\s+([\w.~]+))?\s*([=!<>]+)\s*(-?[\d.]+)\s*(AND|OR)?)" };
 
 	for (auto& condition : a_conditionList) {
 		srell::cmatch match;
