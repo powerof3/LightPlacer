@@ -86,7 +86,7 @@ namespace RE
 	T* GetFormFromID(const std::string& a_str)
 	{
 		auto formID = GetFormID(a_str);
-		return formID != 0 ? TESForm::LookupByID<T>(GetFormID(a_str)) : nullptr;
+		return formID != 0 ? TESForm::LookupByID<T>(formID) : nullptr;
 	}
 
 #ifndef SKYRIMVR

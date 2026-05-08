@@ -54,13 +54,7 @@ struct LightOutput
 		debugMarker(a_debugMarker)
 	{}
 
-	LightOutput& operator=(const LightOutput& rhs)
-	{
-		bsLight = rhs.bsLight;
-		niLight = rhs.niLight;
-		debugMarker = rhs.debugMarker;
-		return *this;
-	}
+	LightOutput& operator=(const LightOutput& rhs) = default;
 
 	bool operator==(const LightOutput& rhs) const
 	{

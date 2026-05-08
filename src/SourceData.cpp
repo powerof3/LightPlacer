@@ -4,7 +4,7 @@ SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObj
 	type(a_type),
 	ref(a_ref),
 	base(a_object),
-	root(a_root->AsNode())
+	root(a_root ? a_root->AsNode() : nullptr)
 {
 	RE::TESModel* model = a_model;
 	if (!model) {
@@ -16,11 +16,13 @@ SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObj
 }
 
 SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_object, RE::TESModel* a_model) :
-	SourceData(a_type, a_ref, a_ref->Get3D(), a_object, a_model)
+	SourceData(a_type, a_ref, a_ref ? a_ref->Get3D() : nullptr, a_object, a_model)
 {}
 
 SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObject* a_root, const RE::BIPOBJECT& a_bipObject) :
-	SourceData(a_type, a_ref, a_root, a_bipObject.item->As<RE::TESBoundObject>(), a_bipObject.part)
+	SourceData(a_type, a_ref, a_root,
+		a_bipObject.item ? a_bipObject.item->As<RE::TESBoundObject>() : nullptr,
+		a_bipObject.part)
 {
 	if (a_bipObject.addon) {
 		miscID = a_bipObject.addon->GetFormID();
@@ -29,7 +31,7 @@ SourceData::SourceData(SOURCE_TYPE a_type, RE::TESObjectREFR* a_ref, RE::NiAVObj
 
 bool SourceData::IsValid() const
 {
-	return !ref->IsDisabled() && !ref->IsDeleted() && ref->GetParentCell() && root != nullptr;
+	return ref && base && root && !ref->IsDisabled() && !ref->IsDeleted() && ref->GetParentCell();
 }
 
 RE::NiNode* SourceData::GetAttachNode() const

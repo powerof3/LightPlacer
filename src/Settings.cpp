@@ -111,8 +111,8 @@ namespace SETTINGS
 			disableAllGameLights = ini.GetBoolValue("Settings", "bDisableAllGameLights", false);
 		}
 
-		globalLightFade = static_cast<float>(ini.GetDoubleValue("Settings", "fGlobalLightFadeMult", 1.0));
-		globalLightRadius = static_cast<float>(ini.GetDoubleValue("Settings", "fGlobalLightRadiusMult", 1.0));
+		globalLightFade = static_cast<float>(ini.GetDoubleValue("Settings", "fGlobalLightFadeMult", globalLightFade));
+		globalLightRadius = static_cast<float>(ini.GetDoubleValue("Settings", "fGlobalLightRadiusMult", globalLightRadius));
 
 		const auto add_to_list = [&](std::string_view a_listName, StringSet& a_list) {
 			CSimpleIniA::TNamesDepend keys;

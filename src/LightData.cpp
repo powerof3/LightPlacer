@@ -430,7 +430,6 @@ RE::NiNode* LIGH::LightSourceData::GetOrCreateNode(RE::NiNode* a_root, const RE:
 				if (data.rotation != RE::NiPoint3::Zero()) {
 					node->local.rotate = RE::ToMatrix(data.rotation);
 				}
-				node->local.rotate = RE::ToMatrix(data.rotation);
 				RE::AttachNode(a_root, node);
 			}
 		}

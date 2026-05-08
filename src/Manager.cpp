@@ -547,12 +547,6 @@ RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::TESWaitStopEvent* 
 
 void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 {
-	const auto pc = RE::PlayerCharacter::GetSingleton();
-
-	ProcessedLights::UpdateParams params;
-	params.pcPos = pc->GetPosition();
-	params.delta = RE::BSTimer::GetSingleton()->delta;
-
 	std::vector<RE::RefHandle> handlesToUpdate;
 
 	lightsToBeUpdated.visit(a_cell->GetFormID(), [&](auto& entry) {
@@ -567,6 +561,12 @@ void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 			return false;
 		});
 	});
+
+	const auto pc = RE::PlayerCharacter::GetSingleton();
+
+	ProcessedLights::UpdateParams params;
+	params.pcPos = pc->GetPosition();
+	params.delta = RE::BSTimer::GetSingleton()->delta;
 
 	for (const auto& handle : handlesToUpdate) {
 		RE::TESObjectREFRPtr ref;

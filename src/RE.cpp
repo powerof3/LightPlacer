@@ -123,7 +123,7 @@ namespace RE
 
 		NiAVObject* object = nullptr;
 
-		RE::BSVisit::TraverseScenegraphObjects(a_root, [a_root, a_name, &object](RE::NiAVObject* a_object) -> RE::BSVisit::BSVisitControl {
+		RE::BSVisit::TraverseScenegraphObjects(a_root, [a_name, &object](RE::NiAVObject* a_object) -> RE::BSVisit::BSVisitControl {
 			if (a_object->name == a_name) {
 				object = a_object;
 				return RE::BSVisit::BSVisitControl::kStop;
