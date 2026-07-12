@@ -6,7 +6,7 @@ namespace Hooks::Misc
 	{
 		static bool should_disable_light(RE::TESObjectLIGH* light, RE::TESObjectREFR* ref);
 	};
-	
+
 	template <std::size_t N>
 	struct TESObjectLIGH_GenDynamic
 	{
@@ -23,6 +23,6 @@ namespace Hooks::Misc
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
 	};
-	
+
 	void Install();
 }

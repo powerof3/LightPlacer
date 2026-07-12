@@ -18,7 +18,7 @@ namespace Hooks::Update
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
 	};
-	
+
 	namespace ReferenceEffect
 	{
 		template <class T>
@@ -40,7 +40,7 @@ namespace Hooks::Update
 			}
 		};
 	}
-	
+
 	static void Install_RemoveExternalEmittance();
 
 	void Install();

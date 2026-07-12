@@ -34,7 +34,7 @@ namespace Hooks::Detach
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
 	};
-	
+
 	namespace BSTempEffect
 	{
 		template <class T>
