@@ -119,35 +119,6 @@ namespace Hooks::Update
 		}
 	};
 
-	// remove lights
-	struct RemoveExternalEmittance
-	{
-		static void thunk(RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle)
-		{
-			func(a_cell, a_handle);
-
-			if (a_cell && a_cell->loadedData) {
-				LightManager::GetSingleton()->RemoveLightsFromUpdateQueue(a_cell, a_handle);
-			}
-		}
-		static inline REL::Relocation<decltype(thunk)> func;
-
-		static void Install()
-		{
-			std::array targets{
-				std::make_pair(RELOCATION_ID(18568, 19032), OFFSET(0x190, 0x171)),  // TESObjectREFR::RemoveReference3D
-				std::make_pair(RELOCATION_ID(19301, 19728), OFFSET(0x1BA, 0x206))   // TESObjectREFR::Release3DRelatedData
-			};
-
-			for (const auto& [address, offset] : targets) {
-				REL::Relocation<std::uintptr_t> target{ address, offset };
-				stl::write_thunk_call<RemoveExternalEmittance>(target.address());
-			}
-
-			logger::info("Hooked TESObjectCELL::RemoveExternalEmittance");
-		}
-	};
-
 	struct NiSwitchNode_UpdateDownwardsPass
 	{
 		static void thunk(RE::NiSwitchNode* a_this, RE::NiUpdateData& a_data, std::uint32_t a_arg2)
@@ -179,6 +150,17 @@ namespace Hooks::Update
 		}
 	};
 
+	void Install_RemoveExternalEmittance()
+	{
+		REL::Relocation<std::uintptr_t> target_0{ RELOCATION_ID(18568, 19032), OFFSET(0x190, 0x171) };  //  TESObjectREFR::RemoveReference3D
+		stl::write_thunk_call<RemoveExternalEmittance<0>>(target_0.address());
+
+		REL::Relocation<std::uintptr_t> target_1{ RELOCATION_ID(19301, 19728), OFFSET(0x1BA, 0x206) };  //  TESObjectREFR::Release3DRelatedData
+		stl::write_thunk_call<RemoveExternalEmittance<1>>(target_1.address());
+
+		logger::info("Hooked TESObjectCELL::RemoveExternalEmittance");
+	}
+
 	void Install()
 	{
 		UpdateActivateParents::Install();
@@ -190,6 +172,6 @@ namespace Hooks::Update
 		ActorMagicCaster__Update::Install();
 		NiSwitchNode_UpdateDownwardsPass::Install();
 
-		RemoveExternalEmittance::Install();
+		Install_RemoveExternalEmittance();
 	}
 }

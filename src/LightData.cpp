@@ -111,7 +111,7 @@ RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_vie
 	const auto create_params = GetDebugMarkerParams();
 
 	if (const auto error = Demand(create_params.modelName, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
-		if (const auto clonedModel = loadedModel->Clone()) {
+		if (const auto clonedModel = netimmerse_cast<RE::NiAVObject*>(loadedModel->Clone())) {
 			loadedModel.reset();
 			PostProcessDebugMarker(clonedModel, create_params, a_debugMarkerName);
 			RE::AttachNode(a_node, clonedModel);

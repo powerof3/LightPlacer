@@ -10,15 +10,11 @@
     "freetype",
     "frozen",
     "glaze",
-    {
-      "name": "imgui",
-      "features": [ "dx11-binding", "win32-binding", "freetype", "wchar32" ]
-    },
     "mergemapper",
     "rsm-binary-io",
     "srell",
     "spdlog",
     "xbyak"
   ],
-  "builtin-baseline": "3fb54e6717ea6a48099b02798e82fafefb2d410e"
+  "builtin-baseline": "32305df7d0b9a308e6ac454dd98ebfe550342c09"
 }

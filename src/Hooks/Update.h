@@ -4,6 +4,21 @@
 
 namespace Hooks::Update
 {
+	// remove lights
+	template <std::size_t N>
+	struct RemoveExternalEmittance
+	{
+		static void thunk(RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle)
+		{
+			func(a_cell, a_handle);
+
+			if (a_cell && a_cell->loadedData) {
+				LightManager::GetSingleton()->RemoveLightsFromUpdateQueue(a_cell, a_handle);
+			}
+		}
+		static inline REL::Relocation<decltype(thunk)> func;
+	};
+	
 	namespace ReferenceEffect
 	{
 		template <class T>
@@ -25,6 +40,8 @@ namespace Hooks::Update
 			}
 		};
 	}
+	
+	static void Install_RemoveExternalEmittance();
 
 	void Install();
 }
