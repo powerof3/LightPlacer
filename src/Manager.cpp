@@ -11,10 +11,6 @@ bool LightManager::ReadConfigs(bool a_reload)
 		return false;
 	}
 
-	if (a_reload) {
-		configs.clear();
-	}
-
 	clib_util::Timer timer;
 	timer.start();
 
@@ -62,9 +58,7 @@ void LightManager::OnDataLoad()
 
 void LightManager::ReloadConfigs()
 {
-	ReadConfigs(true);
-
-	if (configs.empty()) {
+	if (!ReadConfigs(true)) {
 		return;
 	}
 
@@ -106,6 +100,7 @@ void LightManager::ProcessConfigs()
 
 	timer.stop();
 	logger::info("Processing time taken: {}ms", timer.duration_ms());
+	configs.clear();
 }
 
 std::vector<RE::TESObjectREFRPtr> LightManager::GetLightAttachedRefs()
