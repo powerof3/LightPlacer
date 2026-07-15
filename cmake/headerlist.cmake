@@ -13,7 +13,7 @@ set(headers ${headers}
 	src/Manager.h
 	src/PCH.h
 	src/Papyrus.h
-	src/ProcessedLights.h
+	src/PlacedLights.h
 	src/RE.h
 	src/Settings.h
 	src/SourceData.h

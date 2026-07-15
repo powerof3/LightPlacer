@@ -74,7 +74,7 @@ std::string SourceData::GetWornItemNodeName() const
 	return nodeName;
 }
 
-bool SourceAttachData::Initialize(const SourceDataPtr& a_srcData)
+bool SourceAttachData::Initialize(const SourceData& a_srcData)
 {
 	if (attachNode) {
 		return true;

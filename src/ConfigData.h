@@ -10,9 +10,9 @@ namespace Config
 	{
 		void PostProcess();
 
-		bool IsInvalid(const SourceAttachDataPtr& a_srcData) const;
-		bool IsBlacklisted(const SourceAttachDataPtr& a_srcData) const;
-		bool IsWhitelisted(const SourceAttachDataPtr& a_srcData) const;
+		bool IsInvalid(const SourceAttachData& a_srcData) const;
+		bool IsBlacklisted(const SourceAttachData& a_srcData) const;
+		bool IsWhitelisted(const SourceAttachData& a_srcData) const;
 
 		// members
 		StringSet           whiteList;
@@ -22,66 +22,74 @@ namespace Config
 	};
 
 	template <class T>
-	struct Data
+	struct Placement
 	{
-		T                     attacher;
-		LIGH::LightSourceData data;
-		std::string           path;
+		T                                  attacher;
+		LIGH::LightDefinition              definition;
+		std::shared_ptr<const std::string> path;
 	};
 
-	using PointData = Data<std::vector<RE::NiPoint3>>;
-	using NodeData = Data<StringSet>;
+	using PointPlacement = Placement<std::vector<RE::NiPoint3>>;
+	using NodePlacement = Placement<StringSet>;
+	using PointPlacementPtr = std::shared_ptr<const PointPlacement>;
+	using NodePlacementPtr = std::shared_ptr<const NodePlacement>;
 
 	template <class T>
-	struct FilteredData
+	struct Filtered
 	{
-		LIGH::LightSourceData& get()
-			requires !std::is_same_v<T, LIGH::LightSourceData>
+		LIGH::LightDefinition& get()
+			requires !std::is_same_v<T, LIGH::LightDefinition>
 		{
-			return data.data;
+			return data.definition;
 		}
 
 		Filter filter;
 		T      data;
 	};
 
-	using FilteredRawData = FilteredData<LIGH::LightSourceData>;
-	using AddonLightSourceVec = std::vector<FilteredRawData>;
+	// deprecated
+	using AddonEntry = Filtered<LIGH::LightDefinition>;
+	using AddonEntries = std::vector<AddonEntry>;
 
-	using FilteredPointData = FilteredData<PointData>;
-	using FilteredNodeData = FilteredData<NodeData>;
-	using LightSourceData = std::variant<FilteredPointData, FilteredNodeData>;
-	using LightSourceVec = std::vector<LightSourceData>;
+	using PointEntry = Filtered<PointPlacement>;
+	using NodeEntry = Filtered<NodePlacement>;
+
+	using LightEntry = std::variant<PointEntry, NodeEntry>;
+	using LightEntryPtr = std::shared_ptr<const LightEntry>;
+	using LightEntries = std::vector<LightEntry>;
+
+	using LightEntryGroup = std::vector<LightEntryPtr>;                 // entries applying to one model/formID
+	using LightEntryGroupPtr = std::shared_ptr<const LightEntryGroup>;  // one group shared across keys
 
 	struct MultiModelSet
 	{
-		StringSet      models;
-		LightSourceVec lights;
+		StringSet    models;
+		LightEntries lights;
 	};
 
 	struct MultiFormIDSet
 	{
-		StringSet      formIDs;
-		LightSourceVec lights;
+		StringSet    formIDs;
+		LightEntries lights;
 	};
 
 	// deprecated
 	struct MultiAddonSet
 	{
-		FlatSet<std::uint32_t>       addonNodes;
-		std::vector<FilteredRawData> lights;
+		FlatSet<std::uint32_t>  addonNodes;
+		std::vector<AddonEntry> lights;
 	};
 
 	using Format = std::variant<MultiModelSet, MultiFormIDSet, MultiAddonSet>;
 
-	void PostProcess(LightSourceVec& a_lightDataVec, const std::string& path);
-	void PostProcess(AddonLightSourceVec& a_lightDataVec);
+	void PostProcess(LightEntries& a_lightEntries, const std::shared_ptr<const std::string>& a_path);
+	void PostProcess(AddonEntries& a_lightDataVec);
 }
 
 template <>
-struct glz::meta<Config::FilteredRawData>
+struct glz::meta<Config::AddonEntry>
 {
-	using T = Config::FilteredRawData;
+	using T = Config::AddonEntry;
 	static constexpr auto value = object(
 		"whiteList", [](auto&& self) -> auto& { return self.filter.whiteList; },
 		"blackList", [](auto&& self) -> auto& { return self.filter.blackList; },
@@ -89,25 +97,25 @@ struct glz::meta<Config::FilteredRawData>
 };
 
 template <>
-struct glz::meta<Config::FilteredPointData>
+struct glz::meta<Config::PointEntry>
 {
-	using T = Config::FilteredPointData;
+	using T = Config::PointEntry;
 	static constexpr auto value = object(
 		"whiteList", [](auto&& self) -> auto& { return self.filter.whiteList; },
 		"blackList", [](auto&& self) -> auto& { return self.filter.blackList; },
 		"points", [](auto&& self) -> auto& { return self.data.attacher; },
-		"data", [](auto&& self) -> auto& { return self.data.data; });
+		"data", [](auto&& self) -> auto& { return self.data.definition; });
 };
 
 template <>
-struct glz::meta<Config::FilteredNodeData>
+struct glz::meta<Config::NodeEntry>
 {
-	using T = Config::FilteredNodeData;
+	using T = Config::NodeEntry;
 	static constexpr auto value = object(
 		"whiteList", [](auto&& self) -> auto& { return self.filter.whiteList; },
 		"blackList", [](auto&& self) -> auto& { return self.filter.blackList; },
 		"nodes", [](auto&& self) -> auto& { return self.data.attacher; },
-		"data", [](auto&& self) -> auto& { return self.data.data; });
+		"data", [](auto&& self) -> auto& { return self.data.definition; });
 };
 
 template <>
@@ -125,7 +133,7 @@ struct glz::meta<Config::MultiFormIDSet>
 	using T = Config::MultiFormIDSet;
 	static constexpr auto modify = glz::object(
 		"formIDs", &T::formIDs,
-		"visualEffects", &T::formIDs,
+		"visualEffects", [](auto& self) -> auto& { return self.formIDs; },
 		"lights", &T::lights);
 };
 

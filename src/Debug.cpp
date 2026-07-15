@@ -145,10 +145,10 @@ namespace Debug
 					if (consoleRef) {
 						bool toggled = false;
 						bool hasLight = false;
-						LightManager::GetSingleton()->ForEachLight(consoleRef.get(), consoleRefHandle.native_handle(), [&](const auto&, const auto& processedLights) {
+						LightManager::GetSingleton()->ForEachLight(consoleRef.get(), consoleRefHandle.native_handle(), [&](const auto&, const auto& placedLights) {
 							hasLight = true;
-							toggled = !processedLights.GetLightsToggled(LIGHT_CULL_FLAGS::Script);
-							processedLights.ToggleLights(toggled, LIGHT_CULL_FLAGS::Script);
+							toggled = !placedLights.GetLightsToggled(LIGHT_CULL_FLAGS::Script);
+							placedLights.ToggleLights(toggled, LIGHT_CULL_FLAGS::Script);
 							return true;
 						});
 						if (hasLight) {
@@ -156,9 +156,9 @@ namespace Debug
 						}
 					} else {
 						bool toggled = false;
-						LightManager::GetSingleton()->ForAllLights([&](const auto& processedLights) {
-							toggled = !processedLights.GetLightsToggled(LIGHT_CULL_FLAGS::Script);
-							processedLights.ToggleLights(toggled, LIGHT_CULL_FLAGS::Script);
+						LightManager::GetSingleton()->ForAllLights([&](const auto& placedLights) {
+							toggled = !placedLights.GetLightsToggled(LIGHT_CULL_FLAGS::Script);
+							placedLights.ToggleLights(toggled, LIGHT_CULL_FLAGS::Script);
 						});
 						RE::ConsoleLog::GetSingleton()->Print("Light Placer Lights %s", !toggled ? "ON" : "OFF");
 					}
@@ -174,8 +174,8 @@ namespace Debug
 					settings->ToggleDebugMarkers();
 
 					bool showDebugMarkers = settings->CanShowDebugMarkers();
-					LightManager::GetSingleton()->ForAllLights([&](const auto& processedLights) {
-						processedLights.ShowDebugMarkers(showDebugMarkers);
+					LightManager::GetSingleton()->ForAllLights([&](const auto& placedLights) {
+						placedLights.ShowDebugMarkers(showDebugMarkers);
 					});
 
 					RE::ConsoleLog::GetSingleton()->Print("Light Placer Markers %s", showDebugMarkers ? "ON" : "OFF");

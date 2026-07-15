@@ -45,18 +45,18 @@ enum class TES_LIGHT_FLAGS_EXT
 	kLinear = 1 << 15
 };
 
-struct LightOutput
+struct LightInstance
 {
-	LightOutput() = default;
-	LightOutput(RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::NiAVObject* a_debugMarker) :
+	LightInstance() = default;
+	LightInstance(RE::BSLight* a_bsLight, RE::NiPointLight* a_niLight, RE::NiAVObject* a_debugMarker) :
 		bsLight(a_bsLight),
 		niLight(a_niLight),
 		debugMarker(a_debugMarker)
 	{}
 
-	LightOutput& operator=(const LightOutput& rhs) = default;
+	LightInstance& operator=(const LightInstance& rhs) = default;
 
-	bool operator==(const LightOutput& rhs) const
+	bool operator==(const LightInstance& rhs) const
 	{
 		if (!niLight || !rhs.niLight) {
 			return false;
@@ -103,7 +103,7 @@ struct LightData
 	bool                                     IsDynamicLight(const RE::TESObjectREFR* a_ref) const;
 	bool                                     IsValid() const;
 
-	LightOutput GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;  // [bsLight, niLight, debugMarker]
+	LightInstance GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;  // [bsLight, niLight, debugMarker]
 
 	static LIGHT_CULL_FLAGS GetCulledFlag(RE::NiPointLight* a_light);
 	static void             CullLight(RE::NiPointLight* a_light, RE::NiAVObject* a_debugMarker, bool a_hide, LIGHT_CULL_FLAGS a_flags);
@@ -146,20 +146,21 @@ private:
 
 namespace LIGH
 {
-	struct LightSourceData
+	struct LightDefinition
 	{
-		LightSourceData() = default;
+		LightDefinition() = default;
 
 		void ReadConditions();
 		bool PostProcess();
 
 		bool IsStaticLight() const;
+		bool HasControllers() const;
 
 		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const;
 		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, const std::string& path, std::uint32_t a_index) const;
 		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const;
 
-		std::string GetLightName(const SourceAttachDataPtr& a_srcData, const std::string& path, std::uint32_t a_index) const;
+		std::string GetLightName(const SourceAttachData& a_srcData, const std::string& path, std::uint32_t a_index) const;
 
 		// members
 		LightData                data;
@@ -173,12 +174,14 @@ namespace LIGH
 		RotationKeyframeSequence rotationController;
 		AIOKeyframeSequence      aioController;
 	};
+
+	using LightDefinitionPtr = std::shared_ptr<const LightDefinition>;
 }
 
 template <>
-struct glz::meta<LIGH::LightSourceData>
+struct glz::meta<LIGH::LightDefinition>
 {
-	using T = LIGH::LightSourceData;
+	using T = LIGH::LightDefinition;
 
 	static constexpr auto read_flags = [](T& s, const std::string& input) {
 		if (!input.empty()) {
@@ -257,6 +260,8 @@ struct glz::meta<LIGH::LightSourceData>
 					s.rotationController.keys.push_back(RotationKeyframe(key.time, key.value.rotation, key.forward.rotation, key.backward.rotation));
 				}
 			}
+
+			s.aioController.clear();
 		}
 		return true;
 	};
@@ -284,64 +289,3 @@ struct glz::meta<LIGH::LightSourceData>
 		"rotationController", &T::rotationController,
 		"lightController", glz::manage<&T::aioController, read_aioController, write_aioController>);
 };
-
-struct REFR_LIGH
-{
-	struct Condition
-	{
-		enum UpdateFlags : std::uint8_t
-		{
-			Skip = 0,
-			Normal = (1 << 0),
-			Forced = (1 << 1),
-			CellTransition = (1 << 2),
-			Waiting = (1 << 3),
-
-			UpdateRequired = CellTransition | Waiting
-		};
-	};
-	using ConditionUpdateFlags = Condition::UpdateFlags;
-
-	// cull nodes based on condition state
-	struct NodeVisHelper
-	{
-		void InsertConditionalNodes(const std::vector<std::string>& a_nodes, bool a_isVisble);
-		void UpdateNodeVisibility(const RE::TESObjectREFR* a_ref, std::string_view a_nodeName);
-		void Reset();
-
-		// members
-		bool            isVisible{ false };
-		bool            canCullAddonNodes{ false };
-		bool            canCullNodes{ false };
-		StringMap<bool> conditionalNodes{};
-	};
-
-	REFR_LIGH() = default;
-	REFR_LIGH(const LIGH::LightSourceData& a_lightSource, const LightOutput& a_lightOutput, const RE::TESObjectREFRPtr& a_ref);
-
-	bool operator==(const REFR_LIGH& rhs) const
-	{
-		return output == rhs.output;
-	}
-
-	bool operator==(const LightOutput& rhs) const
-	{
-		return output == rhs;
-	}
-
-	const RE::NiPointer<RE::NiPointLight>& GetLight() const { return output.GetLight(); }
-
-	void ReattachLight(RE::TESObjectREFR* a_ref);
-	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
-	void UpdateAnimation(float a_delta, float a_scalingFactor);
-	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
-	void UpdateEmittance(RE::TESObjectCELL* a_cell) const;
-	void UpdateVanillaFlickering() const;
-
-	LightData           data{};
-	LightOutput         output{};
-	LightControllers    lightControllers{};
-	std::optional<bool> lastVisibleState{};
-};
-
-using ConditionUpdateFlags = REFR_LIGH::ConditionUpdateFlags;

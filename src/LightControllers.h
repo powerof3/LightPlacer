@@ -9,7 +9,7 @@ enum class INTERPOLATION : std::uint8_t
 
 namespace LIGH
 {
-	struct LightSourceData;
+	struct LightDefinition;
 }
 
 // all-in-one controller
@@ -58,33 +58,33 @@ template <class T, std::uint32_t index = 0>
 class KeyframeSequence
 {
 public:
-	void clear() { keys.clear(); }
-	bool empty() const { return keys.empty(); }
+	void     clear() { keys = {}; }
+	bool     empty() const { return keys.empty(); }
+	explicit operator bool() const { return !empty(); }
 
 	float GetDuration() const { return keys.empty() ? 0.0f : keys.back().time - keys.front().time; }
-	T     GetValue(const float a_time)
+
+	T GetValue(const float a_time, std::uint32_t& a_lastIndex) const
 	{
-		for (std::size_t i = lastIndex; i < keys.size() - 1; ++i) {
+		for (auto i = a_lastIndex; i < keys.size() - 1; ++i) {
 			const auto& currKeyframe = keys[i];
 			const auto& nextKeyframe = keys[i + 1];
 
 			if (a_time >= currKeyframe.time && a_time <= nextKeyframe.time) {
-				lastIndex = i;
+				a_lastIndex = i;
 				return Interpolate(a_time, currKeyframe, nextKeyframe);
 			}
 		}
 
-		lastIndex = 0;
+		a_lastIndex = 0;
 		return keys.front().value;
 	}
 
-	// members
 	INTERPOLATION                   interpolation{ INTERPOLATION::kLinear };
 	std::vector<Keyframe<T, index>> keys{};
-	std::size_t                     lastIndex{ 0 };
 
 private:
-	T Interpolate(float a_time, const Keyframe<T, index>& a_start, const Keyframe<T, index>& a_end)
+	T Interpolate(float a_time, const Keyframe<T, index>& a_start, const Keyframe<T, index>& a_end) const
 	{
 		float dt = a_end.time - a_start.time;
 
@@ -125,32 +125,28 @@ class LightController
 {
 public:
 	LightController() = default;
-	explicit LightController(const KeyframeSequence<T, index>& a_sequence, bool a_randomAnimStart) :
-		sequence(a_sequence),
-		cycleDuration(a_sequence.GetDuration())
+	LightController(const KeyframeSequence<T, index>* a_sequence, bool a_randomAnimStart) :
+		sequence(a_sequence)
 	{
 		if (a_randomAnimStart) {
-			currentTime = clib_util::RNG().generate(0.0f, cycleDuration);
+			currentTime = clib_util::RNG().generate(0.0f, a_sequence->GetDuration());
 		}
 	}
 
-	T GetValue(const float a_time)
+	T GetValue(const float a_delta)
 	{
-		currentTime = std::fmod(currentTime + a_time, cycleDuration);
-		return sequence.GetValue(currentTime);
+		currentTime = std::fmod(currentTime + a_delta, sequence->GetDuration());
+		return sequence->GetValue(currentTime, lastIndex);
 	}
 
-	bool GetValidFade() const { return false; }
-	bool GetValidTranslation() const { return false; }
-
-	bool empty() const { return sequence.empty(); }
+	bool     empty() const { return !sequence || sequence->empty(); }
 	explicit operator bool() const { return !empty(); }
 
 private:
 	// members
-	KeyframeSequence<T, index> sequence{};
-	float                      cycleDuration{ -1.0f };
-	float                      currentTime{ 0.0f };
+	const KeyframeSequence<T, index>* sequence{ nullptr };
+	std::uint32_t                     lastIndex{ 0 };
+	float                             currentTime{ 0.0f };
 };
 
 template <>
@@ -240,7 +236,7 @@ using FloatController = LightController<float>;
 struct LightControllers
 {
 	LightControllers() = default;
-	LightControllers(const LIGH::LightSourceData& a_src);
+	LightControllers(const LIGH::LightDefinition& a_lightDef);
 
 	void UpdateAnimation(const RE::NiPointer<RE::NiPointLight>& a_light, float a_delta, float a_scalingFactor);
 

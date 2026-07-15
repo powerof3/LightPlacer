@@ -12,7 +12,7 @@ set(sources ${sources}
 	src/Manager.cpp
 	src/PCH.cpp
 	src/Papyrus.cpp
-	src/ProcessedLights.cpp
+	src/PlacedLights.cpp
 	src/RE.cpp
 	src/Settings.cpp
 	src/SourceData.cpp

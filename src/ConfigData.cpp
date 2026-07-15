@@ -16,7 +16,7 @@ void Config::Filter::PostProcess()
 	post_process(whiteList, whiteListForms);
 }
 
-bool Config::Filter::IsInvalid(const SourceAttachDataPtr& a_srcData) const
+bool Config::Filter::IsInvalid(const SourceAttachData& a_srcData) const
 {
 	if (!blackListForms.empty() && IsBlacklisted(a_srcData)) {
 		return true;
@@ -29,7 +29,7 @@ bool Config::Filter::IsInvalid(const SourceAttachDataPtr& a_srcData) const
 	return false;
 }
 
-bool Config::Filter::IsBlacklisted(const SourceAttachDataPtr& a_srcData) const
+bool Config::Filter::IsBlacklisted(const SourceAttachData& a_srcData) const
 {
 	for (const auto& id : a_srcData.filterIDs) {
 		if (blackListForms.contains(id)) {
@@ -40,7 +40,7 @@ bool Config::Filter::IsBlacklisted(const SourceAttachDataPtr& a_srcData) const
 	return false;
 }
 
-bool Config::Filter::IsWhitelisted(const SourceAttachDataPtr& a_srcData) const
+bool Config::Filter::IsWhitelisted(const SourceAttachData& a_srcData) const
 {
 	for (const auto& id : a_srcData.filterIDs) {
 		if (whiteListForms.contains(id)) {
@@ -51,33 +51,33 @@ bool Config::Filter::IsWhitelisted(const SourceAttachDataPtr& a_srcData) const
 	return false;
 }
 
-void Config::PostProcess(Config::LightSourceVec& a_lightDataVec, const std::string& path)
+void Config::PostProcess(LightEntries& a_lightEntries, const std::shared_ptr<const std::string>& a_path)
 {
-	std::erase_if(a_lightDataVec, [&](auto& attachLightData) {
+	std::erase_if(a_lightEntries, [&](auto& lightEntry) {
 		bool failedPostProcess = false;
 		std::visit(overload{
-					   [&](Config::FilteredPointData& pointData) {
-						   failedPostProcess = !pointData.get().PostProcess();
+					   [&](Config::PointEntry& pointEntry) {
+						   failedPostProcess = !pointEntry.get().PostProcess();
 						   if (!failedPostProcess) {
-							   pointData.filter.PostProcess();
-							   pointData.data.path = path;
+							   pointEntry.filter.PostProcess();
+							   pointEntry.data.path = a_path;
 						   }
 					   },
-					   [&](Config::FilteredNodeData& nodeData) {
-						   failedPostProcess = !nodeData.get().PostProcess();
+					   [&](Config::NodeEntry& nodeEntry) {
+						   failedPostProcess = !nodeEntry.get().PostProcess();
 						   if (!failedPostProcess) {
-							   nodeData.filter.PostProcess();
-							   nodeData.data.path = path;
+							   nodeEntry.filter.PostProcess();
+							   nodeEntry.data.path = a_path;
 						   }
 					   } },
-			attachLightData);
+			lightEntry);
 		return failedPostProcess;
 	});
 }
 
-void Config::PostProcess(Config::AddonLightSourceVec& a_lightDataVec)
+void Config::PostProcess(Config::AddonEntries& a_addonLights)
 {
-	std::erase_if(a_lightDataVec, [&](auto& filterData) {
+	std::erase_if(a_addonLights, [&](auto& filterData) {
 		bool failedPostProcess = !filterData.data.PostProcess();
 		if (!failedPostProcess) {
 			filterData.filter.PostProcess();

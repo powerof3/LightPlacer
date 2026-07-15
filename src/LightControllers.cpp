@@ -12,13 +12,13 @@ bool LightAnimData::GetValidTranslation() const { return IsValid(translation); }
 
 bool LightAnimData::GetValidRotation() const { return IsValid(rotation); }
 
-LightControllers::LightControllers(const LIGH::LightSourceData& a_src)
+LightControllers::LightControllers(const LIGH::LightDefinition& a_lightDef)
 {
-	const bool randomAnimStart = a_src.data.flags.any(LIGHT_FLAGS::RandomAnimStart);
+	const bool randomAnimStart = a_lightDef.data.flags.any(LIGHT_FLAGS::RandomAnimStart);
 
-#define INIT_CONTROLLER(controller)                                        \
-	if (!a_src.controller.empty()) {                                       \
-		(controller) = LightController(a_src.controller, randomAnimStart); \
+#define INIT_CONTROLLER(controller)                                              \
+	if (!a_lightDef.controller.empty()) {                                        \
+		(controller) = LightController(&a_lightDef.controller, randomAnimStart); \
 	}
 
 	INIT_CONTROLLER(colorController)
