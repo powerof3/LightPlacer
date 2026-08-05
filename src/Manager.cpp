@@ -24,7 +24,7 @@ bool LightManager::ReadConfigs(bool a_reload)
 		truncPath.erase(truncPath.size() - strlen(".json"));
 
 		auto& config = configs[truncPath];
-		
+
 		logger::info("{} {}...", a_reload ? "Reloading" : "Reading", path);
 		std::string buffer;
 		auto        err = glz::read_file_json(config, path, buffer);
@@ -420,7 +420,7 @@ void LightManager::ProcessCollectedLights(const SourceAttachData& a_srcAttachDat
 	if (a_collectedPoints.empty() && a_collectedNodes.empty()) {
 		return;
 	}
-	
+
 	if (!a_srcAttachData.root || !a_srcAttachData.attachNode) {
 		return;
 	}
