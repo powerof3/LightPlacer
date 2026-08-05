@@ -28,12 +28,11 @@ template <>
 struct glz::meta<RE::NiColor>
 {
 	static constexpr auto read = [](RE::NiColor& input, const std::array<float, 3>& vec) {
+		const bool is_normalized = std::ranges::all_of(vec, [](float v) {
+			return v >= -1.0f && v <= 1.0f;
+		});
 		for (std::size_t i = 0; i < RE::NiColor::kTotal; ++i) {
-			if (vec[i] >= -1.0f && vec[i] <= 1.0f) {
-				input[i] = vec[i];
-			} else {
-				input[i] = vec[i] / 255;
-			}
+			input[i] = is_normalized ? vec[i] : vec[i] / 255.0f;
 		}
 	};
 	static constexpr auto write = [](auto const& input) -> auto {
