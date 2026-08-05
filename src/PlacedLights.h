@@ -51,7 +51,7 @@ struct PlacedLight
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
 	void UpdateAnimation(float a_delta, float a_scalingFactor);
-	void UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags);
+	void UpdateConditions(RE::TESObjectREFR* a_ref, std::unique_ptr<NodeVisHelper>& a_nodeVisHelper, ConditionUpdateFlags a_flags);
 	void UpdateEmittance(RE::TESObjectCELL* a_cell) const;
 	void UpdateVanillaFlickering() const;
 
@@ -98,9 +98,9 @@ struct PlacedLights
 	void UpdateEmittance(RE::TESObjectCELL* a_cell) const;
 
 	// members
-	float                      lastUpdateTime{ std::numeric_limits<float>::max() };
-	std::vector<PlacedLight>   lights;
-	PlacedLight::NodeVisHelper nodeVisHelper{};
+	float                                       lastUpdateTime{ std::numeric_limits<float>::max() };
+	std::vector<PlacedLight>                    lights;
+	std::unique_ptr<PlacedLight::NodeVisHelper> nodeVisHelper{};
 };
 
 struct LightsToUpdate
@@ -115,6 +115,6 @@ struct LightsToUpdate
 	void erase(RE::RefHandle a_handle);
 
 	// members
-	std::vector<RE::RefHandle> updatingLights;
-	std::vector<RE::RefHandle> emittanceLights;
+	FlatSet<RE::RefHandle> updatingLights;
+	FlatSet<RE::RefHandle> emittanceLights;
 };

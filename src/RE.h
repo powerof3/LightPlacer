@@ -93,6 +93,7 @@ namespace RE
 	REL::Version GetGameVersion();
 #endif
 
+	NiAVObject*     GetChildByName(NiNode* a_parent, std::string_view a_name);
 	NiAVObject*     GetReferenceAttachRoot(ReferenceEffect* a_referenceEffect);
 	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
 	BGSArtObject*   GetCastingArt(const MagicItem* a_magicItem);

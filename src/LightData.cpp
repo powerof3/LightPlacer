@@ -260,7 +260,7 @@ LightInstance LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, 
 
 	const auto debugMarkerName = GetDebugMarkerName(a_lightName);
 
-	niLight = netimmerse_cast<RE::NiPointLight*>(RE::GetObjectByName(a_node, a_lightName));
+	niLight = netimmerse_cast<RE::NiPointLight*>(RE::GetChildByName(a_node, a_lightName));
 	if (!niLight) {
 		niLight = RE::NiPointLight::Create();
 		niLight->name = a_lightName;
@@ -429,7 +429,7 @@ RE::NiNode* LIGH::LightDefinition::GetOrCreateNode(RE::NiNode* a_root, const RE:
 
 		auto name = data.GetNodeName(a_point, path, a_index);
 
-		auto node = RE::GetObjectByName(a_root, name);
+		auto node = RE::GetChildByName(a_root, name);
 		if (!node) {
 			if (node = RE::NiNode::Create(1); node) {
 				node->name = name;

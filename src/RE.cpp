@@ -45,6 +45,20 @@ namespace RE
 		return REL::Version(version);
 	}
 #endif
+
+	NiAVObject* GetChildByName(NiNode* a_parent, std::string_view a_name)
+	{
+		if (!a_parent) {
+			return nullptr;
+		}
+		for (const auto& child : a_parent->children) {
+			if (child && child->name == a_name) {
+				return child.get();
+			}
+		}
+		return nullptr;
+	}
+
 	NiAVObject* GetReferenceAttachRoot(ReferenceEffect* a_referenceEffect)
 	{
 		if (const auto weapController = skyrim_cast<WeaponEnchantmentController*>(a_referenceEffect->controller)) {

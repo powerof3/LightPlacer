@@ -123,7 +123,7 @@ void PlacedLight::UpdateAnimation(float a_delta, float a_scalingFactor)
 	lightControllers->UpdateAnimation(GetLight(), a_delta, scale);
 }
 
-void PlacedLight::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_nodeVisHelper, ConditionUpdateFlags a_flags)
+void PlacedLight::UpdateConditions(RE::TESObjectREFR* a_ref, std::unique_ptr<NodeVisHelper>& a_nodeVisHelper, ConditionUpdateFlags a_flags)
 {
 	if (!ShouldUpdateConditions(a_flags)) {
 		return;
@@ -144,12 +144,16 @@ void PlacedLight::UpdateConditions(RE::TESObjectREFR* a_ref, NodeVisHelper& a_no
 
 		LightData::CullLight(niLight.get(), debugMarker.get(), !isVisible, LIGHT_CULL_FLAGS::Conditions);
 
-		a_nodeVisHelper.isVisible |= isVisible;
-		a_nodeVisHelper.canCullAddonNodes |= data.flags.any(LIGHT_FLAGS::SyncAddonNodes);
-		a_nodeVisHelper.canCullNodes |= !data.conditionalNodes.empty();
+		if (!a_nodeVisHelper) {
+			a_nodeVisHelper = std::make_unique<NodeVisHelper>();
+		}
+
+		a_nodeVisHelper->isVisible |= isVisible;
+		a_nodeVisHelper->canCullAddonNodes |= data.flags.any(LIGHT_FLAGS::SyncAddonNodes);
+		a_nodeVisHelper->canCullNodes |= !data.conditionalNodes.empty();
 
 		if (!data.conditionalNodes.empty()) {
-			a_nodeVisHelper.InsertConditionalNodes(data.conditionalNodes, isVisible);
+			a_nodeVisHelper->InsertConditionalNodes(data.conditionalNodes, isVisible);
 		}
 	}
 }
@@ -182,9 +186,11 @@ void PlacedLight::UpdateVanillaFlickering() const
 	if (tesLight->data.flags.any(RE::TES_LIGHT_FLAGS::kFlicker, RE::TES_LIGHT_FLAGS::kFlickerSlow)) {
 		const auto flickerDelta = RE::BSTimer::GetSingleton()->delta * tesLight->data.flickerPeriodRecip;
 
-		auto constAttenOffset = niLight->constAttenuation + (clib_util::RNG().generate<float>(1.1f, 13.1f) * flickerDelta);
-		auto linearAttenOffset = niLight->linearAttenuation + (clib_util::RNG().generate<float>(1.2f, 13.2f) * flickerDelta);
-		auto quadraticAttenOffset = niLight->quadraticAttenuation + (clib_util::RNG().generate<float>(1.3f, 19.3f) * flickerDelta);
+		thread_local auto rng = clib_util::RNG();
+
+		auto constAttenOffset = niLight->constAttenuation + (rng.generate<float>(1.1f, 13.1f) * flickerDelta);
+		auto linearAttenOffset = niLight->linearAttenuation + (rng.generate<float>(1.2f, 13.2f) * flickerDelta);
+		auto quadraticAttenOffset = niLight->quadraticAttenuation + (rng.generate<float>(1.3f, 19.3f) * flickerDelta);
 
 		constAttenOffset = std::fmod(constAttenOffset, RE::NI_TWO_PI);
 		linearAttenOffset = std::fmod(linearAttenOffset, RE::NI_TWO_PI);
@@ -329,13 +335,17 @@ bool PlacedLights::UpdateTimer(float a_delta, float a_interval)
 
 void PlacedLights::UpdateConditions(RE::TESObjectREFR* a_ref, std::string_view a_nodeName, ConditionUpdateFlags a_flags)
 {
-	nodeVisHelper.Reset();
+	if (nodeVisHelper) {
+		nodeVisHelper->Reset();
+	}
 
 	for (auto& placedLight : lights) {
 		placedLight.UpdateConditions(a_ref, nodeVisHelper, a_flags);
 	}
 
-	nodeVisHelper.UpdateNodeVisibility(a_ref, a_nodeName);
+	if (nodeVisHelper) {
+		nodeVisHelper->UpdateNodeVisibility(a_ref, a_nodeName);
+	}
 }
 
 void PlacedLights::UpdateLightsAndRef(const UpdateParams& a_params)
@@ -366,7 +376,9 @@ void PlacedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 		}
 	}
 
-	nodeVisHelper.UpdateNodeVisibility(a_params.ref, a_params.nodeName);
+	if (nodeVisHelper) {
+		nodeVisHelper->UpdateNodeVisibility(a_params.ref, a_params.nodeName);
+	}
 }
 
 void PlacedLights::UpdateEmittance(RE::TESObjectCELL* a_cell) const
@@ -388,19 +400,19 @@ LightsToUpdate::LightsToUpdate(const LightData& a_lightData, RE::RefHandle a_han
 
 void LightsToUpdate::emplace(const LightData& a_lightData, RE::RefHandle a_handle)
 {
-	stl::unique_insert(updatingLights, a_handle);
+	updatingLights.emplace(a_handle);
 	if (a_lightData.emittanceForm) {
-		stl::unique_insert(emittanceLights, a_handle);
+		emittanceLights.emplace(a_handle);
 	}
 }
 
 void LightsToUpdate::emplace(RE::RefHandle a_handle)
 {
-	stl::unique_insert(updatingLights, a_handle);
+	updatingLights.emplace(a_handle);
 }
 
 void LightsToUpdate::erase(RE::RefHandle a_handle)
 {
-	stl::unique_erase(updatingLights, a_handle);
-	stl::unique_erase(emittanceLights, a_handle);
+	updatingLights.erase(a_handle);
+	emittanceLights.erase(a_handle);
 }

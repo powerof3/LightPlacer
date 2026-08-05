@@ -23,13 +23,15 @@ bool LightManager::ReadConfigs(bool a_reload)
 		std::string truncPath = path.substr(strlen("Data\\LightPlacer\\"));
 		truncPath.erase(truncPath.size() - strlen(".json"));
 
+		auto& config = configs[truncPath];
+		
 		logger::info("{} {}...", a_reload ? "Reloading" : "Reading", path);
 		std::string buffer;
-		auto        err = glz::read_file_json(configs[truncPath], path, buffer);
+		auto        err = glz::read_file_json(config, path, buffer);
 		if (err) {
 			logger::error("\terror:{}", glz::format_error(err, buffer));
 		} else {
-			logger::info("\t{} entries", configs[truncPath].size());
+			logger::info("\t{} entries", config.size());
 		}
 	}
 
@@ -394,51 +396,7 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_fo
 		}
 	}
 
-	if (collectedPoints.empty() && collectedNodes.empty()) {
-		return;
-	}
-
-	if (!srcAttachData.root || !srcAttachData.attachNode) {
-		return;
-	}
-
-	std::uint32_t LP_INDEX = 0;
-
-	auto processLightGroup = [&](auto& groups) {
-		for (const auto& group : groups) {
-			const auto& [entries, lightDef, path] = *group;
-
-			const LIGH::LightDefinitionPtr lightDefPtr{ group, std::addressof(lightDef) };
-
-			if constexpr (std::is_same_v<std::decay_t<decltype(groups)>, std::vector<Config::PointPlacementPtr>>) {
-				for (const auto& [i, point] : std::views::enumerate(entries)) {
-					if (auto node = lightDef.GetOrCreateNode(srcAttachData.attachNode, point, *path, LP_INDEX)) {
-						AttachLight(lightDefPtr, srcAttachData, node, *path, LP_INDEX);
-					}
-					++LP_INDEX;
-				}
-			} else {
-				std::vector<RE::NiAVObject*> nodeVec;
-				if (srcAttachData.attachNode) {
-					RE::BSVisit::TraverseScenegraphObjects(srcAttachData.attachNode, [&](RE::NiAVObject* a_obj) {
-						if (entries.contains(a_obj->name.c_str())) {
-							nodeVec.push_back(a_obj);
-						}
-						return RE::BSVisit::BSVisitControl::kContinue;
-					});
-				}
-				for (const auto& [i, node] : std::views::enumerate(nodeVec)) {
-					if (auto lightNode = lightDef.GetOrCreateNode(srcAttachData.attachNode, node, *path, LP_INDEX)) {
-						AttachLight(lightDefPtr, srcAttachData, lightNode, *path, LP_INDEX);
-					}
-					++LP_INDEX;
-				}
-			}
-		}
-	};
-
-	processLightGroup(collectedPoints);
-	processLightGroup(collectedNodes);
+	ProcessCollectedLights(srcAttachData, collectedPoints, collectedNodes);
 }
 
 void LightManager::CollectValidLights(const SourceAttachData& a_srcData, const Config::LightEntryPtr& a_lightEntry, std::vector<Config::PointPlacementPtr>& a_collectedPoints, std::vector<Config::NodePlacementPtr>& a_collectedNodes)
@@ -455,6 +413,70 @@ void LightManager::CollectValidLights(const SourceAttachData& a_srcData, const C
 					   }
 				   } },
 		*a_lightEntry);
+}
+
+void LightManager::ProcessCollectedLights(const SourceAttachData& a_srcAttachData, const std::vector<Config::PointPlacementPtr>& a_collectedPoints, const std::vector<Config::NodePlacementPtr>& a_collectedNodes)
+{
+	if (a_collectedPoints.empty() && a_collectedNodes.empty()) {
+		return;
+	}
+	
+	if (!a_srcAttachData.root || !a_srcAttachData.attachNode) {
+		return;
+	}
+
+	std::uint32_t                           LP_INDEX = 0;
+	StringMap<std::vector<RE::NiAVObject*>> foundNodes;
+
+	if (!a_collectedNodes.empty()) {
+		StringSet nodeNames;
+		for (const auto& group : a_collectedNodes) {
+			for (const auto& name : group->attacher) {
+				nodeNames.emplace(name);
+			}
+		}
+		if (!nodeNames.empty()) {
+			RE::BSVisit::TraverseScenegraphObjects(a_srcAttachData.attachNode, [&](RE::NiAVObject* a_obj) {
+				if (a_obj && nodeNames.contains(a_obj->name.c_str())) {
+					foundNodes[a_obj->name.c_str()].push_back(a_obj);
+				}
+				return RE::BSVisit::BSVisitControl::kContinue;
+			});
+		}
+	}
+
+	auto processLightGroup = [&](auto& groups) {
+		for (const auto& group : groups) {
+			const auto& [entries, lightDef, path] = *group;
+
+			const LIGH::LightDefinitionPtr lightDefPtr{ group, std::addressof(lightDef) };
+
+			if constexpr (std::is_same_v<std::decay_t<decltype(groups)>, std::vector<Config::PointPlacementPtr>>) {
+				for (const auto& [i, point] : std::views::enumerate(entries)) {
+					if (auto node = lightDef.GetOrCreateNode(a_srcAttachData.attachNode, point, *path, LP_INDEX)) {
+						AttachLight(lightDefPtr, a_srcAttachData, node, *path, LP_INDEX);
+					}
+					++LP_INDEX;
+				}
+			} else {
+				std::vector<RE::NiAVObject*> nodeVec;
+				for (const auto& name : entries) {
+					if (auto it = foundNodes.find(name); it != foundNodes.end()) {
+						nodeVec.insert(nodeVec.end(), it->second.begin(), it->second.end());
+					}
+				}
+				for (const auto& [i, node] : std::views::enumerate(nodeVec)) {
+					if (auto lightNode = lightDef.GetOrCreateNode(a_srcAttachData.attachNode, node, *path, LP_INDEX)) {
+						AttachLight(lightDefPtr, a_srcAttachData, lightNode, *path, LP_INDEX);
+					}
+					++LP_INDEX;
+				}
+			}
+		}
+	};
+
+	processLightGroup(a_collectedPoints);
+	processLightGroup(a_collectedNodes);
 }
 
 void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const SourceAttachData& a_srcData, RE::NiNode* a_node, const std::string& path, std::uint32_t a_index)
@@ -479,17 +501,11 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 	case SOURCE_TYPE::kRef:
 		{
 			if (ref->Is(RE::FormType::PlacedHazard)) {
-				gameHazardLights.try_emplace_or_visit(handle, PlacedLights(a_lightDef, lightInstance, ref), [&](auto& container) {
-					container.second.emplace_back(a_lightDef, lightInstance, ref);
-				});
+				EmplaceLightImpl(gameHazardLights, handle, a_lightDef, lightInstance, ref);
 			} else if (ref->AsExplosion()) {
-				gameExplosionLights.try_emplace_or_visit(handle, PlacedLights(a_lightDef, lightInstance, ref), [&](auto& container) {
-					container.second.emplace_back(a_lightDef, lightInstance, ref);
-				});
+				EmplaceLightImpl(gameExplosionLights, handle, a_lightDef, lightInstance, ref);
 			} else {
-				gameRefLights.try_emplace_or_visit(handle, PlacedLights(a_lightDef, lightInstance, ref), [&](auto& container) {
-					container.second.emplace_back(a_lightDef, lightInstance, ref);
-				});
+				EmplaceLightImpl(gameRefLights, handle, a_lightDef, lightInstance, ref);
 				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(a_lightDef->data, handle), [&](auto& lightsToUpdate) {
 					lightsToUpdate.second.emplace(a_lightDef->data, handle);
 				});
@@ -499,12 +515,12 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 	case SOURCE_TYPE::kActorWorn:
 		{
 			auto updateFunc = [&](auto& map) {
-				map.second.try_emplace_or_visit(a_srcData.nodeName, PlacedLights(a_lightDef, lightInstance, ref), [&](auto& container) {
-					container.second.emplace_back(a_lightDef, lightInstance, ref);
-				});
-				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle), [&](auto& lightsToUpdate) {
-					lightsToUpdate.second.emplace(handle);
-				});
+				EmplaceLightImpl(map.second, a_srcData.nodeName, a_lightDef, lightInstance, ref);
+
+				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle),
+					[&](auto& lightsToUpdate) {
+						lightsToUpdate.second.emplace(handle);
+					});
 			};
 
 			gameActorWornLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
@@ -513,20 +529,14 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 	case SOURCE_TYPE::kActorMagic:
 		{
 			auto updateFunc = [&](auto& map) {
-				map.second.try_emplace_or_visit(a_srcData.miscID, PlacedLights(a_lightDef, lightInstance, ref), [&](auto& container) {
-					container.second.emplace_back(a_lightDef, lightInstance, ref);
-				});
+				EmplaceLightImpl(map.second, a_srcData.miscID, a_lightDef, lightInstance, ref);
 			};
 
 			gameActorMagicLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
 		}
 		break;
 	case SOURCE_TYPE::kReferenceEffect:
-		{
-			gameReferenceEffectLights.try_emplace_or_visit(a_srcData.miscID, PlacedLights(a_lightDef, lightInstance, ref), [&](auto& map) {
-				map.second.emplace_back(a_lightDef, lightInstance, ref);
-			});
-		}
+		EmplaceLightImpl(gameReferenceEffectLights, a_srcData.miscID, a_lightDef, lightInstance, ref);
 		break;
 	default:
 		break;
@@ -572,30 +582,27 @@ RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::TESWaitStopEvent* 
 
 void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 {
-	std::vector<RE::RefHandle> handlesToUpdate;
+	std::vector<std::pair<RE::RefHandle, RE::TESObjectREFRPtr>> refrsToUpdate;
 
 	lightsToBeUpdated.visit(a_cell->GetFormID(), [&](auto& entry) {
 		auto& [id, data] = entry;
 
-		std::erase_if(data.updatingLights, [&](const auto& handle) {
+		erase_if(data.updatingLights, [&](const auto& handle) {
 			RE::TESObjectREFRPtr ref;
 			if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
 				return true;
 			}
-			handlesToUpdate.push_back(handle);
+			refrsToUpdate.push_back(std::make_pair(handle, std::move(ref)));
 			return false;
 		});
 	});
 
-	const auto pc = RE::PlayerCharacter::GetSingleton();
-
 	PlacedLights::UpdateParams params;
-	params.pcPos = pc->GetPosition();
+	params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 	params.delta = RE::BSTimer::GetSingleton()->delta;
 
-	for (const auto& handle : handlesToUpdate) {
-		RE::TESObjectREFRPtr ref;
-		if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
+	for (const auto& [handle, ref] : refrsToUpdate) {
+		if (!ref) {
 			continue;
 		}
 
@@ -615,7 +622,7 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 
 	lightsToBeUpdated.visit(a_cell->GetFormID(), [&](auto& entry) {
 		auto& lights = entry.second.emittanceLights;
-		std::erase_if(lights, [&](const auto& handle) {
+		erase_if(lights, [&](const auto& handle) {
 			RE::TESObjectREFRPtr ref{};
 			if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
 				return true;

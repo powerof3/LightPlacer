@@ -140,8 +140,18 @@ private:
 
 	void AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_formID = 0);
 	void CollectValidLights(const SourceAttachData& a_srcData, const Config::LightEntryPtr& a_lightEntry, std::vector<Config::PointPlacementPtr>& a_collectedPoints, std::vector<Config::NodePlacementPtr>& a_collectedNodes);
+	void ProcessCollectedLights(const SourceAttachData& a_srcData, const std::vector<Config::PointPlacementPtr>& a_collectedPoints, const std::vector<Config::NodePlacementPtr>& a_collectedNodes);
 
 	void AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const SourceAttachData& a_srcData, RE::NiNode* a_node, const std::string& path, std::uint32_t a_index = 0);
+
+	template <class Map, class Key>
+	static void EmplaceLightImpl(Map& a_map, const Key& a_key, const LIGH::LightDefinitionPtr& a_lightDef, const LightInstance& a_lightInstance, const RE::TESObjectREFRPtr& a_ref)
+	{
+		a_map.try_emplace_or_visit(a_key, PlacedLights(a_lightDef, a_lightInstance, a_ref),
+			[&](auto& container) {
+				container.second.emplace_back(a_lightDef, a_lightInstance, a_ref);
+			});
+	}
 
 	// members
 	FlatMap<std::string, std::vector<Config::Format>> configs;  // [path, configs]
