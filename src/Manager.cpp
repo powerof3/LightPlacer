@@ -95,7 +95,7 @@ void LightManager::ProcessConfigs()
 
 	for (auto& [path, config] : configs) {
 		const auto sharedPath = std::make_shared<const std::string>(path);
-		
+
 		for (auto& multiData : config) {
 			std::visit(overload{
 						   [&](Config::MultiModelSet& models) {
@@ -446,7 +446,7 @@ void LightManager::CollectValidLights(const SourceAttachData& a_srcData, const C
 	std::visit(overload{
 				   [&](const Config::PointEntry& pointEntry) {
 					   if (!pointEntry.filter.IsInvalid(a_srcData)) {
-						   a_collectedPoints.emplace_back(a_lightEntry, &pointEntry.data); 
+						   a_collectedPoints.emplace_back(a_lightEntry, &pointEntry.data);
 					   }
 				   },
 				   [&](const Config::NodeEntry& nodeEntry) {

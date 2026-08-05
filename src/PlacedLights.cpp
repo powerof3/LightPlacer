@@ -51,7 +51,7 @@ PlacedLight::PlacedLight(const LIGH::LightDefinitionPtr& a_lightDef, const Light
 	if (a_lightDef->HasControllers()) {
 		lightControllers = std::make_unique<LightControllers>(*a_lightDef);
 	}
-	
+
 	if (!emittanceForm && definition->data.flags.none(LIGHT_FLAGS::NoExternalEmittance)) {
 		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
 		emittanceForm = xData ? xData->source : nullptr;
@@ -118,7 +118,7 @@ void PlacedLight::UpdateAnimation(float a_delta, float a_scalingFactor)
 	if (!lightControllers) {
 		return;
 	}
-	
+
 	auto scale = GetData().flags.any(LIGHT_FLAGS::IgnoreScale) ? 1.0f : a_scalingFactor;
 	lightControllers->UpdateAnimation(GetLight(), a_delta, scale);
 }
