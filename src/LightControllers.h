@@ -58,8 +58,8 @@ template <class T, std::uint32_t index = 0>
 class KeyframeSequence
 {
 public:
-	void clear() { keys = {}; }
-	bool empty() const { return keys.empty(); }
+	void     clear() { keys = {}; }
+	bool     empty() const { return keys.empty(); }
 	explicit operator bool() const { return !empty(); }
 
 	float GetDuration() const { return keys.empty() ? 0.0f : keys.back().time - keys.front().time; }
@@ -126,20 +126,21 @@ class LightController
 public:
 	LightController() = default;
 	LightController(const KeyframeSequence<T, index>* a_sequence, bool a_randomAnimStart) :
-		sequence(a_sequence)
+		sequence(a_sequence),
+		duration(a_sequence->GetDuration())
 	{
 		if (a_randomAnimStart) {
-			currentTime = clib_util::RNG().generate(0.0f, a_sequence->GetDuration());
+			currentTime = clib_util::RNG().generate(0.0f, duration);
 		}
 	}
 
 	T GetValue(const float a_delta)
 	{
-		currentTime = std::fmod(currentTime + a_delta, sequence->GetDuration());
+		currentTime = std::fmod(currentTime + a_delta, duration);
 		return sequence->GetValue(currentTime, lastIndex);
 	}
 
-	bool empty() const { return !sequence || sequence->empty(); }
+	bool     empty() const { return !sequence || sequence->empty(); }
 	explicit operator bool() const { return !empty(); }
 
 private:
@@ -147,6 +148,7 @@ private:
 	const KeyframeSequence<T, index>* sequence{ nullptr };
 	std::uint32_t                     lastIndex{ 0 };
 	float                             currentTime{ 0.0f };
+	float                             duration{ 0.0f };
 };
 
 template <>

@@ -105,6 +105,7 @@ namespace RE
 	float           NiCosQImpl(float a_value);
 	float           NiSinQ(float a_radians);
 	float           NiCosQ(float a_radians);
+	RE::OBJECT_TYPE StringToObjectType(std::string_view a_str);
 	NiMatrix3       ToMatrix(const NiPoint3& a_point);
 	bool            ToggleMasterParticleAddonNodes(const NiNode* a_node, bool a_enable);
 	void            UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer);

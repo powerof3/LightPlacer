@@ -628,7 +628,7 @@ bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_par
 		}
 		break;
 	case PARAM_TYPE::kFormType:
-		a_param.i = static_cast<std::int32_t>(RE::StringToFormType(a_str));
+		a_param.i = static_cast<std::int32_t>(RE::StringToObjectType(a_str));
 		break;
 	case PARAM_TYPE::kCastingSource:
 		{
