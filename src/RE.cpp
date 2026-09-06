@@ -24,28 +24,6 @@ namespace RE
 		return 0;
 	}
 
-#ifndef SKYRIMVR
-	const char* GetGameVersionImpl()
-	{
-		using func_t = decltype(&GetGameVersionImpl);
-		static REL::Relocation<func_t> func{ RELOCATION_ID(15485, 15650) };
-		return func();
-	}
-
-	REL::Version GetGameVersion()
-	{
-		std::stringstream            ss(GetGameVersionImpl());
-		std::string                  token;
-		std::array<std::uint16_t, 4> version{};
-
-		for (std::size_t i = 0; i < 4 && std::getline(ss, token, '.'); ++i) {
-			version[i] = static_cast<std::uint16_t>(std::stoi(token));
-		}
-
-		return REL::Version(version);
-	}
-#endif
-
 	NiAVObject* GetChildByName(NiNode* a_parent, std::string_view a_name)
 	{
 		if (!a_parent) {
@@ -1204,7 +1182,7 @@ namespace RE
 
 	RE::OBJECT_TYPE StringToObjectType(std::string_view a_str)
 	{
-		static constexpr frozen::unordered_map<std::string_view, RE::OBJECT_TYPE, 17> objectTypeNames{
+		static constexpr frozen::unordered_map<std::string_view, RE::OBJECT_TYPE, 103> objectTypeNames = {
 			{ "Activator", RE::OBJECT_TYPE::kActivator },
 			{ "Armor", RE::OBJECT_TYPE::kArmor },
 			{ "Book", RE::OBJECT_TYPE::kBook },
