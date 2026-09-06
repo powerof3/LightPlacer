@@ -47,6 +47,7 @@ struct PlacedLight
 
 	const LightData&                       GetData() const { return definition->data; }
 	const RE::NiPointer<RE::NiPointLight>& GetLight() const { return instance.GetLight(); }
+	static RE::TESForm*                    GetEmittanceForm(const LIGH::LightDefinitionPtr& a_lightDef, const RE::TESObjectREFRPtr& a_ref);
 
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
@@ -107,10 +108,10 @@ struct LightsToUpdate
 {
 	LightsToUpdate() = default;
 	LightsToUpdate(RE::RefHandle a_handle);
-	LightsToUpdate(const LightData& a_lightData, RE::RefHandle a_handle);
+	LightsToUpdate(RE::RefHandle a_handle, bool a_updateEmittance);
 
-	void emplace(const LightData& a_lightData, RE::RefHandle a_handle);
 	void emplace(RE::RefHandle a_handle);
+	void emplace(RE::RefHandle a_handle, bool a_updateEmittance);
 
 	void erase(RE::RefHandle a_handle);
 

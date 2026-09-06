@@ -506,8 +506,10 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 				EmplaceLightImpl(gameExplosionLights, handle, a_lightDef, lightInstance, ref);
 			} else {
 				EmplaceLightImpl(gameRefLights, handle, a_lightDef, lightInstance, ref);
-				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(a_lightDef->data, handle), [&](auto& lightsToUpdate) {
-					lightsToUpdate.second.emplace(a_lightDef->data, handle);
+				
+				bool hasEmittance = PlacedLight::GetEmittanceForm(a_lightDef, ref) != nullptr;
+				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle, hasEmittance), [&](auto& lightsToUpdate) {
+					lightsToUpdate.second.emplace(handle, hasEmittance);
 				});
 			}
 		}
