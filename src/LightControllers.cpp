@@ -37,7 +37,8 @@ void LightControllers::UpdateAnimation(const RE::NiPointer<RE::NiPointLight>& a_
 	}
 	if (radiusController) {
 		const auto newRadius = radiusController.GetValue(a_delta) * a_scalingFactor;
-		a_light->radius = { newRadius, newRadius, newRadius };
+		a_light->radius.x = newRadius;
+		a_light->radius.y = newRadius;
 		a_light->SetLightAttenuation(newRadius);
 	}
 	if (fadeController) {
