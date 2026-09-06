@@ -2,17 +2,17 @@
 
 bool LightManager::ReadConfigs(bool a_reload)
 {
-	logger::info("{:*^50}", a_reload ? "RELOAD" : "CONFIG FILES");
+	REX::INFO("{:*^50}", a_reload ? "RELOAD" : "CONFIG FILES");
 
 	std::filesystem::path dir{ R"(Data\LightPlacer)" };
 
 	if (std::error_code ec; !std::filesystem::exists(dir, ec)) {
-		logger::info("Data\\LightPlacer folder not found ({})", ec.message());
+		REX::INFO("Data\\LightPlacer folder not found ({})", ec.message());
 		return false;
 	}
 
-	clib_util::Timer timer;
-	timer.start();
+	REX::FTimer timer;
+	timer.Start();
 
 	for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(dir)) {
 		if (dirEntry.is_directory() || dirEntry.path().extension() != ".json"sv) {
@@ -25,18 +25,18 @@ bool LightManager::ReadConfigs(bool a_reload)
 
 		auto& config = configs[truncPath];
 
-		logger::info("{} {}...", a_reload ? "Reloading" : "Reading", path);
+		REX::INFO("{} {}...", a_reload ? "Reloading" : "Reading", path);
 		std::string buffer;
 		auto        err = glz::read_file_json(config, path, buffer);
 		if (err) {
-			logger::error("\terror:{}", glz::format_error(err, buffer));
+			REX::ERROR("\terror:{}", glz::format_error(err, buffer));
 		} else {
-			logger::info("\t{} entries", config.size());
+			REX::INFO("\t{} entries", config.size());
 		}
 	}
 
-	timer.stop();
-	logger::info("Time taken: {}ms", timer.duration_ms());
+	timer.Stop();
+	REX::INFO("Time taken: {}", timer.GetDurationString_ms());
 
 	return !configs.empty();
 }
@@ -49,7 +49,7 @@ void LightManager::OnDataLoad()
 
 	ProcessConfigs();
 
-	logger::info("{:*^50}", "RESULTS");
+	REX::INFO("{:*^50}", "RESULTS");
 
 	const auto count_lights = [](const auto& map) {
 		std::size_t total = 0;
@@ -59,8 +59,8 @@ void LightManager::OnDataLoad()
 		return total;
 	};
 
-	logger::info("Models : {} ({} lights)", gameModels.size(), count_lights(gameModels));
-	logger::info("FormIDs : {} ({} lights)", gameFormIDs.size(), count_lights(gameFormIDs));
+	REX::INFO("Models : {} ({} lights)", gameModels.size(), count_lights(gameModels));
+	REX::INFO("FormIDs : {} ({} lights)", gameFormIDs.size(), count_lights(gameFormIDs));
 
 	RE::PlayerCharacter::GetSingleton()->AddEventSink<RE::BGSActorCellEvent>(GetSingleton());
 	RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESWaitStopEvent>(GetSingleton());
@@ -80,10 +80,10 @@ void LightManager::ReloadConfigs()
 
 void LightManager::ProcessConfigs()
 {
-	logger::info("{:*^50}", "PROCESSING");
+	REX::INFO("{:*^50}", "PROCESSING");
 
-	clib_util::Timer timer;
-	timer.start();
+	REX::FTimer timer;
+	timer.Start();
 
 	constexpr auto make_shared_lights = [](Config::LightEntries& a_lights) {
 		Config::LightEntryGroup vec;
@@ -128,8 +128,8 @@ void LightManager::ProcessConfigs()
 		}
 	}
 
-	timer.stop();
-	logger::info("Processing time taken: {}ms", timer.duration_ms());
+	timer.Stop();
+	REX::INFO("Processing time taken: {}", timer.GetDurationString_ms());
 	configs.clear();
 }
 

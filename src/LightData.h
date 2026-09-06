@@ -110,20 +110,20 @@ struct LightData
 	static const char*      GetCulledStatus(RE::NiPointLight* a_light);
 
 	// members
-	RE::TESObjectLIGH*                       light{ nullptr };
-	RE::NiColor                              color{ RE::COLOR_BLACK };
-	float                                    radius{ 0.0f };
-	float                                    fade{ 0.0f };
-	float                                    fov{ 0.0f };
-	float                                    cutoff{ 0.0f };
-	float                                    size{ 0.0f };
-	float                                    shadowDepthBias{ 1.0f };
-	RE::NiPoint3                             offset;
-	RE::NiPoint3                             rotation;
-	REX::EnumSet<LIGHT_FLAGS, std::uint32_t> flags{ LIGHT_FLAGS::None };
-	RE::TESForm*                             emittanceForm{ nullptr };
-	std::shared_ptr<RE::TESCondition>        conditions;
-	std::vector<std::string>                 conditionalNodes;
+	RE::TESObjectLIGH*                        light{ nullptr };
+	RE::NiColor                               color{ RE::COLOR_BLACK };
+	float                                     radius{ 0.0f };
+	float                                     fade{ 0.0f };
+	float                                     fov{ 0.0f };
+	float                                     cutoff{ 0.0f };
+	float                                     size{ 0.0f };
+	float                                     shadowDepthBias{ 1.0f };
+	RE::NiPoint3                              offset;
+	RE::NiPoint3                              rotation;
+	REX::TEnumSet<LIGHT_FLAGS, std::uint32_t> flags{ LIGHT_FLAGS::None };
+	RE::TESForm*                              emittanceForm{ nullptr };
+	std::shared_ptr<RE::TESCondition>         conditions;
+	std::vector<std::string>                  conditionalNodes;
 
 	constexpr static auto LP_LIGHT = "LP_Light"sv;
 	constexpr static auto LP_NODE = "LP_Node"sv;
@@ -185,9 +185,9 @@ struct glz::meta<LIGH::LightDefinition>
 
 	static constexpr auto read_flags = [](T& s, const std::string& input) {
 		if (!input.empty()) {
-			const auto flagStrs = string::split(input, "|");
+			const auto flagStrs = REX::STR::SPLIT(input, "|");
 			for (const auto& flagStr : flagStrs) {
-				switch (string::const_hash(flagStr)) {
+				switch (REX::STR::CONST_HASH(flagStr)) {
 				case "PortalStrict"_h:
 					s.data.flags.set(LIGHT_FLAGS::PortalStrict);
 					break;

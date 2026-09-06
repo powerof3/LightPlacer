@@ -83,7 +83,7 @@ bool PlacedLight::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) con
 
 	auto& niLight = GetLight();
 
-	const REX::EnumSet<LIGHT_CULL_FLAGS, std::uint8_t> cullFlags{ LightData::GetCulledFlag(niLight.get()) };
+	const REX::TEnumSet<LIGHT_CULL_FLAGS, std::uint8_t> cullFlags{ LightData::GetCulledFlag(niLight.get()) };
 
 	if (cullFlags.any(LIGHT_CULL_FLAGS::Game, LIGHT_CULL_FLAGS::Script)) {
 		return false;
@@ -186,11 +186,11 @@ void PlacedLight::UpdateVanillaFlickering() const
 	if (tesLight->data.flags.any(RE::TES_LIGHT_FLAGS::kFlicker, RE::TES_LIGHT_FLAGS::kFlickerSlow)) {
 		const auto flickerDelta = RE::BSTimer::GetSingleton()->delta * tesLight->data.flickerPeriodRecip;
 
-		thread_local auto rng = clib_util::RNG();
+		thread_local auto rng = REX::TRandom<float>();
 
-		auto constAttenOffset = niLight->constAttenuation + (rng.generate<float>(1.1f, 13.1f) * flickerDelta);
-		auto linearAttenOffset = niLight->linearAttenuation + (rng.generate<float>(1.2f, 13.2f) * flickerDelta);
-		auto quadraticAttenOffset = niLight->quadraticAttenuation + (rng.generate<float>(1.3f, 19.3f) * flickerDelta);
+		auto constAttenOffset = niLight->constAttenuation + (rng.Generate(1.1f, 13.1f) * flickerDelta);
+		auto linearAttenOffset = niLight->linearAttenuation + (rng.Generate(1.2f, 13.2f) * flickerDelta);
+		auto quadraticAttenOffset = niLight->quadraticAttenuation + (rng.Generate(1.3f, 19.3f) * flickerDelta);
 
 		constAttenOffset = std::fmod(constAttenOffset, RE::NI_TWO_PI);
 		linearAttenOffset = std::fmod(linearAttenOffset, RE::NI_TWO_PI);

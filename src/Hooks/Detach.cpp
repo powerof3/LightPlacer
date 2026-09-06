@@ -18,7 +18,7 @@ namespace Hooks::Detach
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(19253, 19679) };
 			stl::hook_function_prologue<RemoveLight, 8>(target.address());
 
-			logger::info("Hooked TESObjectREFR::RemoveLight");
+			REX::INFO("Hooked TESObjectREFR::RemoveLight");
 		}
 	};
 
@@ -37,7 +37,7 @@ namespace Hooks::Detach
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(15495, 15660) };
 			stl::hook_function_prologue<RunBiped3DDetach, 5>(target.address());
 
-			logger::info("Hooked BipedAnim::RunBiped3DDetach");
+			REX::INFO("Hooked BipedAnim::RunBiped3DDetach");
 		}
 	};
 
@@ -55,7 +55,7 @@ namespace Hooks::Detach
 		static void Install()
 		{
 			stl::write_vfunc<RE::Hazard, Hazard__Release3DRelatedData>();
-			logger::info("Hooked Hazard::Release3DRelatedData");
+			REX::INFO("Hooked Hazard::Release3DRelatedData");
 		}
 	};
 
@@ -73,7 +73,7 @@ namespace Hooks::Detach
 		static void Install()
 		{
 			stl::write_vfunc<RE::Explosion, Explosion__Release3DRelatedData>();
-			logger::info("Hooked Explosion::Release3DRelatedData");
+			REX::INFO("Hooked Explosion::Release3DRelatedData");
 		}
 	};
 
@@ -93,7 +93,7 @@ namespace Hooks::Detach
 		static void Install()
 		{
 			stl::write_vfunc<RE::ShaderReferenceEffect, ShaderReferenceEffect_Suspend>();
-			logger::info("Hooked ShaderReferenceEffect::Suspend"sv);
+			REX::INFO("Hooked ShaderReferenceEffect::Suspend"sv);
 		}
 	};
 
@@ -105,7 +105,7 @@ namespace Hooks::Detach
 		REL::Relocation<std::uintptr_t> target_1{ RELOCATION_ID(19302, 19729), OFFSET(0x63C, 0x63A) };  // TESObjectREFR::Set3D
 		stl::write_thunk_call<GetLightData<1>>(target_1.address());
 
-		logger::info("Hooked ExtraDataList::GetLightData");
+		REX::INFO("Hooked ExtraDataList::GetLightData");
 	}
 
 	void Install_BGSAttachTechniques__DetachItem()

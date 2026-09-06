@@ -36,7 +36,7 @@ namespace Hooks::Update
 			static void Install()
 			{
 				stl::write_vfunc<T, UpdatePosition>();
-				logger::info("Hooked {}::UpdatePosition"sv, typeid(T).name());
+				REX::INFO("Hooked {}::UpdatePosition"sv, typeid(T).name());
 			}
 		};
 	}

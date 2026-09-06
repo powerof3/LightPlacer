@@ -43,7 +43,7 @@ namespace Papyrus
 		a_vm->RegisterFunction("TogglePlacedLight", SCRIPT, TogglePlacedLight);
 		a_vm->RegisterFunction("IsPlacedLightToggled", SCRIPT, IsPlacedLightToggled);
 
-		logger::info("Registered {} class", SCRIPT);
+		REX::INFO("Registered {} class", SCRIPT);
 
 		return true;
 	}

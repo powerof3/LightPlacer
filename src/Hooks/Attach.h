@@ -25,7 +25,7 @@ namespace Hooks::Attach
 			static void Install()
 			{
 				stl::write_vfunc<T, Load3D>();
-				logger::info("Hooked {}::Load3D"sv, typeid(T).name());
+				REX::INFO("Hooked {}::Load3D"sv, typeid(T).name());
 			}
 		};
 	}
@@ -61,7 +61,7 @@ namespace Hooks::Attach
 			static void Install()
 			{
 				stl::write_vfunc<T, Init>();
-				logger::info("Hooked {}::Init"sv, typeid(T).name());
+				REX::INFO("Hooked {}::Init"sv, typeid(T).name());
 			}
 		};
 	}

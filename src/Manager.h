@@ -6,7 +6,7 @@
 #include "SourceData.h"
 
 class LightManager :
-	public REX::Singleton<LightManager>,
+	public REX::TSingleton<LightManager>,
 	public RE::BSTEventSink<RE::BGSActorCellEvent>,
 	public RE::BSTEventSink<RE::TESWaitStopEvent>
 {

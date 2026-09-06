@@ -9,13 +9,13 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 	switch (a_message->type) {
 	case SKSE::MessagingInterface::kPostPostLoad:
 		{
-			logger::info("{:*^50}", "MERGES");
+			REX::INFO("{:*^50}", "MERGES");
 			MergeMapperPluginAPI::GetMergeMapperInterface001();
 			if (g_mergeMapperInterface) {
 				const auto version = g_mergeMapperInterface->GetBuildNumber();
-				logger::info("Got MergeMapper interface buildnumber {}", version);
+				REX::INFO("Got MergeMapper interface buildnumber {}", version);
 			} else {
-				logger::info("MergeMapper not detected");
+				REX::INFO("MergeMapper not detected");
 			}
 		}
 		break;
@@ -32,83 +32,75 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 	}
 }
 
-#ifdef SKYRIM_AE
-extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
+#ifdef SKYRIM_SUPPORT_AE
+SKSE_PLUGIN_VERSION = []() {
 	SKSE::PluginVersionData v;
-	v.PluginVersion(Version::MAJOR);
-	v.PluginName("LightPlacer");
+	v.PluginVersion(REL::Version{ Version::MAJOR, Version::MINOR, Version::PATCH });
+	v.PluginName("Light Placer");
 	v.AuthorName("powerofthree");
 	v.UsesAddressLibrary();
 	v.UsesUpdatedStructs();
 	v.CompatibleVersions({ SKSE::RUNTIME_SSE_LATEST });
 
+	if constexpr (SKSE::RUNTIME_SSE_LATEST < Runtime::MIN_ADDRESS_LIBRARY_V5) {
+		v.MinimumRequiredXSEVersion(REL::Version{ 2, 2, 5 });
+	} else {
+		v.MinimumRequiredXSEVersion(REL::Version{ 2, 3, 0 });
+	}
+
 	return v;
 }();
 #else
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
+SKSE_PLUGIN_QUERY(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 {
 	a_info->infoVersion = SKSE::PluginInfo::kVersion;
-	a_info->name = "LightPlacer";
+	a_info->name = "Light Placer";
 	a_info->version = Version::MAJOR;
 
 	if (a_skse->IsEditor()) {
-		logger::critical("Loaded in editor, marking as incompatible"sv);
+		REX::CRITICAL("Loaded in editor, marking as incompatible");
 		return false;
 	}
 
-	const auto ver = a_skse->RuntimeVersion();
-	if (ver <
-#	ifdef SKYRIMVR
-		SKSE::RUNTIME_VR_1_4_15
-#	else
-		SKSE::RUNTIME_SSE_1_5_39
-#	endif
-	) {
-		logger::critical(FMT_STRING("Unsupported runtime version {}"), ver.string());
+	if (const auto ver = a_skse->RuntimeVersion(); ver < SKSE::RUNTIME_SSE_1_5_39) {
+		REX::CRITICAL("Unsupported runtime version {}", ver);
 		return false;
 	}
-
-#	ifdef SKYRIMVR
-	REL::IDDatabase::get().IsVRAddressLibraryAtLeastVersion("LightPlacer VR", "0.183.0", true);
-#	endif
 
 	return true;
 }
 #endif
 
-void InitializeLog()
+SKSE_PLUGIN_LOAD(const SKSE::LoadInterface* a_skse)
 {
-	auto path = logger::log_directory();
-	if (!path) {
-		stl::report_and_fail("Failed to find standard logging directory"sv);
+	SKSE::Init(a_skse, SKSE::InitInfo{
+						   .log = true,
+						   .logName = Version::PROJECT.data(),
+						   .trampoline = true,
+						   .trampolineSize = 512,
+					   });
+
+	auto runtimeVersion = a_skse->RuntimeVersion();
+
+	REX::INFO("Game version : {}", runtimeVersion);
+
+#ifdef SKYRIM_SUPPORT_AE
+	if constexpr (SKSE::RUNTIME_SSE_LATEST < Runtime::MIN_ADDRESS_LIBRARY_V5) {
+		if (runtimeVersion >= Runtime::MIN_ADDRESS_LIBRARY_V5) {
+			REX::FAIL(
+				"You are using a newer version of Skyrim than this version of {0} supports.\n"
+				"Install the correct version of {0} for your game version.\n"
+				"Runtime: {1}\n"
+				"Supported: 1.6.1170 (Steam) / 1.6.1179 (GOG)",
+				Version::PROJECT, runtimeVersion);
+		}
 	}
-
-	*path /= fmt::format(FMT_STRING("{}.log"), Version::PROJECT);
-	auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
-
-	auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
-
-	log->set_level(spdlog::level::info);
-	log->flush_on(spdlog::level::info);
-
-	spdlog::set_default_logger(std::move(log));
-	spdlog::set_pattern("[%H:%M:%S.%e] %v"s);
-
-	logger::info(FMT_STRING("{} v{}"), Version::PROJECT, Version::NAME);
-}
-
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
-{
-	InitializeLog();
-	logger::info("Game version : {}", a_skse->RuntimeVersion().string());
-
-	SKSE::Init(a_skse, false);
-	SKSE::AllocTrampoline(512);
+#endif
 
 	if (LightManager::GetSingleton()->ReadConfigs()) {
 		Hooks::Install();
 	} else {
-		logger::warn("No Light Placer configs found...");
+		REX::WARN("No Light Placer configs found...");
 		return true;
 	}
 

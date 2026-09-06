@@ -12,7 +12,7 @@ namespace Hooks
 	{
 		Settings::GetSingleton()->LoadSettings();
 
-		logger::info("{:*^50}", "HOOKS");
+		REX::INFO("{:*^50}", "HOOKS");
 
 		Attach::Install();
 		Detach::Install();

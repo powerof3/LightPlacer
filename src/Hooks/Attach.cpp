@@ -18,7 +18,7 @@ namespace Hooks::Attach
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(15527, 15704) };
 			stl::hook_function_prologue<AddAddonNodes, 5>(target.address());
 
-			logger::info("Hooked BipedAnim::AddAddonNodes");
+			REX::INFO("Hooked BipedAnim::AddAddonNodes");
 		}
 	};
 
@@ -38,7 +38,7 @@ namespace Hooks::Attach
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(33373, 34154) };
 			stl::hook_function_prologue<AttachEnchantmentVisuals, 6>(target.address());
 
-			logger::info("Hooked ActorMagicCaster::AttachEnchantmentVisuals");
+			REX::INFO("Hooked ActorMagicCaster::AttachEnchantmentVisuals");
 		}
 	};
 
@@ -58,7 +58,7 @@ namespace Hooks::Attach
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(19252, 19678) };
 			stl::hook_function_prologue<AttachLight, 6>(target.address());
 
-			logger::info("Hooked TESObjectREFR::AttachLight");
+			REX::INFO("Hooked TESObjectREFR::AttachLight");
 		}
 	};
 
@@ -78,7 +78,7 @@ namespace Hooks::Attach
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(37826, 38780) };
 			stl::hook_function_prologue<ReAddCasterLights, 5>(target.address());
 
-			logger::info("Hooked Actor::ReAddCasterLights");
+			REX::INFO("Hooked Actor::ReAddCasterLights");
 		}
 	};
 
@@ -98,7 +98,7 @@ namespace Hooks::Attach
 		static void Install()
 		{
 			stl::write_vfunc<RE::ShaderReferenceEffect, ShaderReferenceEffect_Resume>();
-			logger::info("Hooked ShaderReferenceEffect::Resume"sv);
+			REX::INFO("Hooked ShaderReferenceEffect::Resume"sv);
 		}
 	};
 

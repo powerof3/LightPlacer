@@ -5,15 +5,13 @@
 #include <shared_mutex>
 
 #include "RE/Skyrim.h"
-#include "REX/REX/Singleton.h"
+#include "REX/REX.h"
 #include "SKSE/SKSE.h"
 
-#include <ClibUtil/RNG.hpp>
 #include <ClibUtil/distribution.hpp>
-#include <ClibUtil/simpleINI.hpp>
-#include <ClibUtil/timer.hpp>
 #include <MergeMapperPluginAPI.h>
 //#include <boost_unordered.hpp>
+#include <boost/regex.hpp>
 #include <boost/unordered/concurrent_node_map.hpp>
 #include <boost/unordered/concurrent_node_set.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -22,23 +20,17 @@
 #include <frozen/unordered_map.h>
 #include <glaze/glaze.hpp>
 #include <spdlog/sinks/basic_file_sink.h>
-#include <srell.hpp>
 #include <xbyak/xbyak.h>
 
-#define DLLEXPORT __declspec(dllexport)
+#undef ERROR
 
-namespace logger = SKSE::log;
-namespace string = clib_util::string;
 namespace dist = clib_util::distribution;
-namespace ini = clib_util::ini;
 
 using namespace std::literals;
-using namespace clib_util::string::literals;
+using namespace REX::STR::literals;
 
 namespace stl
 {
-	using namespace SKSE::stl;
-
 	template <class F, size_t vtbl_idx, class T>
 	void write_vfunc()
 	{
@@ -55,7 +47,7 @@ namespace stl
 	template <class T, std::size_t size = 5>
 	void write_thunk_call(std::uintptr_t a_src)
 	{
-		auto& trampoline = SKSE::GetTrampoline();
+		auto& trampoline = REL::GetTrampoline();
 		if (size == 6) {
 			T::func = *(uintptr_t*)trampoline.write_call<6>(a_src, T::thunk);
 		} else {
@@ -83,13 +75,25 @@ namespace stl
 		Patch p(a_src, BYTES);
 		p.ready();
 
-		auto& trampoline = SKSE::GetTrampoline();
-		trampoline.write_branch<5>(a_src, T::thunk);
+		auto& trampoline = REL::GetTrampoline();
+		trampoline.write_jmp<5>(a_src, T::thunk);
 
 		auto alloc = trampoline.allocate(p.getSize());
 		std::memcpy(alloc, p.getCode(), p.getSize());
 
 		T::func = reinterpret_cast<std::uintptr_t>(alloc);
+	}
+}
+
+namespace Runtime
+{
+	inline constexpr REL::Version SSE_1_7_99(1, 7, 99, 0);
+	inline constexpr REL::Version MIN_ADDRESS_LIBRARY_V5 = SSE_1_7_99;
+
+	[[nodiscard]] inline bool IsAtLeast1_7_99() noexcept
+	{
+		static bool result = REX::FModule::GetExecutingModule().GetFileVersion() >= Runtime::SSE_1_7_99;
+		return result;
 	}
 }
 

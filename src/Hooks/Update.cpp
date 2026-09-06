@@ -22,7 +22,7 @@ namespace Hooks::Update
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(18458, 18889), 0x52 };  // TESObjectCELL::RunAnimations
 			stl::write_thunk_call<UpdateActivateParents>(target.address());
 
-			logger::info("Hooked TESObjectCELL::UpdateActivateParents");
+			REX::INFO("Hooked TESObjectCELL::UpdateActivateParents");
 		}
 	};
 
@@ -45,7 +45,7 @@ namespace Hooks::Update
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(18464, 18895) };
 			stl::hook_function_prologue<UpdateManagedNodes, 5>(target.address());
 
-			logger::info("Hooked TESObjectCELL::UpdateManagedNodes");
+			REX::INFO("Hooked TESObjectCELL::UpdateManagedNodes");
 		}
 	};
 
@@ -68,7 +68,7 @@ namespace Hooks::Update
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(42791, 43959), OFFSET(0x11, 0x1F) };  // Hazard::Update
 			stl::write_thunk_call<Hazard__CheckInit3D>(target.address());
 
-			logger::info("Hooked Hazard::CheckInit3D");
+			REX::INFO("Hooked Hazard::CheckInit3D");
 		}
 	};
 
@@ -91,7 +91,7 @@ namespace Hooks::Update
 			REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(42664, 43836), 0x11 };  // Explosion::Update
 			stl::write_thunk_call<Explosion__CheckInit3D>(target.address());
 
-			logger::info("Hooked Explosion::CheckInit3D");
+			REX::INFO("Hooked Explosion::CheckInit3D");
 		}
 	};
 
@@ -115,7 +115,7 @@ namespace Hooks::Update
 		static void Install()
 		{
 			stl::write_vfunc<RE::ActorMagicCaster, ActorMagicCaster__Update>();
-			logger::info("Hooked ActorMagicCaster::Update"sv);
+			REX::INFO("Hooked ActorMagicCaster::Update"sv);
 		}
 	};
 
@@ -146,7 +146,7 @@ namespace Hooks::Update
 		static void Install()
 		{
 			stl::write_vfunc<RE::NiSwitchNode, NiSwitchNode_UpdateDownwardsPass>();
-			logger::info("Hooked NiSwitchNode::UpdateDownwardsPass");
+			REX::INFO("Hooked NiSwitchNode::UpdateDownwardsPass");
 		}
 	};
 
@@ -158,7 +158,7 @@ namespace Hooks::Update
 		REL::Relocation<std::uintptr_t> target_1{ RELOCATION_ID(19301, 19728), OFFSET(0x1BA, 0x206) };  //  TESObjectREFR::Release3DRelatedData
 		stl::write_thunk_call<RemoveExternalEmittance<1>>(target_1.address());
 
-		logger::info("Hooked TESObjectCELL::RemoveExternalEmittance");
+		REX::INFO("Hooked TESObjectCELL::RemoveExternalEmittance");
 	}
 
 	void Install()

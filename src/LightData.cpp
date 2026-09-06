@@ -332,7 +332,7 @@ const char* LightData::GetCulledStatus(RE::NiPointLight* a_light)
 		return "visible";
 	}
 
-	const REX::EnumSet<LIGHT_CULL_FLAGS, std::uint8_t> flags(static_cast<LIGHT_CULL_FLAGS>(std::bit_cast<uint32_t>(a_light->ambient.red) >> 24));
+	const REX::TEnumSet<LIGHT_CULL_FLAGS, std::uint8_t> flags(static_cast<LIGHT_CULL_FLAGS>(std::bit_cast<uint32_t>(a_light->ambient.red) >> 24));
 
 	// script > game > conditions
 
@@ -388,7 +388,7 @@ bool LIGH::LightDefinition::PostProcess()
 	if (!lightEDID.contains("|")) {
 		data.light = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(lightEDID);
 	} else {
-		auto edids = string::split(lightEDID, "|");
+		auto edids = REX::STR::SPLIT(lightEDID, "|");
 		for (const auto& edid : edids) {
 			if (auto form = RE::TESForm::LookupByEditorID<RE::TESObjectLIGH>(edid)) {
 				data.light = form;

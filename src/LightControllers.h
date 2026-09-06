@@ -130,7 +130,8 @@ public:
 		duration(a_sequence->GetDuration())
 	{
 		if (a_randomAnimStart) {
-			currentTime = clib_util::RNG().generate(0.0f, duration);
+			thread_local auto rng = REX::TRandom<float>();
+			currentTime = rng.Generate(0.0f, duration);
 		}
 	}
 

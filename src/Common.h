@@ -39,11 +39,11 @@ struct string_cmp
 
 	bool operator()(const std::string& str1, const std::string& str2) const
 	{
-		return string::iequals(str1, str2);
+		return REX::STR::IEQUALS(str1, str2);
 	}
 	bool operator()(std::string_view str1, std::string_view str2) const
 	{
-		return string::iequals(str1, str2);
+		return REX::STR::IEQUALS(str1, str2);
 	}
 };
 

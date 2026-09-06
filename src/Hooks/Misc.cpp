@@ -18,7 +18,7 @@ namespace Hooks::Misc
 			REL::Relocation<std::uintptr_t> target_1{ RELOCATION_ID(19252, 19678), 0xB8 };  // TESObjectREFR::AddLight
 			stl::write_thunk_call<TESObjectLIGH_GenDynamic<1>>(target_1.address());
 
-			logger::info("Installed TESObjectLIGH::GenDynamic patch"sv);
+			REX::INFO("Installed TESObjectLIGH::GenDynamic patch"sv);
 		}
 	}
 }

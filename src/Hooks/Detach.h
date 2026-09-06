@@ -10,7 +10,7 @@ namespace Hooks::Detach
 	{
 		static RE::REFR_LIGHT* thunk(RE::ExtraDataList* a_list)
 		{
-			if (auto* ref = stl::adjust_pointer<RE::TESObjectREFR>(a_list, -0x70)) {
+			if (auto* ref = REX::ADJUST_POINTER<RE::TESObjectREFR>(a_list, -0x70)) {
 				LightManager::GetSingleton()->DetachLights(ref, true);
 			}
 
@@ -27,7 +27,7 @@ namespace Hooks::Detach
 	{
 		static bool thunk(RE::RefAttachTechniqueInput& a_this)
 		{
-			auto actorMagicCaster = stl::adjust_pointer<RE::ActorMagicCaster>(&a_this, -static_cast<std::ptrdiff_t>(offsetof(RE::ActorMagicCaster, RE::ActorMagicCaster::castingArtData)));
+			auto actorMagicCaster = REX::ADJUST_POINTER<RE::ActorMagicCaster>(&a_this, -static_cast<std::ptrdiff_t>(offsetof(RE::ActorMagicCaster, RE::ActorMagicCaster::castingArtData)));
 			LightManager::GetSingleton()->DetachCastingLights(actorMagicCaster);
 
 			return func(a_this);
@@ -52,7 +52,7 @@ namespace Hooks::Detach
 			static void Install()
 			{
 				stl::write_vfunc<T, Detach>();
-				logger::info("Hooked {}::Detach"sv, typeid(T).name());
+				REX::INFO("Hooked {}::Detach"sv, typeid(T).name());
 			}
 		};
 	}

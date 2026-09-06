@@ -6,8 +6,8 @@ namespace RE
 {
 	FormID GetFormID(const std::string& a_str)
 	{
-		if (const auto splitID = string::split(a_str, "~"); splitID.size() == 2) {
-			const auto  formID = string::to_num<FormID>(splitID[0], true);
+		if (const auto splitID = REX::STR::SPLIT(a_str, "~"); splitID.size() == 2) {
+			const auto  formID = REX::STR::TO_NUM<FormID>(splitID[0], true);
 			const auto& modName = splitID[1];
 			if (g_mergeMapperInterface) {
 				const auto [mergedModName, mergedFormID] = g_mergeMapperInterface->GetNewFormID(modName.c_str(), formID);
@@ -15,8 +15,8 @@ namespace RE
 			}
 			return TESDataHandler::GetSingleton()->LookupFormID(formID, modName);
 		}
-		if (string::is_only_hex(a_str, true)) {
-			return string::to_num<FormID>(a_str, true);
+		if (REX::STR::IS_ONLY_HEX(a_str, true)) {
+			return REX::STR::TO_NUM<FormID>(a_str, true);
 		}
 		if (const auto form = TESForm::LookupByEditorID(a_str)) {
 			return form->GetFormID();

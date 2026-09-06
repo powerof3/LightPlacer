@@ -588,17 +588,17 @@ bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_par
 	case PARAM_TYPE::kInt:
 	case PARAM_TYPE::kStage:
 	case PARAM_TYPE::kRelationshipRank:
-		a_param.i = string::to_num<std::int32_t>(a_str);
+		a_param.i = REX::STR::TO_NUM<std::int32_t>(a_str);
 		break;
 	case PARAM_TYPE::kFloat:
-		a_param.f = string::to_num<float>(a_str);
+		a_param.f = REX::STR::TO_NUM<float>(a_str);
 		break;
 	case PARAM_TYPE::kActorValue:
 		a_param.i = static_cast<std::int32_t>(RE::ActorValueList::GetSingleton()->LookupActorValueByName(a_str.c_str()));
 		break;
 	case RE::SCRIPT_PARAM_TYPE::kAxis:
 		{
-			switch (string::const_hash(a_str)) {
+			switch (REX::STR::CONST_HASH(a_str)) {
 			case "X"_h:
 				a_param.i = 0;
 				break;
@@ -615,7 +615,7 @@ bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_par
 		}
 		break;
 	case RE::SCRIPT_PARAM_TYPE::kSex:
-		switch (string::const_hash(a_str)) {
+		switch (REX::STR::CONST_HASH(a_str)) {
 		case "Male"_h:
 			a_param.i = RE::SEX::kMale;
 			break;
@@ -632,7 +632,7 @@ bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_par
 		break;
 	case PARAM_TYPE::kCastingSource:
 		{
-			switch (string::const_hash(a_str)) {
+			switch (REX::STR::CONST_HASH(a_str)) {
 			case "Instant"_h:
 				a_param.i = static_cast<std::int32_t>(RE::MagicSystem::CastingSource::kInstant);
 				break;
@@ -653,7 +653,7 @@ bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_par
 		break;
 	case PARAM_TYPE::kWardState:
 		{
-			switch (string::const_hash(a_str)) {
+			switch (REX::STR::CONST_HASH(a_str)) {
 			case "Absorb"_h:
 				a_param.i = static_cast<std::int32_t>(RE::MagicSystem::WardState::kAbsorb);
 				break;
@@ -749,11 +749,11 @@ bool ConditionParser::ParseVoidParam(const std::string& a_str, VOID_PARAM& a_par
 
 void ConditionParser::BuildCondition(std::shared_ptr<RE::TESCondition>& a_condition, const std::vector<std::string>& a_conditionList)
 {
-	static srell::regex condRegex{ R"((\w+)?\s*(\w+)\s+([\w.~]+)(?:\s+([\w.~]+))?\s*([=!<>]+)\s*(-?[\d.]+)\s*(AND|OR)?)" };
+	static boost::regex condRegex{ R"((\w+)?\s*(\w+)\s+([\w.~]+)(?:\s+([\w.~]+))?\s*([=!<>]+)\s*(-?[\d.]+)\s*(AND|OR)?)" };
 
 	for (auto& condition : a_conditionList) {
-		srell::cmatch match;
-		if (!srell::regex_match(condition.c_str(), match, condRegex)) {
+		boost::cmatch match;
+		if (!boost::regex_match(condition.c_str(), match, condRegex)) {
 			continue;
 		}
 
@@ -811,7 +811,7 @@ void ConditionParser::BuildCondition(std::shared_ptr<RE::TESCondition>& a_condit
 			}
 		}
 		//opcodes
-		switch (string::const_hash(opCode.str())) {
+		switch (REX::STR::CONST_HASH(opCode.str())) {
 		case "=="_h:
 			condData.flags.opCode = OP_CODE::kEqualTo;
 			break;
@@ -834,9 +834,9 @@ void ConditionParser::BuildCondition(std::shared_ptr<RE::TESCondition>& a_condit
 			continue;
 		}
 		// value
-		condData.comparisonValue.f = string::to_num<float>(value.str());
+		condData.comparisonValue.f = REX::STR::TO_NUM<float>(value.str());
 		// andOr
-		condData.flags.isOR = string::iequals(andOR.str(), "OR"sv);
+		condData.flags.isOR = REX::STR::IEQUALS(andOR.str(), "OR"sv);
 
 		if (!a_condition) {
 			a_condition = std::make_shared<RE::TESCondition>();

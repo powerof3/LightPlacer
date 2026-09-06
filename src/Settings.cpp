@@ -1,10 +1,13 @@
 #include "Settings.h"
 
+#include <SimpleIni.h>
+#undef ERROR
+
 namespace SETTINGS
 {
 	void Cache::LoadSettings()
 	{
-		logger::info("{:*^50}", "SETTINGS");
+		REX::INFO("{:*^50}", "SETTINGS");
 
 		ReadSettings(R"(Data\SKSE\Plugins\po3_LightPlacer.ini)");
 
@@ -19,13 +22,13 @@ namespace SETTINGS
 			}
 		}
 
-		logger::info("");
-		logger::info("bShowMarkers : {}", showDebugMarkers);
-		logger::info("bDisableAllGameLights : {}", disableAllGameLights);
-		logger::info("fGlobalLightRadiusMult : {}", globalLightRadius);
-		logger::info("fGlobalLightFadeMult : {}", globalLightFade);
-		logger::info("LightBlackList : {} entries", blackListedLights.size());
-		logger::info("LightWhiteList : {} entries", whiteListedLights.size());
+		REX::INFO("");
+		REX::INFO("bShowMarkers : {}", showDebugMarkers);
+		REX::INFO("bDisableAllGameLights : {}", disableAllGameLights);
+		REX::INFO("fGlobalLightRadiusMult : {}", globalLightRadius);
+		REX::INFO("fGlobalLightFadeMult : {}", globalLightFade);
+		REX::INFO("LightBlackList : {} entries", blackListedLights.size());
+		REX::INFO("LightWhiteList : {} entries", whiteListedLights.size());
 
 		loadDebugMarkers = showDebugMarkers;
 	}
@@ -96,7 +99,7 @@ namespace SETTINGS
 
 	void Cache::ReadSettings(std::string_view a_path)
 	{
-		logger::info("Reading {}...", a_path);
+		REX::INFO("Reading {}...", a_path);
 
 		CSimpleIniA ini;
 		ini.SetUnicode();
@@ -118,7 +121,7 @@ namespace SETTINGS
 			CSimpleIniA::TNamesDepend keys;
 			ini.GetAllKeys(a_listName.data(), keys);
 			for (const auto& key : keys) {
-				a_list.emplace(string::trim_copy(key.pItem));
+				a_list.emplace(REX::STR::TRIM_COPY(key.pItem));
 			}
 		};
 
