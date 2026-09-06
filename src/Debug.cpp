@@ -221,7 +221,7 @@ namespace Debug
 
 	void Install()
 	{
-		logger::info("{:*^50}", "DEBUG");
+		REX::INFO("{:*^50}", "DEBUG");
 
 		ConsoleCommandHandler<LogLights>::Install();
 		ConsoleCommandHandler<ToggleLightPlacer>::Install();
