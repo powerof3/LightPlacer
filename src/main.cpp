@@ -62,10 +62,21 @@ SKSE_PLUGIN_QUERY(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 		return false;
 	}
 
-	if (const auto ver = a_skse->RuntimeVersion(); ver < SKSE::RUNTIME_SSE_1_5_39) {
+	const auto ver = a_skse->RuntimeVersion();
+	if (ver <
+#	ifdef SKYRIMVR
+		SKSE::RUNTIME_VR_1_4_15
+#	else
+		SKSE::RUNTIME_SSE_1_5_39
+#	endif
+	) {
 		REX::CRITICAL("Unsupported runtime version {}", ver);
 		return false;
 	}
+
+#	ifdef SKYRIMVR
+	REL::IDDatabase::get().IsVRAddressLibraryAtLeastVersion("LightPlacer VR", "0.183.0", true);
+#	endif
 
 	return true;
 }
