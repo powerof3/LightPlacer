@@ -147,10 +147,10 @@ private:
 	template <class Map, class Key>
 	static void EmplaceLightImpl(Map& a_map, const Key& a_key, const LIGH::LightDefinitionPtr& a_lightDef, const LightInstance& a_lightInstance, const RE::TESObjectREFRPtr& a_ref)
 	{
-		a_map.try_emplace_or_visit(a_key, PlacedLights(a_lightDef, a_lightInstance, a_ref),
-			[&](auto& container) {
-				container.second.emplace_back(a_lightDef, a_lightInstance, a_ref);
-			});
+		const auto emplace = [&](auto& container) {
+			container.second.emplace_back(a_lightDef, a_lightInstance, a_ref);
+		};
+		a_map.try_emplace_and_visit(a_key, emplace, emplace);
 	}
 
 	// members

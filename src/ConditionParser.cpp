@@ -563,12 +563,14 @@ RE::TESForm* ConditionParser::LookupForm(const std::string& a_str)
 	auto formOrEditorID = dist::get_record(a_str);
 	if (auto formid_pair = std::get_if<dist::formid_pair>(&formOrEditorID)) {
 		if (auto& [formID, modName] = *formid_pair; formID) {
-			const auto [mergedModName, mergedFormID] = g_mergeMapperInterface->GetNewFormID(modName.value_or("").c_str(), *formID);
-			if (mergedFormID != *formID) {
-				formID.emplace(mergedFormID);
-			}
-			if (const std::string mergedModString{ mergedModName }; modName && !mergedModString.empty() && *modName != mergedModString) {
-				modName.emplace(mergedModName);
+			if (g_mergeMapperInterface && modName) {
+				const auto [mergedModName, mergedFormID] = g_mergeMapperInterface->GetNewFormID(modName->c_str(), *formID);
+				if (mergedFormID != *formID) {
+					formID.emplace(mergedFormID);
+				}
+				if (const std::string mergedModString{ mergedModName }; !mergedModString.empty() && *modName != mergedModString) {
+					modName.emplace(mergedModName);
+				}
 			}
 			if (modName) {
 				return RE::TESDataHandler::GetSingleton()->LookupForm(*formID, *modName);

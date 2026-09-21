@@ -309,44 +309,47 @@ LIGHT_CULL_FLAGS LightData::GetCulledFlag(RE::NiPointLight* a_light)
 
 void LightData::CullLight(RE::NiPointLight* a_light, RE::NiAVObject* a_debugMarker, bool a_hide, LIGHT_CULL_FLAGS a_flags)
 {
-	a_light->SetAppCulled(a_hide);
+	constexpr std::uint32_t CULL_MASK = 0xFF000000;
 
-	std::uint32_t bits = std::bit_cast<std::uint32_t>(a_light->ambient.red);
+	std::uint32_t       bits = std::bit_cast<std::uint32_t>(a_light->ambient.red);
+	const std::uint32_t flagBits = static_cast<std::uint32_t>(std::to_underlying(a_flags)) << 24;
 
 	if (a_hide) {
-		bits = (bits & 0x00FFFFFF) | (static_cast<std::uint32_t>(std::to_underlying(a_flags)) << 24);
+		bits |= flagBits;
 	} else {
-		bits &= ~(static_cast<uint32_t>(std::to_underlying(a_flags)) << 24);
+		bits &= ~flagBits;
 	}
 
 	a_light->ambient.red = std::bit_cast<float>(bits);
 
+	const bool culled = (bits & CULL_MASK) != 0;
+	a_light->SetAppCulled(culled);
+
 	if (Settings::GetSingleton()->CanShowDebugMarkers() && a_debugMarker) {
-		a_debugMarker->SetAppCulled(a_hide);
+		a_debugMarker->SetAppCulled(culled);
 	}
 }
 
 const char* LightData::GetCulledStatus(RE::NiPointLight* a_light)
 {
+	static constexpr std::array<const char*, 8> HIDDEN_STATUS{
+		"hidden",
+		"hidden [conditions]",
+		"hidden [game]",
+		"hidden [game|conditions]",
+		"hidden [script]",
+		"hidden [script|conditions]",
+		"hidden [script|game]",
+		"hidden [script|game|conditions]",
+	};
+
 	if (!a_light->GetAppCulled()) {
 		return "visible";
 	}
 
-	const REX::TEnumSet<LIGHT_CULL_FLAGS, std::uint8_t> flags(static_cast<LIGHT_CULL_FLAGS>(std::bit_cast<uint32_t>(a_light->ambient.red) >> 24));
+	const auto cullFlags = std::to_underlying(GetCulledFlag(a_light)) & (HIDDEN_STATUS.size() - 1);
 
-	// script > game > conditions
-
-	if (flags.any(LIGHT_CULL_FLAGS::Script)) {
-		return "hidden [script]";
-	}
-	if (flags.any(LIGHT_CULL_FLAGS::Game)) {
-		return "hidden [game]";
-	}
-	if (flags.any(LIGHT_CULL_FLAGS::Conditions)) {
-		return "hidden [conditions]";
-	}
-
-	return "hidden";
+	return HIDDEN_STATUS[cullFlags];
 }
 
 void LightData::PostProcessDebugMarker(RE::NiAVObject* a_obj, const MARKER_CREATE_PARAMS& a_params, std::string_view a_debugMarkerName)
