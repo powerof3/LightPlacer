@@ -135,12 +135,12 @@ RE::NiColor LightData::GetDiffuse() const
 
 float LightData::GetRadius() const
 {
-	return (radius > 0.0f ? radius : static_cast<float>(light->data.radius)) * Settings::GetSingleton()->GetGlobalLightRadius();
+	return (radius > 0.0f ? radius : static_cast<float>(light->data.radius)) * Settings::GetSingleton()->GetGlobalLightRadiusMult();
 }
 
 float LightData::GetFade() const
 {
-	return (fade > 0.0f ? fade : light->fade) * Settings::GetSingleton()->GetGlobalLightFade();
+	return (fade > 0.0f ? fade : light->fade) * Settings::GetSingleton()->GetGlobalLightFadeMult();
 }
 
 float LightData::GetScaledValue(float a_value, float a_scale) const

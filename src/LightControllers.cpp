@@ -1,16 +1,7 @@
 #include "LightControllers.h"
 
 #include "LightData.h"
-
-bool LightAnimData::GetValidColor() const { return IsValid(color); }
-
-bool LightAnimData::GetValidFade() const { return IsValid(fade); }
-
-bool LightAnimData::GetValidRadius() const { return IsValid(radius); }
-
-bool LightAnimData::GetValidTranslation() const { return IsValid(translation); }
-
-bool LightAnimData::GetValidRotation() const { return IsValid(rotation); }
+#include "Settings.h"
 
 LightControllers::LightControllers(const LIGH::LightDefinition& a_lightDef)
 {
@@ -32,17 +23,19 @@ LightControllers::LightControllers(const LIGH::LightDefinition& a_lightDef)
 
 void LightControllers::UpdateAnimation(const RE::NiPointer<RE::NiPointLight>& a_light, float a_delta, float a_scalingFactor)
 {
+	const auto settings = Settings::GetSingleton();
+	
 	if (colorController) {
 		a_light->diffuse = colorController.GetValue(a_delta);
 	}
 	if (radiusController) {
-		const auto newRadius = radiusController.GetValue(a_delta) * a_scalingFactor;
+		const auto newRadius = radiusController.GetValue(a_delta) * a_scalingFactor * settings->GetGlobalLightRadiusMult();
 		a_light->radius.x = newRadius;
 		a_light->radius.y = newRadius;
 		a_light->SetLightAttenuation(newRadius);
 	}
 	if (fadeController) {
-		a_light->fade = fadeController.GetValue(a_delta);
+		a_light->fade = fadeController.GetValue(a_delta) * a_scalingFactor * settings->GetGlobalLightFadeMult();
 	}
 	if (const auto parentNode = a_light->parent) {
 		if (positionController) {

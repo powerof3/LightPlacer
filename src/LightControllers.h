@@ -15,11 +15,11 @@ namespace LIGH
 // all-in-one controller
 struct LightAnimData
 {
-	bool GetValidColor() const;
-	bool GetValidFade() const;
-	bool GetValidRadius() const;
-	bool GetValidTranslation() const;
-	bool GetValidRotation() const;
+	bool GetValidColor() const { return IsValid(color); }
+	bool GetValidFade() const { return IsValid(fade); }
+	bool GetValidRadius() const { return IsValid(radius); }
+	bool GetValidTranslation() const { return IsValid(translation); }
+	bool GetValidRotation() const { return IsValid(rotation); }
 
 	// members
 	RE::NiColor  color{ RE::COLOR_MAX };
@@ -58,8 +58,8 @@ template <class T, std::uint32_t index = 0>
 class KeyframeSequence
 {
 public:
-	void clear() { keys = {}; }
-	bool empty() const { return keys.empty(); }
+	void     clear() { keys = {}; }
+	bool     empty() const { return keys.empty(); }
 	explicit operator bool() const { return !empty(); }
 
 	float GetDuration() const { return keys.empty() ? 0.0f : keys.back().time - keys.front().time; }
@@ -141,7 +141,7 @@ public:
 		return sequence->GetValue(currentTime, lastIndex);
 	}
 
-	bool empty() const { return !sequence || sequence->empty(); }
+	bool     empty() const { return !sequence || sequence->empty(); }
 	explicit operator bool() const { return !empty(); }
 
 private:

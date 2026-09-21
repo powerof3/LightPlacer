@@ -48,13 +48,14 @@ struct PlacedLight
 	const LightData&                       GetData() const { return definition->data; }
 	const RE::NiPointer<RE::NiPointLight>& GetLight() const { return instance.GetLight(); }
 	static RE::TESForm*                    GetEmittanceForm(const LIGH::LightDefinitionPtr& a_lightDef, const RE::TESObjectREFRPtr& a_ref);
+	float                                  GetScalingFactor(float a_scale) const { return GetData().flags.any(LIGHT_FLAGS::IgnoreScale) ? 1.0f : a_scale; }
 
 	void ReattachLight(RE::TESObjectREFR* a_ref);
 	bool ShouldUpdateConditions(ConditionUpdateFlags a_flags) const;
-	void UpdateAnimation(float a_delta, float a_scalingFactor);
+	void UpdateAnimation(float a_delta, float a_scale) const;
 	void UpdateConditions(RE::TESObjectREFR* a_ref, std::unique_ptr<NodeVisHelper>& a_nodeVisHelper, ConditionUpdateFlags a_flags);
 	void UpdateEmittance(RE::TESObjectCELL* a_cell) const;
-	void UpdateVanillaFlickering() const;
+	void UpdateVanillaFlickering(float a_delta, float a_scale) const;
 
 	// members
 	LIGH::LightDefinitionPtr          definition{};

@@ -293,8 +293,7 @@ void LightManager::AddReferenceEffectLights(RE::ReferenceEffect* a_effect, RE::F
 	}
 
 	if (ref->IsPlayerRef() && !RE::PlayerCharacter::GetSingleton()->Is3rdPersonVisible()) {
-		auto thirdPersonRoot = ref->Get3D(false) ? ref->Get3D(false)->GetObjectByName(root->name) : nullptr;
-		if (thirdPersonRoot) {
+		if (const auto thirdPersonRoot = ref->Get3D(false) ? ref->Get3D(false)->GetObjectByName(root->name) : nullptr) {
 			root = thirdPersonRoot;
 		}
 	}

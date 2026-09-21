@@ -25,8 +25,8 @@ namespace SETTINGS
 		REX::INFO("");
 		REX::INFO("bShowMarkers : {}", showDebugMarkers);
 		REX::INFO("bDisableAllGameLights : {}", disableAllGameLights);
-		REX::INFO("fGlobalLightRadiusMult : {}", globalLightRadius);
-		REX::INFO("fGlobalLightFadeMult : {}", globalLightFade);
+		REX::INFO("fGlobalLightRadiusMult : {}", globalLightRadiusMult);
+		REX::INFO("fGlobalLightFadeMult : {}", globalLightFadeMult);
 		REX::INFO("LightBlackList : {} entries", blackListedLights.size());
 		REX::INFO("LightWhiteList : {} entries", whiteListedLights.size());
 
@@ -70,14 +70,14 @@ namespace SETTINGS
 		showDebugMarkers = !showDebugMarkers;
 	}
 
-	float Cache::GetGlobalLightFade() const
+	float Cache::GetGlobalLightFadeMult() const
 	{
-		return globalLightFade;
+		return globalLightFadeMult;
 	}
 
-	float Cache::GetGlobalLightRadius() const
+	float Cache::GetGlobalLightRadiusMult() const
 	{
-		return globalLightRadius;
+		return globalLightRadiusMult;
 	}
 
 	bool Cache::ShouldDisableLights() const
@@ -114,8 +114,8 @@ namespace SETTINGS
 			disableAllGameLights = ini.GetBoolValue("Settings", "bDisableAllGameLights", false);
 		}
 
-		globalLightFade = static_cast<float>(ini.GetDoubleValue("Settings", "fGlobalLightFadeMult", globalLightFade));
-		globalLightRadius = static_cast<float>(ini.GetDoubleValue("Settings", "fGlobalLightRadiusMult", globalLightRadius));
+		globalLightFadeMult = static_cast<float>(ini.GetDoubleValue("Settings", "fGlobalLightFadeMult", globalLightFadeMult));
+		globalLightRadiusMult = static_cast<float>(ini.GetDoubleValue("Settings", "fGlobalLightRadiusMult", globalLightRadiusMult));
 
 		const auto add_to_list = [&](std::string_view a_listName, StringSet& a_list) {
 			CSimpleIniA::TNamesDepend keys;

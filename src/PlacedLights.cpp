@@ -122,14 +122,11 @@ bool PlacedLight::ShouldUpdateConditions(const ConditionUpdateFlags a_flags) con
 	return true;
 }
 
-void PlacedLight::UpdateAnimation(float a_delta, float a_scalingFactor)
+void PlacedLight::UpdateAnimation(float a_delta, float a_scale) const
 {
-	if (!lightControllers) {
-		return;
+	if (lightControllers) {
+		lightControllers->UpdateAnimation(GetLight(), a_delta, GetScalingFactor(a_scale));
 	}
-
-	auto scale = GetData().flags.any(LIGHT_FLAGS::IgnoreScale) ? 1.0f : a_scalingFactor;
-	lightControllers->UpdateAnimation(GetLight(), a_delta, scale);
 }
 
 void PlacedLight::UpdateConditions(RE::TESObjectREFR* a_ref, std::unique_ptr<NodeVisHelper>& a_nodeVisHelper, ConditionUpdateFlags a_flags)
@@ -187,13 +184,13 @@ void PlacedLight::UpdateEmittance(RE::TESObjectCELL* a_cell) const
 	}
 }
 
-void PlacedLight::UpdateVanillaFlickering() const
+void PlacedLight::UpdateVanillaFlickering(float a_delta, float a_scale) const
 {
 	auto& niLight = GetLight();
 	auto& tesLight = GetData().light;
 
 	if (tesLight->data.flags.any(RE::TES_LIGHT_FLAGS::kFlicker, RE::TES_LIGHT_FLAGS::kFlickerSlow)) {
-		const auto flickerDelta = RE::BSTimer::GetSingleton()->delta * tesLight->data.flickerPeriodRecip;
+		const auto flickerDelta = a_delta * tesLight->data.flickerPeriodRecip;
 
 		thread_local auto rng = REX::TRandom<float>();
 
@@ -233,7 +230,7 @@ void PlacedLight::UpdateVanillaFlickering() const
 														 RE::NiSinQImpl(quadraticAttenOffset * 3.0f * (512.0f / RE::NI_TWO_PI) + 73.3386f) * 0.2f,
 				-1.0f, 1.0f);
 
-			niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * GetData().GetFade();
+			niLight->fade = ((halfIntensityAmplitude * flickerIntensity) + (1.0f - halfIntensityAmplitude)) * GetData().GetScaledFade(a_scale);
 		}
 
 	} else {
@@ -249,7 +246,7 @@ void PlacedLight::UpdateVanillaFlickering() const
 
 		if (!lightControllers || !lightControllers->fadeController) {
 			const auto halfIntensityAmplitude = tesLight->data.flickerIntensityAmplitude * 0.5f;
-			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * GetData().GetFade();
+			niLight->fade = ((constAttenCosine * halfIntensityAmplitude) + (1.0f - halfIntensityAmplitude)) * GetData().GetScaledFade(a_scale);
 		}
 
 		if (!lightControllers || !lightControllers->positionController) {
@@ -381,7 +378,7 @@ void PlacedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 
 		if (!niLight->GetAppCulled() && withinFlickerDistance) {
 			placedLight.UpdateAnimation(a_params.delta, scale);
-			placedLight.UpdateVanillaFlickering();
+			placedLight.UpdateVanillaFlickering(a_params.delta, scale);
 		}
 	}
 
