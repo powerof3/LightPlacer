@@ -24,7 +24,7 @@ LightControllers::LightControllers(const LIGH::LightDefinition& a_lightDef)
 void LightControllers::UpdateAnimation(const RE::NiPointer<RE::NiPointLight>& a_light, float a_delta, float a_scalingFactor)
 {
 	const auto settings = Settings::GetSingleton();
-	
+
 	if (colorController) {
 		a_light->diffuse = colorController.GetValue(a_delta);
 	}

@@ -58,7 +58,7 @@ RE::TESForm* PlacedLight::GetEmittanceForm(const LIGH::LightDefinitionPtr& a_lig
 	if (a_lightDef->data.emittanceForm) {
 		return a_lightDef->data.emittanceForm;
 	}
-	
+
 	if (a_lightDef->data.flags.none(LIGHT_FLAGS::NoExternalEmittance)) {
 		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
 		return xData ? xData->source : nullptr;
