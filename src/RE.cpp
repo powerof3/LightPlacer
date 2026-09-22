@@ -132,6 +132,23 @@ namespace RE
 		return file && (strcmp(file->fileName, "DynDOLOD.esm") == 0 || strcmp(file->fileName, "DynDOLOD.esp") == 0);
 	}
 
+	bool IsUnderInactiveSwitchNode(NiAVObject* a_obj)
+	{
+		for (auto* child = a_obj; child && child->parent; child = child->parent) {
+			const auto switchNode = child->parent->AsSwitchNode();
+			if (!switchNode) {
+				continue;
+			}
+			if (switchNode->index < 0 || switchNode->index >= switchNode->children.size()) {
+				continue;
+			}
+			if (switchNode->children[static_cast<std::uint16_t>(switchNode->index)].get() != child) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	float NiSinQImpl(float a_value)
 	{
 		static constexpr std::array<float, 512> sineTable = {

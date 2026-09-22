@@ -49,6 +49,9 @@ void LightManager::OnDataLoad()
 
 	ProcessConfigs();
 
+	RE::PlayerCharacter::GetSingleton()->AddEventSink<RE::BGSActorCellEvent>(GetSingleton());
+	RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESWaitStopEvent>(GetSingleton());
+
 	REX::INFO("{:*^50}", "RESULTS");
 
 	const auto count_lights = [](const auto& map) {
@@ -60,10 +63,16 @@ void LightManager::OnDataLoad()
 	};
 
 	REX::INFO("Models : {} ({} lights)", gameModels.size(), count_lights(gameModels));
+
+	for (auto& [model, data] : gameModels) {
+		REX::INFO("\t{}: {} lights", model, data.size());
+	}
+
 	REX::INFO("FormIDs : {} ({} lights)", gameFormIDs.size(), count_lights(gameFormIDs));
 
-	RE::PlayerCharacter::GetSingleton()->AddEventSink<RE::BGSActorCellEvent>(GetSingleton());
-	RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESWaitStopEvent>(GetSingleton());
+	for (auto& [model, data] : gameFormIDs) {
+		REX::INFO("\t{:X}: {} lights", model, data.size());
+	}
 }
 
 void LightManager::ReloadConfigs()
@@ -454,9 +463,10 @@ void LightManager::ProcessCollectedLights(const SourceAttachData& a_srcAttachDat
 			const LIGH::LightDefinitionPtr lightDefPtr{ group, std::addressof(lightDef) };
 
 			if constexpr (std::is_same_v<std::decay_t<decltype(groups)>, std::vector<Config::PointPlacementPtr>>) {
+				const bool switchNodeCulled = RE::IsUnderInactiveSwitchNode(a_srcAttachData.attachNode);
 				for (const auto& [i, point] : std::views::enumerate(entries)) {
 					if (auto node = lightDef.GetOrCreateNode(a_srcAttachData.attachNode, point, *path, LP_INDEX)) {
-						AttachLight(lightDefPtr, a_srcAttachData, node, *path, LP_INDEX);
+						AttachLight(lightDefPtr, a_srcAttachData, node, *path, LP_INDEX, switchNodeCulled);
 					}
 					++LP_INDEX;
 				}
@@ -468,8 +478,9 @@ void LightManager::ProcessCollectedLights(const SourceAttachData& a_srcAttachDat
 					}
 				}
 				for (const auto& [i, node] : std::views::enumerate(nodeVec)) {
+					const bool switchNodeCulled = RE::IsUnderInactiveSwitchNode(node);
 					if (auto lightNode = lightDef.GetOrCreateNode(a_srcAttachData.attachNode, node, *path, LP_INDEX)) {
-						AttachLight(lightDefPtr, a_srcAttachData, lightNode, *path, LP_INDEX);
+						AttachLight(lightDefPtr, a_srcAttachData, lightNode, *path, LP_INDEX, switchNodeCulled);
 					}
 					++LP_INDEX;
 				}
@@ -481,7 +492,7 @@ void LightManager::ProcessCollectedLights(const SourceAttachData& a_srcAttachDat
 	processLightGroup(a_collectedNodes);
 }
 
-void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const SourceAttachData& a_srcData, RE::NiNode* a_node, const std::string& path, std::uint32_t a_index)
+void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const SourceAttachData& a_srcData, RE::NiNode* a_node, const std::string& path, std::uint32_t a_index, bool a_switchNodeCulled)
 {
 	if (!a_node) {
 		return;
@@ -494,6 +505,10 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 	auto lightInstance = a_lightDef->data.GenLight(ref.get(), a_node, name, scale);
 	if (!lightInstance.bsLight || !lightInstance.niLight) {
 		return;
+	}
+
+	if (a_switchNodeCulled) {
+		LightData::CullLight(lightInstance.niLight.get(), lightInstance.debugMarker.get(), true, LIGHT_CULL_FLAGS::Game);
 	}
 
 	auto handle = a_srcData.handle;

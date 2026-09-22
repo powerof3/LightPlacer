@@ -123,19 +123,17 @@ namespace Hooks::Update
 	{
 		static void thunk(RE::NiSwitchNode* a_this, RE::NiUpdateData& a_data, std::uint32_t a_arg2)
 		{
-			if (a_this->children.size() == 2) {
-				auto switch_idx = static_cast<std::uint16_t>(a_this->index);
-				// inactive node
-				RE::BSVisit::TraverseScenegraphLights(a_this->children[!switch_idx].get(), [](RE::NiPointLight* a_light) {
-					LightData::CullLight(a_light, nullptr, true, LIGHT_CULL_FLAGS::Game);
-					return RE::BSVisit::BSVisitControl::kContinue;
-				});
-
-				// active node
-				RE::BSVisit::TraverseScenegraphLights(a_this->children[switch_idx].get(), [](RE::NiPointLight* a_light) {
-					LightData::CullLight(a_light, nullptr, false, LIGHT_CULL_FLAGS::Game);
-					return RE::BSVisit::BSVisitControl::kContinue;
-				});
+			// game function doesn't hardcode 2 children
+			
+			auto switch_idx = a_this->index;
+			for (std::uint16_t i = 0; i < a_this->children.size(); ++i) {
+				if (const auto node = a_this->children[i].get()) {
+					const bool hide = static_cast<std::int32_t>(i) != switch_idx;
+					RE::BSVisit::TraverseScenegraphLights(node, [hide](RE::NiPointLight* a_light) {
+						LightData::CullLight(a_light, nullptr, hide, LIGHT_CULL_FLAGS::Game);
+						return RE::BSVisit::BSVisitControl::kContinue;
+					});
+				}
 			}
 
 			func(a_this, a_data, a_arg2);

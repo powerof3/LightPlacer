@@ -14,7 +14,23 @@ namespace Hooks::Attach
 				auto node = func(a_this, a_backgroundLoading);
 				if (node) {
 					if (auto baseObject = a_this->GetObjectReference()) {
-						LightManager::GetSingleton()->AddLights(a_this, baseObject, node);
+						if (!a_backgroundLoading) {
+							LightManager::GetSingleton()->AddLights(a_this, baseObject, node);
+						} else {
+							// shouldusetaskqueue returns false even though it's on a different thread
+							const auto handle = a_this->CreateRefHandle();
+							SKSE::GetTaskInterface()->AddTask([handle, baseObject, nodePtr = RE::NiPointer<RE::NiAVObject>(node)]() {
+								const auto ref = handle.get();
+								if (!ref) {
+									return;
+								}
+								RE::NiAVObject* rootNode = nodePtr.get();
+								if (auto currentRoot = ref->Get3D(); currentRoot && currentRoot != rootNode) { // only some objects have attached 3D at this stage
+									rootNode = currentRoot;
+								}
+								LightManager::GetSingleton()->AddLights(ref.get(), baseObject, rootNode);
+							});
+						}
 					}
 				}
 				return node;

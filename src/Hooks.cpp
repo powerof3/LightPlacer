@@ -16,7 +16,7 @@ namespace Hooks
 
 		Attach::Install();
 		Detach::Install();
-		Update ::Install();
+		Update::Install();
 
 		Misc::Install();
 	}

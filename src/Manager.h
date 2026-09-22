@@ -142,7 +142,7 @@ private:
 	void CollectValidLights(const SourceAttachData& a_srcData, const Config::LightEntryPtr& a_lightEntry, std::vector<Config::PointPlacementPtr>& a_collectedPoints, std::vector<Config::NodePlacementPtr>& a_collectedNodes);
 	void ProcessCollectedLights(const SourceAttachData& a_srcData, const std::vector<Config::PointPlacementPtr>& a_collectedPoints, const std::vector<Config::NodePlacementPtr>& a_collectedNodes);
 
-	void AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const SourceAttachData& a_srcData, RE::NiNode* a_node, const std::string& path, std::uint32_t a_index = 0);
+	void AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const SourceAttachData& a_srcData, RE::NiNode* a_node, const std::string& path, std::uint32_t a_index = 0, bool a_switchNodeCulled = false);
 
 	template <class Map, class Key>
 	static void EmplaceLightImpl(Map& a_map, const Key& a_key, const LIGH::LightDefinitionPtr& a_lightDef, const LightInstance& a_lightInstance, const RE::TESObjectREFRPtr& a_ref)

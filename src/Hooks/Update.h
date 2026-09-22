@@ -41,7 +41,5 @@ namespace Hooks::Update
 		};
 	}
 
-	static void Install_RemoveExternalEmittance();
-
 	void Install();
 }
