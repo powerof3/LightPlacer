@@ -23,6 +23,7 @@ enum class LIGHT_FLAGS
 	UpdateOnWaiting = (1 << 18),
 	UpdateOnCellTransition = (1 << 19),
 	NeedsUpdate = UpdateOnWaiting | UpdateOnCellTransition,
+
 	SyncAddonNodes = (1 << 20),
 	IgnoreScale = (1 << 21),
 	RandomAnimStart = (1 << 22),

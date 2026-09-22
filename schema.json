@@ -208,7 +208,7 @@
               ]
             },
             {
-              "pattern": "^PortalStrict|Shadow|Simple|InverseSquare|UpdateOnWaiting|UpdateOnCellTransition|NeedsUpdate|SyncAddonNodes|IgnoreScale|RandomAnimStart|NoExternalEmittance"
+              "pattern": "^PortalStrict|Shadow|Simple|InverseSquare|UpdateOnWaiting|UpdateOnCellTransition|SyncAddonNodes|IgnoreScale|RandomAnimStart|NoExternalEmittance"
             }
           ],
           "type": "string",

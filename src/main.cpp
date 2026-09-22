@@ -108,17 +108,17 @@ SKSE_PLUGIN_LOAD(const SKSE::LoadInterface* a_skse)
 	}
 #endif
 
-	if (LightManager::GetSingleton()->ReadConfigs()) {
-		Hooks::Install();
-	} else {
+	SKSE::GetPapyrusInterface()->Register(Papyrus::Register);
+
+	if (!LightManager::GetSingleton()->ReadConfigs()) {
 		REX::WARN("No Light Placer configs found...");
 		return true;
 	}
 
+	Hooks::Install();
+
 	const auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(MessageHandler);
-
-	SKSE::GetPapyrusInterface()->Register(Papyrus::Register);
 
 	return true;
 }
