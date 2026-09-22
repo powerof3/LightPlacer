@@ -272,10 +272,10 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 	auto handle = a_handle.native_handle();
 
 	gameActorWornLights.visit(handle, [&](auto& map) {
-		map.second.visit(a_root->name.c_str(), [&](auto& nodeMap) {
+		map.second.erase_if(a_root->name.c_str(), [&](auto& nodeMap) {
 			nodeMap.second.RemoveLights(true);
+			return true;
 		});
-		map.second.erase(a_root->name.c_str());
 	});
 }
 
@@ -496,7 +496,7 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 		return;
 	}
 
-	auto handle = ref->CreateRefHandle().native_handle();
+	auto handle = a_srcData.handle;
 	auto cellFormID = a_srcData.filterIDs[0];
 
 	switch (a_srcData.type) {

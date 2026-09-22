@@ -11,9 +11,15 @@ namespace Papyrus
 		}
 
 		auto refHandle = a_ref->CreateRefHandle();
-		LightManager::GetSingleton()->ForEachLight(a_ref, refHandle.native_handle(), [&](const auto&, auto& placedLight) {
-			placedLight.ToggleLights(a_hide, LIGHT_CULL_FLAGS::Script);
-			return true;
+		SKSE::GetTaskInterface()->AddTask([refHandle, a_hide]() {
+			const auto ref = refHandle.get();
+			if (!ref) {
+				return;
+			}
+			LightManager::GetSingleton()->ForEachLight(ref.get(), refHandle.native_handle(), [&](const auto&, auto& placedLight) {
+				placedLight.ToggleLights(a_hide, LIGHT_CULL_FLAGS::Script);
+				return true;
+			});
 		});
 	}
 

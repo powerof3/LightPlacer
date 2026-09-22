@@ -89,6 +89,7 @@ bool SourceAttachData::Initialize(const SourceData& a_srcData)
 		type = a_srcData.type;
 		miscID = a_srcData.miscID;
 		ref = srcRef;
+		handle = srcRef->CreateRefHandle().native_handle();
 		root = a_srcData.root;
 		attachNode = a_srcData.GetAttachNode();
 		scale = srcRef->GetScale();
