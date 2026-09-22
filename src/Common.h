@@ -14,10 +14,10 @@ template <class K, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
 using FlatSet = boost::unordered_flat_set<K, H, KEqual>;
 
 template <class K, class D, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
-using LockedMap = boost::concurrent_node_map<K, D, H, KEqual>;
+using ConcurrentMap = boost::concurrent_node_map<K, D, H, KEqual>;
 
 template <class K, class H = boost::hash<K>, class KEqual = std::equal_to<K>>
-using LockedSet = boost::concurrent_node_set<K, H, KEqual>;
+using ConcurrentSet = boost::concurrent_node_set<K, H, KEqual>;
 
 struct string_hash
 {
@@ -49,8 +49,11 @@ struct string_cmp
 
 template <class D>
 using StringMap = FlatMap<std::string, D, string_hash, string_cmp>;
-
 using StringSet = FlatSet<std::string, string_hash, string_cmp>;
+
+template <class D>
+using ConcurrentStringMap = ConcurrentMap<std::string, D, string_hash, string_cmp>;
+using ConcurrentStringSet = ConcurrentSet<std::string, string_hash, string_cmp>;
 
 template <class T>
 struct NiPointer_Hash
@@ -87,7 +90,7 @@ struct NiPointer_Cmp
 };
 
 template <class K, class D>
-using LockedNiPtrMap = LockedMap<RE::NiPointer<K>, D, NiPointer_Hash<K>, NiPointer_Cmp<K>>;
+using ConcurrentNiPtrMap = ConcurrentMap<RE::NiPointer<K>, D, NiPointer_Hash<K>, NiPointer_Cmp<K>>;
 
 namespace stl
 {

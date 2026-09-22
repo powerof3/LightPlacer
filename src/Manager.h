@@ -158,13 +158,14 @@ private:
 	StringMap<Config::LightEntryGroup>                gameModels;
 	FlatMap<RE::FormID, Config::LightEntryGroup>      gameFormIDs;
 
-	LockedMap<RE::RefHandle, PlacedLights>                           gameRefLights;
-	LockedMap<RE::RefHandle, LockedMap<std::string, PlacedLights>>   gameActorWornLights;        // nodeName (armor node on attach isn't same ptr on detach)
-	LockedMap<RE::RefHandle, LockedMap<std::uint32_t, PlacedLights>> gameActorMagicLights;       // magicNodeName
-	LockedMap<std::uint32_t, PlacedLights>                           gameReferenceEffectLights;  // effectID
-	LockedMap<RE::RefHandle, PlacedLights>                           gameHazardLights;
-	LockedMap<RE::RefHandle, PlacedLights>                           gameExplosionLights;
+	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameRefLights;
+	ConcurrentMap<RE::RefHandle, ConcurrentStringMap<PlacedLights>>          gameActorWornLights;        // nodeName (armor node on attach isn't same ptr on detach)
+	ConcurrentMap<RE::RefHandle, ConcurrentMap<std::uint32_t, PlacedLights>> gameActorMagicLights;       // magicNodeName
+	ConcurrentMap<std::uint32_t, PlacedLights>                               gameReferenceEffectLights;  // effectID
+	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameHazardLights;
+	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameExplosionLights;
 
-	LockedMap<RE::FormID, LightsToUpdate> lightsToBeUpdated;
-	std::optional<bool>                   lastCellWasInterior;
+	ConcurrentMap<RE::FormID, LightsToUpdate> lightsToBeUpdated;
+	ConcurrentSet<RE::RefHandle>              mobileLights;  // lights that can move across cells
+	std::optional<bool>                       lastCellWasInterior;
 };

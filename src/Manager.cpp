@@ -194,6 +194,9 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 			});
 			return a_clearData;
 		});
+		if (a_clearData) {
+			mobileLights.erase(handle);
+		}
 	} else {
 		gameRefLights.erase_if(handle, [&](auto& map) {
 			map.second.RemoveLights(a_clearData);
@@ -505,7 +508,7 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 				EmplaceLightImpl(gameExplosionLights, handle, a_lightDef, lightInstance, ref);
 			} else {
 				EmplaceLightImpl(gameRefLights, handle, a_lightDef, lightInstance, ref);
-				
+
 				bool hasEmittance = PlacedLight::GetEmittanceForm(a_lightDef, ref) != nullptr;
 				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle, hasEmittance), [&](auto& lightsToUpdate) {
 					lightsToUpdate.second.emplace(handle, hasEmittance);
@@ -517,11 +520,7 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 		{
 			auto updateFunc = [&](auto& map) {
 				EmplaceLightImpl(map.second, a_srcData.nodeName, a_lightDef, lightInstance, ref);
-
-				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle),
-					[&](auto& lightsToUpdate) {
-						lightsToUpdate.second.emplace(handle);
-					});
+				mobileLights.insert(handle);
 			};
 
 			gameActorWornLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
@@ -596,6 +595,17 @@ void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 			refrsToUpdate.push_back(std::make_pair(handle, std::move(ref)));
 			return false;
 		});
+	});
+
+	mobileLights.erase_if([&](const auto& handle) {
+		RE::TESObjectREFRPtr ref;
+		if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
+			return true;
+		}
+		if (ref->GetParentCell() == a_cell) {
+			refrsToUpdate.emplace_back(handle, std::move(ref));
+		}
+		return false;
 	});
 
 	PlacedLights::UpdateParams params;
