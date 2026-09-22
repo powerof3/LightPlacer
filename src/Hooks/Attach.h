@@ -25,7 +25,7 @@ namespace Hooks::Attach
 									return;
 								}
 								RE::NiAVObject* rootNode = nodePtr.get();
-								if (auto currentRoot = ref->Get3D(); currentRoot && currentRoot != rootNode) { // only some objects have attached 3D at this stage
+								if (auto currentRoot = ref->Get3D(); currentRoot && currentRoot != rootNode) {  // only some objects have attached 3D at this stage
 									rootNode = currentRoot;
 								}
 								LightManager::GetSingleton()->AddLights(ref.get(), baseObject, rootNode);

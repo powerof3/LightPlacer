@@ -124,7 +124,7 @@ namespace Hooks::Update
 		static void thunk(RE::NiSwitchNode* a_this, RE::NiUpdateData& a_data, std::uint32_t a_arg2)
 		{
 			// game function doesn't hardcode 2 children
-			
+
 			auto switch_idx = a_this->index;
 			for (std::uint16_t i = 0; i < a_this->children.size(); ++i) {
 				if (const auto node = a_this->children[i].get()) {
