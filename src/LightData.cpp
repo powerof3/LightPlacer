@@ -81,22 +81,13 @@ std::string LightData::GetNodeName(RE::NiAVObject* a_obj, const std::string& pat
 	return std::format("{}[{}|{}({},{},{})]#{}", LP_NODE, path, a_obj->name.c_str(), pos.x + offset.x, pos.y + offset.y, pos.z + offset.z, a_index);
 }
 
-bool LightData::IsDynamicLight(const RE::TESObjectREFR* a_ref) const
+bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
 {
 	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || GetCastsShadows()) {
 		return true;
 	}
 
-	if (a_ref) {
-		if (a_ref->IsActor()) {
-			return true;
-		}
-		if (const auto baseObject = a_ref->GetBaseObject(); baseObject && baseObject->IsInventoryObject()) {
-			return true;
-		}
-	}
-
-	return false;
+	return a_ref->IsActor() || a_ref->CanBeMoved();
 }
 
 RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_view a_debugMarkerName) const
@@ -224,7 +215,7 @@ float LightData::GetNearDistance() const
 	return GetCastsShadows() ? light->data.nearDistance : 5.0f;
 }
 
-RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(const RE::TESObjectREFR* a_ref) const
+RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR* a_ref) const
 {
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS params{};
 	params.dynamic = IsDynamicLight(a_ref);

@@ -203,9 +203,6 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 			});
 			return a_clearData;
 		});
-		if (a_clearData) {
-			mobileLights.erase(handle);
-		}
 	} else {
 		gameRefLights.erase_if(handle, [&](auto& map) {
 			map.second.RemoveLights(a_clearData);
@@ -463,10 +460,9 @@ void LightManager::ProcessCollectedLights(const SourceAttachData& a_srcAttachDat
 			const LIGH::LightDefinitionPtr lightDefPtr{ group, std::addressof(lightDef) };
 
 			if constexpr (std::is_same_v<std::decay_t<decltype(groups)>, std::vector<Config::PointPlacementPtr>>) {
-				const bool switchNodeCulled = RE::IsUnderInactiveSwitchNode(a_srcAttachData.attachNode);
 				for (const auto& [i, point] : std::views::enumerate(entries)) {
 					if (auto node = lightDef.GetOrCreateNode(a_srcAttachData.attachNode, point, *path, LP_INDEX)) {
-						AttachLight(lightDefPtr, a_srcAttachData, node, *path, LP_INDEX, switchNodeCulled);
+						AttachLight(lightDefPtr, a_srcAttachData, node, *path, LP_INDEX, false);
 					}
 					++LP_INDEX;
 				}
@@ -478,7 +474,7 @@ void LightManager::ProcessCollectedLights(const SourceAttachData& a_srcAttachDat
 					}
 				}
 				for (const auto& [i, node] : std::views::enumerate(nodeVec)) {
-					const bool switchNodeCulled = RE::IsUnderInactiveSwitchNode(node);
+					const bool switchNodeCulled = RE::IsUnderInactiveSwitchNode(node, a_srcAttachData.attachNode);
 					if (auto lightNode = lightDef.GetOrCreateNode(a_srcAttachData.attachNode, node, *path, LP_INDEX)) {
 						AttachLight(lightDefPtr, a_srcAttachData, lightNode, *path, LP_INDEX, switchNodeCulled);
 					}
@@ -525,9 +521,9 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 				EmplaceLightImpl(gameRefLights, handle, a_lightDef, lightInstance, ref);
 
 				bool hasEmittance = PlacedLight::GetEmittanceForm(a_lightDef, ref) != nullptr;
-				lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle, hasEmittance), [&](auto& lightsToUpdate) {
-					lightsToUpdate.second.emplace(handle, hasEmittance);
-				});
+					lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle, hasEmittance), [&](auto& lightsToUpdate) {
+						lightsToUpdate.second.emplace(handle, hasEmittance);
+					});
 			}
 		}
 		break;
@@ -535,7 +531,6 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 		{
 			auto updateFunc = [&](auto& map) {
 				EmplaceLightImpl(map.second, a_srcData.nodeName, a_lightDef, lightInstance, ref);
-				mobileLights.insert(handle);
 			};
 
 			gameActorWornLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
@@ -612,17 +607,6 @@ void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 		});
 	});
 
-	mobileLights.erase_if([&](const auto& handle) {
-		RE::TESObjectREFRPtr ref;
-		if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
-			return true;
-		}
-		if (ref->GetParentCell() == a_cell) {
-			refrsToUpdate.emplace_back(handle, std::move(ref));
-		}
-		return false;
-	});
-
 	PlacedLights::UpdateParams params;
 	params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 	params.delta = RE::BSTimer::GetSingleton()->delta;
@@ -667,7 +651,9 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 
 void LightManager::RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle)
 {
-	if (a_handle.native_handle() == 0) {
+	const auto handle = a_handle.native_handle();
+	
+	if (handle == 0) {
 		return;
 	}
 

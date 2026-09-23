@@ -166,6 +166,5 @@ private:
 	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameExplosionLights;
 
 	ConcurrentMap<RE::FormID, LightsToUpdate> lightsToBeUpdated;
-	ConcurrentSet<RE::RefHandle>              mobileLights;  // lights that can move across cells
 	std::optional<bool>                       lastCellWasInterior;
 };

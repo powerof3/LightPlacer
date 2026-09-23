@@ -99,9 +99,9 @@ struct LightData
 	float                                    GetNearDistance() const;
 	std::string                              GetNodeName(const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const;
 	std::string                              GetNodeName(RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const;
-	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(const RE::TESObjectREFR* a_ref) const;
+	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS GetParams(RE::TESObjectREFR* a_ref) const;
 	bool                                     GetPortalStrict() const;
-	bool                                     IsDynamicLight(const RE::TESObjectREFR* a_ref) const;
+	bool                                     IsDynamicLight(RE::TESObjectREFR* a_ref) const;
 	bool                                     IsValid() const;
 
 	LightInstance GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;  // [bsLight, niLight, debugMarker]

@@ -132,17 +132,14 @@ namespace RE
 		return file && (strcmp(file->fileName, "DynDOLOD.esm") == 0 || strcmp(file->fileName, "DynDOLOD.esp") == 0);
 	}
 
-	bool IsUnderInactiveSwitchNode(NiAVObject* a_obj)
+	bool IsUnderInactiveSwitchNode(NiAVObject* a_obj, const NiAVObject* a_attachNode)
 	{
-		for (auto* child = a_obj; child && child->parent; child = child->parent) {
+		for (auto child = a_obj; child && child != a_attachNode && child->parent; child = child->parent) {
 			const auto switchNode = child->parent->AsSwitchNode();
 			if (!switchNode) {
 				continue;
 			}
-			if (switchNode->index < 0 || switchNode->index >= switchNode->children.size()) {
-				continue;
-			}
-			if (switchNode->children[static_cast<std::uint16_t>(switchNode->index)].get() != child) {
+			if (switchNode->index < 0 || switchNode->index >= switchNode->children.size() || switchNode->children[static_cast<std::uint16_t>(switchNode->index)].get() != child) {
 				return true;
 			}
 		}

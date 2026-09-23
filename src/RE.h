@@ -96,7 +96,7 @@ namespace RE
 	NiNode*         GetCastingArtNode(ActorMagicCaster* a_actorMagicCaster);
 	NiAVObject*     GetObjectByName(RE::NiAVObject* a_root, std::string_view a_name);
 	bool            IsDynDOLODForm(const TESObjectREFR* a_ref);
-	bool            IsUnderInactiveSwitchNode(NiAVObject* a_obj);
+	bool            IsUnderInactiveSwitchNode(NiAVObject* a_obj, const NiAVObject* a_attachNode);
 	float           NiSinQImpl(float a_value);
 	float           NiCosQImpl(float a_value);
 	float           NiSinQ(float a_radians);
