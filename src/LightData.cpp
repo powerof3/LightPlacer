@@ -13,14 +13,9 @@ void LightInstance::CullLight(bool a_hide, LIGHT_CULL_FLAGS a_flags) const
 	LightData::CullLight(niLight.get(), debugMarker.get(), a_hide, a_flags);
 }
 
-bool LightInstance::DimLight(const float a_dimmer) const
+void LightInstance::DimLight(const float a_dimmer) const
 {
-	if (a_dimmer < 1.0f) {
-		niLight->fade *= a_dimmer;
-		return true;
-	}
-
-	return false;
+	niLight->fade *= a_dimmer;
 }
 
 void LightInstance::ReattachLight() const

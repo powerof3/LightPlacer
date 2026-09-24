@@ -99,8 +99,11 @@ struct PlacedLights
 	void UpdateLightsAndRef(const UpdateParams& a_params);
 	void UpdateEmittance(RE::TESObjectCELL* a_cell) const;
 
+	float GetDimFactor(bool a_finished, float a_age, float a_lifetime);
+
 	// members
 	float                                       lastUpdateTime{ std::numeric_limits<float>::max() };
+	float                                       finishedLifetime{ -1.0f };
 	std::vector<PlacedLight>                    lights;
 	std::unique_ptr<PlacedLight::NodeVisHelper> nodeVisHelper{};
 };

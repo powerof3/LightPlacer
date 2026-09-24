@@ -67,12 +67,13 @@ struct LightInstance
 
 	const RE::NiPointer<RE::NiPointLight>& GetLight() const;
 
-	void CullLight(bool a_hide, LIGHT_CULL_FLAGS a_flags) const;
-	bool DimLight(float a_dimmer) const;
-	void ReattachLight() const;
-	void RemoveLight(bool a_clearData) const;
-	void ShowDebugMarker() const;
-	void HideDebugMarker() const;
+	void        CullLight(bool a_hide, LIGHT_CULL_FLAGS a_flags) const;
+	static bool IsDimming(float a_dimmer) { return a_dimmer < 1.0f; }
+	void        DimLight(float a_dimmer) const;
+	void        ReattachLight() const;
+	void        RemoveLight(bool a_clearData) const;
+	void        ShowDebugMarker() const;
+	void        HideDebugMarker() const;
 
 	// members
 	RE::NiPointer<RE::BSLight>      bsLight{};

@@ -145,26 +145,13 @@ void LightManager::UpdateReferenceEffectLights(RE::ReferenceEffect* a_effect)
 			return;
 		}
 
-		bool singleSequence = false;
-
-		if (auto modelEffect = a_effect->As<RE::ModelReferenceEffect>()) {
-			const auto artObj = modelEffect->artObject3D;
-			const auto controllers = artObj ? artObj->GetControllers() : nullptr;
-			const auto manager = controllers ? controllers->AsNiControllerManager() : nullptr;
-
-			singleSequence = manager && manager->sequenceArray.size() == 1;
-		}
-
-		constexpr auto MAX_WAIT_TIME = 3.0f;
-		const float    dimFactor = !singleSequence && a_effect->finished ?
-		                               std::clamp((a_effect->lifetime + MAX_WAIT_TIME - a_effect->age) / MAX_WAIT_TIME, 0.0f, 1.0f) :
-		                               std::numeric_limits<float>::max();
+		auto& placedLights = map.second;
 
 		PlacedLights::UpdateParams params;
 		params.ref = ref.get();
 		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 		params.delta = RE::BSTimer::GetSingleton()->delta;
-		params.dimFactor = dimFactor;
+		params.dimFactor = placedLights.GetDimFactor(a_effect->finished, a_effect->age, a_effect->lifetime);
 
 		map.second.UpdateLightsAndRef(params);
 	});
@@ -175,16 +162,13 @@ void LightManager::UpdateHazardLights(RE::Hazard* a_hazard)
 	auto handle = a_hazard->CreateRefHandle().native_handle();
 
 	gameHazardLights.visit(handle, [&](auto& map) {
+		auto& placedLights = map.second;
+		
 		PlacedLights::UpdateParams params;
 		params.ref = a_hazard;
 		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 		params.delta = RE::BSTimer::GetSingleton()->delta;
-
-		constexpr auto MAX_WAIT_TIME = 3.0f;
-		const float    dimFactor = a_hazard->flags.any(RE::Hazard::Flags::kShuttingDown) ?
-		                               (a_hazard->lifetime + MAX_WAIT_TIME - a_hazard->age) / MAX_WAIT_TIME :
-		                               std::numeric_limits<float>::max();
-		params.dimFactor = dimFactor;
+		params.dimFactor = placedLights.GetDimFactor(a_hazard->flags.any(RE::Hazard::Flags::kShuttingDown), a_hazard->age, a_hazard->lifetime);
 
 		map.second.UpdateLightsAndRef(params);
 	});
@@ -290,7 +274,7 @@ void LightManager::DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObj
 		return;
 	}
 
-	auto handle = a_handle.native_handle();
+	const auto handle = a_handle.native_handle();
 
 	gameActorWornLights.visit(handle, [&](auto& map) {
 		map.second.erase_if(a_root->name.c_str(), [&](auto& nodeMap) {

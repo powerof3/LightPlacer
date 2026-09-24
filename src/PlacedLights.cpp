@@ -360,19 +360,32 @@ void PlacedLights::UpdateLightsAndRef(const UpdateParams& a_params)
 
 	const bool  withinFlickerDistance = a_params.ref->GetPosition().GetSquaredDistance(a_params.pcPos) < 67108864.0f;  // 8192.0f * 8192.0f
 	const float scale = withinFlickerDistance ? a_params.ref->GetScale() : 1.0f;
+	const bool  dimming = LightInstance::IsDimming(a_params.dimFactor);
 
 	for (auto& placedLight : lights) {
 		auto& niLight = placedLight.GetLight();
 
-		if (!niLight || placedLight.instance.DimLight(a_params.dimFactor)) {
+		if (!niLight) {
 			continue;
 		}
 
 		placedLight.UpdateConditions(a_params.ref, nodeVisHelper, conditionUpdateFlags);
 
-		if (!niLight->GetAppCulled() && withinFlickerDistance) {
+		if (niLight->GetAppCulled()) {
+			continue;
+		}
+
+		if (dimming) {
+			niLight->fade = placedLight.GetData().GetScaledFade(scale);
+		}
+
+		if (withinFlickerDistance) {
 			placedLight.UpdateAnimation(a_params.delta, scale);
 			placedLight.UpdateVanillaFlickering(a_params.delta, scale);
+		}
+
+		if (dimming) {
+			placedLight.instance.DimLight(a_params.dimFactor);
 		}
 	}
 
@@ -386,4 +399,21 @@ void PlacedLights::UpdateEmittance(RE::TESObjectCELL* a_cell) const
 	for (auto& light : lights) {
 		light.UpdateEmittance(a_cell);
 	}
+}
+
+float PlacedLights::GetDimFactor(bool a_finished, float a_age, float a_lifetime)
+{
+	constexpr auto MAX_WAIT_TIME = 3.0f;
+
+	if (!a_finished) {
+		finishedLifetime = -1.0f; 
+		return 1.0f;
+	}
+	if (finishedLifetime < 0.0f) {
+		finishedLifetime = a_age;
+	}
+
+	const bool  hasLifetime = a_lifetime < std::numeric_limits<float>::max();
+	const float fadeStart = hasLifetime ? a_lifetime : finishedLifetime;
+	return std::clamp(1.0f - (a_age - fadeStart) / MAX_WAIT_TIME, 0.0f, 1.0f);
 }
