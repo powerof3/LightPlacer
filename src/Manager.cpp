@@ -163,7 +163,7 @@ void LightManager::UpdateHazardLights(RE::Hazard* a_hazard)
 
 	gameHazardLights.visit(handle, [&](auto& map) {
 		auto& placedLights = map.second;
-		
+
 		PlacedLights::UpdateParams params;
 		params.ref = a_hazard;
 		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
