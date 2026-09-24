@@ -9,6 +9,7 @@ set(sources ${sources}
 	src/Hooks/Update.cpp
 	src/LightControllers.cpp
 	src/LightData.cpp
+	src/LightsToUpdate.cpp
 	src/Manager.cpp
 	src/PCH.cpp
 	src/Papyrus.cpp

@@ -145,10 +145,7 @@ void PlacedLight::UpdateConditions(RE::TESObjectREFR* a_ref, std::unique_ptr<Nod
 	if (lastVisibleState != isVisible) {
 		lastVisibleState = isVisible;
 
-		auto& niLight = GetLight();
-		auto& debugMarker = instance.debugMarker;
-
-		LightData::CullLight(niLight.get(), debugMarker.get(), !isVisible, LIGHT_CULL_FLAGS::Conditions);
+		instance.CullLight(!isVisible, LIGHT_CULL_FLAGS::Conditions);
 
 		if (!a_nodeVisHelper) {
 			a_nodeVisHelper = std::make_unique<NodeVisHelper>();
@@ -289,10 +286,7 @@ void PlacedLights::ShowDebugMarkers(bool a_show) const
 void PlacedLights::ToggleLights(bool a_toggle, LIGHT_CULL_FLAGS a_flags) const
 {
 	for (auto& light : lights) {
-		if (auto& niLight = light.GetLight()) {
-			auto& debugMarker = light.instance.debugMarker;
-			LightData::CullLight(niLight.get(), debugMarker.get(), a_toggle, a_flags);
-		}
+		light.instance.CullLight(a_toggle, a_flags);
 	}
 }
 
@@ -300,7 +294,7 @@ bool PlacedLights::GetLightsToggled(LIGHT_CULL_FLAGS a_flags) const
 {
 	for (auto& light : lights) {
 		if (auto& niLight = light.GetLight()) {
-			if (niLight->GetAppCulled() && ((uint32_t)LightData::GetCulledFlag(niLight.get()) & (uint32_t)a_flags) != 0) {
+			if (niLight->GetAppCulled() && (static_cast<uint32_t>(LightData::GetCulledFlag(niLight.get())) & static_cast<uint32_t>(a_flags)) != 0) {
 				return true;
 			}
 		}
@@ -392,33 +386,4 @@ void PlacedLights::UpdateEmittance(RE::TESObjectCELL* a_cell) const
 	for (auto& light : lights) {
 		light.UpdateEmittance(a_cell);
 	}
-}
-
-LightsToUpdate::LightsToUpdate(RE::RefHandle a_handle)
-{
-	emplace(a_handle);
-}
-
-LightsToUpdate::LightsToUpdate(RE::RefHandle a_handle, bool a_updateEmittance)
-{
-	emplace(a_handle, a_updateEmittance);
-}
-
-void LightsToUpdate::emplace(RE::RefHandle a_handle, bool a_updateEmittance)
-{
-	updatingLights.emplace(a_handle);
-	if (a_updateEmittance) {
-		emittanceLights.emplace(a_handle);
-	}
-}
-
-void LightsToUpdate::emplace(RE::RefHandle a_handle)
-{
-	updatingLights.emplace(a_handle);
-}
-
-void LightsToUpdate::erase(RE::RefHandle a_handle)
-{
-	updatingLights.erase(a_handle);
-	emittanceLights.erase(a_handle);
 }

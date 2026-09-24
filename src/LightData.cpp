@@ -8,6 +8,11 @@ const RE::NiPointer<RE::NiPointLight>& LightInstance::GetLight() const
 	return niLight;
 }
 
+void LightInstance::CullLight(bool a_hide, LIGHT_CULL_FLAGS a_flags) const
+{
+	LightData::CullLight(niLight.get(), debugMarker.get(), a_hide, a_flags);
+}
+
 bool LightInstance::DimLight(const float a_dimmer) const
 {
 	if (a_dimmer < 1.0f) {
@@ -60,59 +65,6 @@ void LightInstance::HideDebugMarker() const
 	}
 }
 
-bool LightData::IsValid() const
-{
-	return light != nullptr;
-}
-
-std::string LightData::GetDebugMarkerName(std::string_view a_lightName)
-{
-	return std::format("{}[{}]", LP_DEBUG, a_lightName);
-}
-
-std::string LightData::GetNodeName(const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const
-{
-	return std::format("{}[{}|{},{},{}]#{}", LP_NODE, path, a_point.x + offset.x, a_point.y + offset.y, a_point.z + offset.z, a_index);
-}
-
-std::string LightData::GetNodeName(RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const
-{
-	const auto& pos = a_obj->local.translate;
-	return std::format("{}[{}|{}({},{},{})]#{}", LP_NODE, path, a_obj->name.c_str(), pos.x + offset.x, pos.y + offset.y, pos.z + offset.z, a_index);
-}
-
-bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
-{
-	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || GetCastsShadows()) {
-		return true;
-	}
-
-	return a_ref->IsActor() || a_ref->CanBeMoved();
-}
-
-RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_view a_debugMarkerName) const
-{
-	if (!Settings::GetSingleton()->LoadDebugMarkers()) {
-		return nullptr;
-	}
-
-	RE::NiNodePtr                               loadedModel;
-	constexpr RE::BSModelDB::DBTraits::ArgsType args{};
-
-	const auto create_params = GetDebugMarkerParams();
-
-	if (const auto error = Demand(create_params.modelName, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
-		if (const auto clonedModel = netimmerse_cast<RE::NiAVObject*>(loadedModel->Clone())) {
-			loadedModel.reset();
-			PostProcessDebugMarker(clonedModel, create_params, a_debugMarkerName);
-			RE::AttachNode(a_node, clonedModel);
-			return clonedModel;
-		}
-	}
-
-	return nullptr;
-}
-
 bool LightData::GetCastsShadows() const
 {
 	return flags.any(LIGHT_FLAGS::Shadow) /*|| light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow)*/;
@@ -134,13 +86,6 @@ float LightData::GetFade() const
 	return (fade > 0.0f ? fade : light->fade) * Settings::GetSingleton()->GetGlobalLightFadeMult();
 }
 
-float LightData::GetScaledValue(float a_value, float a_scale) const
-{
-	return flags.any(LIGHT_FLAGS::IgnoreScale) ?
-	           a_value :
-	           a_value * a_scale;
-}
-
 float LightData::GetScaledRadius(float a_scale) const
 {
 	return GetScaledValue(GetRadius(), a_scale);
@@ -149,6 +94,13 @@ float LightData::GetScaledRadius(float a_scale) const
 float LightData::GetScaledFade(float a_scale) const
 {
 	return GetScaledValue(GetFade(), a_scale);
+}
+
+float LightData::GetScaledValue(float a_value, float a_scale) const
+{
+	return flags.any(LIGHT_FLAGS::IgnoreScale) ?
+		       a_value :
+		       a_value * a_scale;
 }
 
 float LightData::GetFOV() const
@@ -215,6 +167,17 @@ float LightData::GetNearDistance() const
 	return GetCastsShadows() ? light->data.nearDistance : 5.0f;
 }
 
+std::string LightData::GetNodeName(const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const
+{
+	return std::format("{}[{}|{},{},{}]#{}", LP_NODE, path, a_point.x + offset.x, a_point.y + offset.y, a_point.z + offset.z, a_index);
+}
+
+std::string LightData::GetNodeName(RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const
+{
+	const auto& pos = a_obj->local.translate;
+	return std::format("{}[{}|{}({},{},{})]#{}", LP_NODE, path, a_obj->name.c_str(), pos.x + offset.x, pos.y + offset.y, pos.z + offset.z, a_index);
+}
+
 RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR* a_ref) const
 {
 	RE::ShadowSceneNode::LIGHT_CREATE_PARAMS params{};
@@ -237,6 +200,20 @@ RE::ShadowSceneNode::LIGHT_CREATE_PARAMS LightData::GetParams(RE::TESObjectREFR*
 bool LightData::GetPortalStrict() const
 {
 	return flags.any(LIGHT_FLAGS::PortalStrict) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kPortalStrict);
+}
+
+bool LightData::IsDynamicLight(RE::TESObjectREFR* a_ref) const
+{
+	if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kDynamic) || GetCastsShadows()) {
+		return true;
+	}
+
+	return a_ref->IsActor() || a_ref->CanBeMoved();
+}
+
+bool LightData::IsValid() const
+{
+	return light != nullptr;
 }
 
 LightInstance LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const
@@ -291,6 +268,34 @@ LightInstance LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, 
 	}
 
 	return { bsLight, niLight, debugMarker };
+}
+
+std::string LightData::GetDebugMarkerName(std::string_view a_lightName)
+{
+	return std::format("{}[{}]", LP_DEBUG, a_lightName);
+}
+
+RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_view a_debugMarkerName) const
+{
+	if (!Settings::GetSingleton()->LoadDebugMarkers()) {
+		return nullptr;
+	}
+
+	RE::NiNodePtr                               loadedModel;
+	constexpr RE::BSModelDB::DBTraits::ArgsType args{};
+
+	const auto create_params = GetDebugMarkerParams();
+
+	if (const auto error = Demand(create_params.modelName, loadedModel, args); error == RE::BSResource::ErrorCode::kNone) {
+		if (const auto clonedModel = netimmerse_cast<RE::NiAVObject*>(loadedModel->Clone())) {
+			loadedModel.reset();
+			PostProcessDebugMarker(clonedModel, create_params, a_debugMarkerName);
+			RE::AttachNode(a_node, clonedModel);
+			return clonedModel;
+		}
+	}
+
+	return nullptr;
 };
 
 LIGHT_CULL_FLAGS LightData::GetCulledFlag(RE::NiPointLight* a_light)
@@ -300,10 +305,14 @@ LIGHT_CULL_FLAGS LightData::GetCulledFlag(RE::NiPointLight* a_light)
 
 void LightData::CullLight(RE::NiPointLight* a_light, RE::NiAVObject* a_debugMarker, bool a_hide, LIGHT_CULL_FLAGS a_flags)
 {
+	if (!a_light) {
+		return;
+	}
+
 	constexpr std::uint32_t CULL_MASK = 0xFF000000;
 
-	std::uint32_t       bits = std::bit_cast<std::uint32_t>(a_light->ambient.red);
-	const std::uint32_t flagBits = static_cast<std::uint32_t>(std::to_underlying(a_flags)) << 24;
+	auto       bits = std::bit_cast<std::uint32_t>(a_light->ambient.red);
+	const auto flagBits = static_cast<std::uint32_t>(std::to_underlying(a_flags)) << 24;
 
 	if (a_hide) {
 		bits |= flagBits;
@@ -414,6 +423,11 @@ bool LIGH::LightDefinition::HasControllers() const
 	return positionController || rotationController || colorController || radiusController || fadeController;
 }
 
+bool LIGH::LightDefinition::RequireUpdates() const
+{
+	return data.conditions || HasControllers() || !data.light->GetNoFlicker();
+}
+
 RE::NiNode* LIGH::LightDefinition::GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const
 {
 	if (a_root) {
@@ -511,4 +525,18 @@ std::string LIGH::LightDefinition::GetLightName(const SourceAttachData& a_srcDat
 	}
 
 	return std::format("{}[{}|{}]#{}", LightData::LP_LIGHT, path, lightEDID, a_index);
+}
+
+RE::TESForm* LIGH::LightDefinition::GetEmittanceForm(const RE::TESObjectREFRPtr& a_ref) const
+{
+	if (data.emittanceForm) {
+		return data.emittanceForm;
+	}
+
+	if (data.flags.none(LIGHT_FLAGS::NoExternalEmittance)) {
+		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
+		return xData ? xData->source : nullptr;
+	}
+
+	return nullptr;
 }

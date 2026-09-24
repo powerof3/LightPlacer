@@ -87,61 +87,6 @@ void LightManager::ReloadConfigs()
 	ProcessConfigs();
 }
 
-void LightManager::ProcessConfigs()
-{
-	REX::INFO("{:*^50}", "PROCESSING");
-
-	REX::FTimer timer;
-	timer.Start();
-
-	constexpr auto make_shared_lights = [](Config::LightEntries& a_lights) {
-		Config::LightEntryGroup vec;
-		vec.reserve(a_lights.size());
-		for (auto& light : a_lights) {
-			vec.emplace_back(std::make_shared<const Config::LightEntry>(std::move(light)));
-		}
-		a_lights.clear();
-		return vec;
-	};
-
-	for (auto& [path, config] : configs) {
-		const auto sharedPath = std::make_shared<const std::string>(path);
-
-		for (auto& multiData : config) {
-			std::visit(overload{
-						   [&](Config::MultiModelSet& models) {
-							   PostProcess(models.lights, sharedPath);
-							   if (models.lights.empty()) {
-								   return;
-							   };
-							   const auto shared = make_shared_lights(models.lights);
-							   for (auto& str : models.models) {
-								   gameModels[str].append_range(shared);
-							   }
-						   },
-						   [&](Config::MultiFormIDSet& formIDs) {
-							   PostProcess(formIDs.lights, sharedPath);
-							   if (formIDs.lights.empty()) {
-								   return;
-							   };
-							   const auto shared = make_shared_lights(formIDs.lights);
-							   for (auto& rawID : formIDs.formIDs) {
-								   if (auto formID = RE::GetFormID(rawID); formID != 0) {
-									   gameFormIDs[formID].append_range(shared);
-								   }
-							   }
-						   },
-						   [&](const Config::MultiAddonSet&) {
-						   } },
-				multiData);
-		}
-	}
-
-	timer.Stop();
-	REX::INFO("Processing time taken: {}", timer.GetDurationString_ms());
-	configs.clear();
-}
-
 std::vector<RE::TESObjectREFRPtr> LightManager::GetLightAttachedRefs()
 {
 	std::vector<RE::TESObjectREFRPtr> refs;
@@ -192,6 +137,72 @@ void LightManager::ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* 
 	});
 }
 
+void LightManager::UpdateReferenceEffectLights(RE::ReferenceEffect* a_effect)
+{
+	gameReferenceEffectLights.visit(a_effect->effectID, [&](auto& map) {
+		const auto ref = a_effect->target.get();
+		if (!ref) {
+			return;
+		}
+
+		bool singleSequence = false;
+
+		if (auto modelEffect = a_effect->As<RE::ModelReferenceEffect>()) {
+			const auto artObj = modelEffect->artObject3D;
+			const auto controllers = artObj ? artObj->GetControllers() : nullptr;
+			const auto manager = controllers ? controllers->AsNiControllerManager() : nullptr;
+
+			singleSequence = manager && manager->sequenceArray.size() == 1;
+		}
+
+		constexpr auto MAX_WAIT_TIME = 3.0f;
+		const float    dimFactor = !singleSequence && a_effect->finished ?
+			                           std::clamp((a_effect->lifetime + MAX_WAIT_TIME - a_effect->age) / MAX_WAIT_TIME, 0.0f, 1.0f) :
+			                           std::numeric_limits<float>::max();
+
+		PlacedLights::UpdateParams params;
+		params.ref = ref.get();
+		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+		params.delta = RE::BSTimer::GetSingleton()->delta;
+		params.dimFactor = dimFactor;
+
+		map.second.UpdateLightsAndRef(params);
+	});
+}
+
+void LightManager::UpdateHazardLights(RE::Hazard* a_hazard)
+{
+	auto handle = a_hazard->CreateRefHandle().native_handle();
+
+	gameHazardLights.visit(handle, [&](auto& map) {
+		PlacedLights::UpdateParams params;
+		params.ref = a_hazard;
+		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+		params.delta = RE::BSTimer::GetSingleton()->delta;
+
+		constexpr auto MAX_WAIT_TIME = 3.0f;
+		const float    dimFactor = a_hazard->flags.any(RE::Hazard::Flags::kShuttingDown) ?
+			                           (a_hazard->lifetime + MAX_WAIT_TIME - a_hazard->age) / MAX_WAIT_TIME :
+			                           std::numeric_limits<float>::max();
+		params.dimFactor = dimFactor;
+
+		map.second.UpdateLightsAndRef(params);
+	});
+}
+
+void LightManager::UpdateExplosionLights(RE::Explosion* a_explosion)
+{
+	auto handle = a_explosion->CreateRefHandle().native_handle();
+
+	gameExplosionLights.visit(handle, [&](auto& map) {
+		PlacedLights::UpdateParams params;
+		params.ref = a_explosion;
+		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+		params.delta = RE::BSTimer::GetSingleton()->delta;
+		map.second.UpdateLightsAndRef(params);
+	});
+}
+
 void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 {
 	auto handle = a_ref->CreateRefHandle().native_handle();
@@ -208,6 +219,10 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 			map.second.RemoveLights(a_clearData);
 			return a_clearData;
 		});
+	}
+
+	if (a_clearData) {
+		lightsToBeUpdated.Remove(handle);
 	}
 }
 
@@ -358,6 +373,37 @@ void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 	AttachLightsImpl(srcData, art->GetFormID());
 }
 
+void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta)
+{
+	if (a_actorMagicCaster->flags.none(RE::ActorMagicCaster::Flags::kCastingArtAttached)) {
+		return;
+	}
+
+	const auto& root = RE::GetCastingArtNode(a_actorMagicCaster);
+	if (!root) {
+		return;
+	}
+
+	auto actor = a_actorMagicCaster->GetCasterAsActor();
+	if (!actor) {
+		return;
+	}
+
+	auto handle = actor->CreateRefHandle().native_handle();
+	auto castingSrc = std::to_underlying(a_actorMagicCaster->castingSource);
+
+	gameActorMagicLights.visit(handle, [&](auto& map) {
+		PlacedLights::UpdateParams params;
+		params.ref = actor;
+		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+		params.delta = a_delta;
+
+		map.second.visit(castingSrc, [&](auto& placedLights) {
+			placedLights.second.UpdateLightsAndRef(params);
+		});
+	});
+}
+
 void LightManager::DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 {
 	const auto& root = RE::GetCastingArtNode(a_actorMagicCaster);
@@ -375,6 +421,130 @@ void LightManager::DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 		});
 		map.second.erase(castingSrc);
 	});
+}
+
+void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
+{
+	const auto                                                  cellFormID = a_cell->GetFormID();
+	std::vector<std::pair<RE::RefHandle, RE::TESObjectREFRPtr>> refrsToUpdate;
+
+	for (const auto handle : lightsToBeUpdated.GetRefs(cellFormID)) {
+		RE::TESObjectREFRPtr ref;
+		if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
+			lightsToBeUpdated.Remove(handle, cellFormID);
+			continue;
+		}
+		refrsToUpdate.emplace_back(handle, std::move(ref));
+	}
+
+	if (refrsToUpdate.empty()) {
+		return;
+	}
+
+	PlacedLights::UpdateParams params;
+	params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
+	params.delta = RE::BSTimer::GetSingleton()->delta;
+
+	for (const auto& [handle, ref] : refrsToUpdate) {
+		if (!ref) {
+			continue;
+		}
+
+		params.ref = ref.get();
+
+		ForEachLightMutable(ref.get(), handle, [&](const auto& a_nodeName, auto& placedLight) {
+			params.nodeName = a_nodeName;
+			placedLight.UpdateLightsAndRef(params);
+			return true;
+		});
+	}
+}
+
+void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
+{
+	const auto                 cellFormID = a_cell->GetFormID();
+	std::vector<RE::RefHandle> handlesToUpdate;
+
+	for (const auto handle : lightsToBeUpdated.GetEmittanceRefs(cellFormID)) {
+		RE::TESObjectREFRPtr ref;
+		if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
+			lightsToBeUpdated.Remove(handle, cellFormID);
+			continue;
+		}
+		handlesToUpdate.push_back(handle);
+	}
+
+	for (const auto& handle : handlesToUpdate) {
+		gameRefLights.cvisit(handle, [&](const auto& entry) {
+			entry.second.UpdateEmittance(a_cell);
+		});
+	}
+}
+
+void LightManager::RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle)
+{
+	const RE::TESObjectREFRPtr ref = a_handle.get();
+	if (!ref || !ref->CanBeMoved()) {
+		lightsToBeUpdated.Remove(a_handle.native_handle(), a_cell->GetFormID());
+		return;
+	}
+
+	lightsToBeUpdated.Move(a_handle.native_handle(), LightsToUpdate::GetCellID(ref->GetParentCell()));
+}
+
+void LightManager::ProcessConfigs()
+{
+	REX::INFO("{:*^50}", "PROCESSING");
+
+	REX::FTimer timer;
+	timer.Start();
+
+	constexpr auto make_shared_lights = [](Config::LightEntries& a_lights) {
+		Config::LightEntryGroup vec;
+		vec.reserve(a_lights.size());
+		for (auto& light : a_lights) {
+			vec.emplace_back(std::make_shared<const Config::LightEntry>(std::move(light)));
+		}
+		a_lights.clear();
+		return vec;
+	};
+
+	for (auto& [path, config] : configs) {
+		const auto sharedPath = std::make_shared<const std::string>(path);
+
+		for (auto& multiData : config) {
+			std::visit(overload{
+					[&](Config::MultiModelSet& models) {
+						PostProcess(models.lights, sharedPath);
+						if (models.lights.empty()) {
+							return;
+						};
+						const auto shared = make_shared_lights(models.lights);
+						for (auto& str : models.models) {
+							gameModels[str].append_range(shared);
+						}
+					},
+					[&](Config::MultiFormIDSet& formIDs) {
+						PostProcess(formIDs.lights, sharedPath);
+						if (formIDs.lights.empty()) {
+							return;
+						};
+						const auto shared = make_shared_lights(formIDs.lights);
+						for (auto& rawID : formIDs.formIDs) {
+							if (auto formID = RE::GetFormID(rawID); formID != 0) {
+								gameFormIDs[formID].append_range(shared);
+							}
+						}
+					},
+					[&](const Config::MultiAddonSet&) {
+					} },
+				multiData);
+		}
+	}
+
+	timer.Stop();
+	REX::INFO("Processing time taken: {}", timer.GetDurationString_ms());
+	configs.clear();
 }
 
 void LightManager::AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_formID)
@@ -410,16 +580,16 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_fo
 void LightManager::CollectValidLights(const SourceAttachData& a_srcData, const Config::LightEntryPtr& a_lightEntry, std::vector<Config::PointPlacementPtr>& a_collectedPoints, std::vector<Config::NodePlacementPtr>& a_collectedNodes)
 {
 	std::visit(overload{
-				   [&](const Config::PointEntry& pointEntry) {
-					   if (!pointEntry.filter.IsInvalid(a_srcData)) {
-						   a_collectedPoints.emplace_back(a_lightEntry, &pointEntry.data);
-					   }
-				   },
-				   [&](const Config::NodeEntry& nodeEntry) {
-					   if (!nodeEntry.filter.IsInvalid(a_srcData)) {
-						   a_collectedNodes.emplace_back(a_lightEntry, &nodeEntry.data);
-					   }
-				   } },
+			[&](const Config::PointEntry& pointEntry) {
+				if (!pointEntry.filter.IsInvalid(a_srcData)) {
+					a_collectedPoints.emplace_back(a_lightEntry, &pointEntry.data);
+				}
+			},
+			[&](const Config::NodeEntry& nodeEntry) {
+				if (!nodeEntry.filter.IsInvalid(a_srcData)) {
+					a_collectedNodes.emplace_back(a_lightEntry, &nodeEntry.data);
+				}
+			} },
 		*a_lightEntry);
 }
 
@@ -504,7 +674,7 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 	}
 
 	if (a_switchNodeCulled) {
-		LightData::CullLight(lightInstance.niLight.get(), lightInstance.debugMarker.get(), true, LIGHT_CULL_FLAGS::Game);
+		lightInstance.CullLight(true, LIGHT_CULL_FLAGS::Game);
 	}
 
 	auto handle = a_srcData.handle;
@@ -512,39 +682,36 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 
 	switch (a_srcData.type) {
 	case SOURCE_TYPE::kRef:
-		{
-			if (ref->Is(RE::FormType::PlacedHazard)) {
-				EmplaceLightImpl(gameHazardLights, handle, a_lightDef, lightInstance, ref);
-			} else if (ref->AsExplosion()) {
-				EmplaceLightImpl(gameExplosionLights, handle, a_lightDef, lightInstance, ref);
-			} else {
-				EmplaceLightImpl(gameRefLights, handle, a_lightDef, lightInstance, ref);
-
-				bool hasEmittance = PlacedLight::GetEmittanceForm(a_lightDef, ref) != nullptr;
-					lightsToBeUpdated.try_emplace_or_visit(cellFormID, LightsToUpdate(handle, hasEmittance), [&](auto& lightsToUpdate) {
-						lightsToUpdate.second.emplace(handle, hasEmittance);
-					});
-			}
+	{
+		if (ref->Is(RE::FormType::PlacedHazard)) {
+			EmplaceLightImpl(gameHazardLights, handle, a_lightDef, lightInstance, ref);
+		} else if (ref->AsExplosion()) {
+			EmplaceLightImpl(gameExplosionLights, handle, a_lightDef, lightInstance, ref);
+		} else {
+			EmplaceLightImpl(gameRefLights, handle, a_lightDef, lightInstance, ref);
+			lightsToBeUpdated.Add(handle, cellFormID, a_lightDef->RequireUpdates(), a_lightDef->GetEmittanceForm(ref));
 		}
-		break;
+	}
+	break;
 	case SOURCE_TYPE::kActorWorn:
-		{
-			auto updateFunc = [&](auto& map) {
-				EmplaceLightImpl(map.second, a_srcData.nodeName, a_lightDef, lightInstance, ref);
-			};
+	{
+		auto updateFunc = [&](auto& map) {
+			EmplaceLightImpl(map.second, a_srcData.nodeName, a_lightDef, lightInstance, ref);
+		};
 
-			gameActorWornLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
-		}
-		break;
+		gameActorWornLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
+		lightsToBeUpdated.Add(handle, cellFormID, a_lightDef->RequireUpdates(), false);
+	}
+	break;
 	case SOURCE_TYPE::kActorMagic:
-		{
-			auto updateFunc = [&](auto& map) {
-				EmplaceLightImpl(map.second, a_srcData.miscID, a_lightDef, lightInstance, ref);
-			};
+	{
+		auto updateFunc = [&](auto& map) {
+			EmplaceLightImpl(map.second, a_srcData.miscID, a_lightDef, lightInstance, ref);
+		};
 
-			gameActorMagicLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
-		}
-		break;
+		gameActorMagicLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
+	}
+	break;
 	case SOURCE_TYPE::kReferenceEffect:
 		EmplaceLightImpl(gameReferenceEffectLights, a_srcData.miscID, a_lightDef, lightInstance, ref);
 		break;
@@ -588,174 +755,4 @@ RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::TESWaitStopEvent* 
 	}
 
 	return RE::BSEventNotifyControl::kContinue;
-}
-
-void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
-{
-	std::vector<std::pair<RE::RefHandle, RE::TESObjectREFRPtr>> refrsToUpdate;
-
-	lightsToBeUpdated.visit(a_cell->GetFormID(), [&](auto& entry) {
-		auto& [id, data] = entry;
-
-		erase_if(data.updatingLights, [&](const auto& handle) {
-			RE::TESObjectREFRPtr ref;
-			if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
-				return true;
-			}
-			refrsToUpdate.push_back(std::make_pair(handle, std::move(ref)));
-			return false;
-		});
-	});
-
-	PlacedLights::UpdateParams params;
-	params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
-	params.delta = RE::BSTimer::GetSingleton()->delta;
-
-	for (const auto& [handle, ref] : refrsToUpdate) {
-		if (!ref) {
-			continue;
-		}
-
-		params.ref = ref.get();
-
-		ForEachLightMutable(ref.get(), handle, [&](const auto& a_nodeName, auto& placedLight) {
-			params.nodeName = a_nodeName;
-			placedLight.UpdateLightsAndRef(params);
-			return true;
-		});
-	}
-}
-
-void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
-{
-	std::vector<RE::RefHandle> handlesToUpdate;
-
-	lightsToBeUpdated.visit(a_cell->GetFormID(), [&](auto& entry) {
-		auto& lights = entry.second.emittanceLights;
-		erase_if(lights, [&](const auto& handle) {
-			RE::TESObjectREFRPtr ref{};
-			if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
-				return true;
-			}
-			handlesToUpdate.push_back(handle);
-			return false;
-		});
-	});
-
-	for (const auto& handle : handlesToUpdate) {
-		gameRefLights.cvisit(handle, [&](const auto& entry) {
-			entry.second.UpdateEmittance(a_cell);
-		});
-	}
-}
-
-void LightManager::RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle)
-{
-	const auto handle = a_handle.native_handle();
-	
-	if (handle == 0) {
-		return;
-	}
-
-	lightsToBeUpdated.erase_if(a_cell->GetFormID(), [&](auto& map) {
-		map.second.erase(a_handle.native_handle());
-		return map.second.updatingLights.empty() && map.second.emittanceLights.empty();
-	});
-}
-
-void LightManager::UpdateReferenceEffectLights(RE::ReferenceEffect* a_effect)
-{
-	gameReferenceEffectLights.visit(a_effect->effectID, [&](auto& map) {
-		const auto ref = a_effect->target.get();
-		if (!ref) {
-			return;
-		}
-
-		bool singleSequence = false;
-
-		if (auto modelEffect = a_effect->As<RE::ModelReferenceEffect>()) {
-			const auto artObj = modelEffect->artObject3D;
-			const auto controllers = artObj ? artObj->GetControllers() : nullptr;
-			const auto manager = controllers ? controllers->AsNiControllerManager() : nullptr;
-
-			singleSequence = manager && manager->sequenceArray.size() == 1;
-		}
-
-		constexpr auto MAX_WAIT_TIME = 3.0f;
-		const float    dimFactor = !singleSequence && a_effect->finished ?
-		                               std::clamp((a_effect->lifetime + MAX_WAIT_TIME - a_effect->age) / MAX_WAIT_TIME, 0.0f, 1.0f) :
-		                               std::numeric_limits<float>::max();
-
-		PlacedLights::UpdateParams params;
-		params.ref = ref.get();
-		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
-		params.delta = RE::BSTimer::GetSingleton()->delta;
-		params.dimFactor = dimFactor;
-
-		map.second.UpdateLightsAndRef(params);
-	});
-}
-
-void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta)
-{
-	if (a_actorMagicCaster->flags.none(RE::ActorMagicCaster::Flags::kCastingArtAttached)) {
-		return;
-	}
-
-	const auto& root = RE::GetCastingArtNode(a_actorMagicCaster);
-	if (!root) {
-		return;
-	}
-
-	auto actor = a_actorMagicCaster->GetCasterAsActor();
-	if (!actor) {
-		return;
-	}
-
-	auto handle = actor->CreateRefHandle().native_handle();
-	auto castingSrc = std::to_underlying(a_actorMagicCaster->castingSource);
-
-	gameActorMagicLights.visit(handle, [&](auto& map) {
-		PlacedLights::UpdateParams params;
-		params.ref = actor;
-		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
-		params.delta = a_delta;
-
-		map.second.visit(castingSrc, [&](auto& placedLights) {
-			placedLights.second.UpdateLightsAndRef(params);
-		});
-	});
-}
-
-void LightManager::UpdateHazardLights(RE::Hazard* a_hazard)
-{
-	auto handle = a_hazard->CreateRefHandle().native_handle();
-
-	gameHazardLights.visit(handle, [&](auto& map) {
-		PlacedLights::UpdateParams params;
-		params.ref = a_hazard;
-		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
-		params.delta = RE::BSTimer::GetSingleton()->delta;
-
-		constexpr auto MAX_WAIT_TIME = 3.0f;
-		const float    dimFactor = a_hazard->flags.any(RE::Hazard::Flags::kShuttingDown) ?
-		                               (a_hazard->lifetime + MAX_WAIT_TIME - a_hazard->age) / MAX_WAIT_TIME :
-		                               std::numeric_limits<float>::max();
-		params.dimFactor = dimFactor;
-
-		map.second.UpdateLightsAndRef(params);
-	});
-}
-
-void LightManager::UpdateExplosionLights(RE::Explosion* a_explosion)
-{
-	auto handle = a_explosion->CreateRefHandle().native_handle();
-
-	gameExplosionLights.visit(handle, [&](auto& map) {
-		PlacedLights::UpdateParams params;
-		params.ref = a_explosion;
-		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
-		params.delta = RE::BSTimer::GetSingleton()->delta;
-		map.second.UpdateLightsAndRef(params);
-	});
 }

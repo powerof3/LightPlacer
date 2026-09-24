@@ -2,6 +2,7 @@
 
 #include "ConfigData.h"
 #include "LightData.h"
+#include "LightsToUpdate.h"
 #include "PlacedLights.h"
 #include "SourceData.h"
 
@@ -19,6 +20,9 @@ public:
 
 	void AddLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base, RE::NiAVObject* a_root);
 	void ReattachLights(RE::TESObjectREFR* a_ref, RE::TESBoundObject* a_base);
+	void UpdateReferenceEffectLights(RE::ReferenceEffect* a_effect);
+	void UpdateHazardLights(RE::Hazard* a_hazard);
+	void UpdateExplosionLights(RE::Explosion* a_explosion);
 	void DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData);
 	void DetachHazardLights(RE::Hazard* a_hazard);
 	void DetachExplosionLights(RE::Explosion* a_explosion);
@@ -32,16 +36,12 @@ public:
 	void DetachReferenceEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData);
 
 	void AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
+	void UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta);
 	void DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
 
 	void UpdateLights(const RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(RE::TESObjectCELL* a_cell);
 	void RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
-
-	void UpdateReferenceEffectLights(RE::ReferenceEffect* a_effect);
-	void UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta);
-	void UpdateHazardLights(RE::Hazard* a_hazard);
-	void UpdateExplosionLights(RE::Explosion* a_explosion);
 
 	template <class F>
 	void ForAllLights(F&& func)
@@ -135,14 +135,14 @@ public:
 private:
 	void ProcessConfigs();
 
-	RE::BSEventNotifyControl ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*) override;
-	RE::BSEventNotifyControl ProcessEvent(const RE::TESWaitStopEvent* a_event, RE::BSTEventSource<RE::TESWaitStopEvent>*) override;
-
 	void AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_formID = 0);
 	void CollectValidLights(const SourceAttachData& a_srcData, const Config::LightEntryPtr& a_lightEntry, std::vector<Config::PointPlacementPtr>& a_collectedPoints, std::vector<Config::NodePlacementPtr>& a_collectedNodes);
 	void ProcessCollectedLights(const SourceAttachData& a_srcData, const std::vector<Config::PointPlacementPtr>& a_collectedPoints, const std::vector<Config::NodePlacementPtr>& a_collectedNodes);
 
 	void AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const SourceAttachData& a_srcData, RE::NiNode* a_node, const std::string& path, std::uint32_t a_index = 0, bool a_switchNodeCulled = false);
+	
+	RE::BSEventNotifyControl ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*) override;
+	RE::BSEventNotifyControl ProcessEvent(const RE::TESWaitStopEvent* a_event, RE::BSTEventSource<RE::TESWaitStopEvent>*) override;
 
 	template <class Map, class Key>
 	static void EmplaceLightImpl(Map& a_map, const Key& a_key, const LIGH::LightDefinitionPtr& a_lightDef, const LightInstance& a_lightInstance, const RE::TESObjectREFRPtr& a_ref)
@@ -165,6 +165,7 @@ private:
 	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameHazardLights;
 	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameExplosionLights;
 
-	ConcurrentMap<RE::FormID, LightsToUpdate> lightsToBeUpdated;
-	std::optional<bool>                       lastCellWasInterior;
+	LightsToUpdate      lightsToBeUpdated;
+	std::atomic<std::int64_t> lastReconcile{ 0 };
+	std::optional<bool> lastCellWasInterior;
 };

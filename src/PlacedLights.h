@@ -104,19 +104,3 @@ struct PlacedLights
 	std::vector<PlacedLight>                    lights;
 	std::unique_ptr<PlacedLight::NodeVisHelper> nodeVisHelper{};
 };
-
-struct LightsToUpdate
-{
-	LightsToUpdate() = default;
-	LightsToUpdate(RE::RefHandle a_handle);
-	LightsToUpdate(RE::RefHandle a_handle, bool a_updateEmittance);
-
-	void emplace(RE::RefHandle a_handle);
-	void emplace(RE::RefHandle a_handle, bool a_updateEmittance);
-
-	void erase(RE::RefHandle a_handle);
-
-	// members
-	FlatSet<RE::RefHandle> updatingLights;
-	FlatSet<RE::RefHandle> emittanceLights;
-};

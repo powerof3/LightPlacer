@@ -10,6 +10,7 @@ set(headers ${headers}
 	src/Hooks/Update.h
 	src/LightControllers.h
 	src/LightData.h
+	src/LightsToUpdate.h
 	src/Manager.h
 	src/PCH.h
 	src/Papyrus.h

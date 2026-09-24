@@ -67,6 +67,7 @@ struct LightInstance
 
 	const RE::NiPointer<RE::NiPointLight>& GetLight() const;
 
+	void CullLight(bool a_hide, LIGHT_CULL_FLAGS a_flags) const;
 	bool DimLight(float a_dimmer) const;
 	void ReattachLight() const;
 	void RemoveLight(bool a_clearData) const;
@@ -156,12 +157,15 @@ namespace LIGH
 
 		bool IsStaticLight() const;
 		bool HasControllers() const;
+		bool RequireUpdates() const;
 
 		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index) const;
 		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, const std::string& path, std::uint32_t a_index) const;
 		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const;
 
 		std::string GetLightName(const SourceAttachData& a_srcData, const std::string& path, std::uint32_t a_index) const;
+
+		RE::TESForm* GetEmittanceForm(const RE::TESObjectREFRPtr& a_ref) const;
 
 		// members
 		LightData                data;
