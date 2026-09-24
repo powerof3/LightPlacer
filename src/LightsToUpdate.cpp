@@ -1,18 +1,19 @@
 #include "LightsToUpdate.h"
 
-void LightsToUpdate::Add(RE::RefHandle a_handle, RE::FormID a_cellFormID, bool a_update, bool a_updateEmittance)
+void LightsToUpdate::Add(RE::RefHandle a_handle, RE::FormID a_cellFormID, bool a_update, bool a_updateEmittance, bool a_canBeMoved)
 {
 	if (!a_update && !a_updateEmittance) {
 		return;
 	}
 
 	refs.try_emplace_and_visit(
-		a_handle, QueuedRef{ a_cellFormID, a_update, a_updateEmittance },
+		a_handle, QueuedRef{ a_cellFormID, a_update, a_updateEmittance, a_canBeMoved },
 		[&](const auto& entry) {
 			InsertIntoCell(a_handle, entry.second);
 		},
 		[&](auto& entry) {
 			auto& queued = entry.second;
+			queued.canBeMoved |= a_canBeMoved; 
 			if (queued.cellFormID == a_cellFormID && (queued.update || !a_update) && (queued.updateEmittance || !a_updateEmittance)) {
 				return;
 			}
@@ -24,10 +25,16 @@ void LightsToUpdate::Add(RE::RefHandle a_handle, RE::FormID a_cellFormID, bool a
 		});
 }
 
-void LightsToUpdate::Move(RE::RefHandle a_handle, RE::FormID a_cellFormID)
+bool LightsToUpdate::Move(RE::RefHandle a_handle, RE::FormID a_cellFormID)
 {
+	bool movable = false;
+	
 	refs.visit(a_handle, [&](auto& entry) {
 		auto& queued = entry.second;
+		if (!queued.canBeMoved) {
+			return;
+		}
+		movable = true;
 		if (queued.cellFormID == a_cellFormID) {
 			return;
 		}
@@ -35,6 +42,8 @@ void LightsToUpdate::Move(RE::RefHandle a_handle, RE::FormID a_cellFormID)
 		queued.cellFormID = a_cellFormID;
 		InsertIntoCell(a_handle, queued);
 	});
+
+	return movable;
 }
 
 void LightsToUpdate::Remove(RE::RefHandle a_handle)

@@ -135,7 +135,6 @@ private:
 	struct MARKER_CREATE_PARAMS
 	{
 		const char*  modelName;
-		const char*  shapeName;
 		float        scale;
 		RE::NiPoint3 rotation;
 	};

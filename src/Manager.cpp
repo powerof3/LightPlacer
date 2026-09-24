@@ -481,15 +481,21 @@ void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 	}
 }
 
-void LightManager::RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle)
+void LightManager::UpdateParentCell(RE::TESObjectREFR* a_ref, const RE::TESObjectCELL* a_oldCell, const RE::TESObjectCELL* a_newCell)
 {
-	const RE::TESObjectREFRPtr ref = a_handle.get();
-	if (!ref || !ref->CanBeMoved()) {
-		lightsToBeUpdated.Remove(a_handle.native_handle(), a_cell->GetFormID());
+	if (a_oldCell == a_newCell) {
 		return;
 	}
 
-	lightsToBeUpdated.Move(a_handle.native_handle(), LightsToUpdate::GetCellID(ref->GetParentCell()));
+	if (!a_ref || a_ref->IsDisabled() || a_ref->IsDeleted()) {
+		return;
+	}
+
+	const auto handle = a_ref->CreateRefHandle().native_handle();
+
+	if (!lightsToBeUpdated.Move(handle, LightsToUpdate::GetCellID(a_newCell))) {
+		lightsToBeUpdated.Remove(handle, LightsToUpdate::GetCellID(a_oldCell));
+	}
 }
 
 void LightManager::ProcessConfigs()
@@ -689,7 +695,7 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 				EmplaceLightImpl(gameExplosionLights, handle, a_lightDef, lightInstance, ref);
 			} else {
 				EmplaceLightImpl(gameRefLights, handle, a_lightDef, lightInstance, ref);
-				lightsToBeUpdated.Add(handle, cellFormID, a_lightDef->RequireUpdates(), a_lightDef->GetEmittanceForm(ref));
+				lightsToBeUpdated.Add(handle, cellFormID, a_lightDef->RequireUpdates(), a_lightDef->GetEmittanceForm(ref), ref->CanBeMoved());
 			}
 		}
 		break;
@@ -700,7 +706,7 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 			};
 
 			gameActorWornLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
-			lightsToBeUpdated.Add(handle, cellFormID, a_lightDef->RequireUpdates(), false);
+			lightsToBeUpdated.Add(handle, cellFormID, a_lightDef->RequireUpdates(), false, true);
 		}
 		break;
 	case SOURCE_TYPE::kActorMagic:

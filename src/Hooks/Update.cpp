@@ -148,17 +148,6 @@ namespace Hooks::Update
 		}
 	};
 
-	void Install_RemoveExternalEmittance()
-	{
-		REL::Relocation<std::uintptr_t> target_0{ RELOCATION_ID(18568, 19032), OFFSET(0x190, 0x171) };  //  TESObjectREFR::RemoveReference3D
-		stl::write_thunk_call<RemoveExternalEmittance<0>>(target_0.address());
-
-		REL::Relocation<std::uintptr_t> target_1{ RELOCATION_ID(19301, 19728), OFFSET(0x1BA, 0x206) };  //  TESObjectREFR::Release3DRelatedData
-		stl::write_thunk_call<RemoveExternalEmittance<1>>(target_1.address());
-
-		REX::INFO("Hooked TESObjectCELL::RemoveExternalEmittance");
-	}
-
 	void Install()
 	{
 		UpdateActivateParents::Install();
@@ -170,6 +159,8 @@ namespace Hooks::Update
 		ActorMagicCaster__Update::Install();
 		NiSwitchNode_UpdateDownwardsPass::Install();
 
-		Install_RemoveExternalEmittance();
+		TESObjectREFR::SetParentCell<RE::TESObjectREFR>::Install();
+		TESObjectREFR::SetParentCell<RE::Character>::Install();
+		TESObjectREFR::SetParentCell<RE::PlayerCharacter>::Install();
 	}
 }

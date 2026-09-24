@@ -41,7 +41,7 @@ public:
 
 	void UpdateLights(const RE::TESObjectCELL* a_cell);
 	void UpdateEmittance(RE::TESObjectCELL* a_cell);
-	void RemoveLightsFromUpdateQueue(const RE::TESObjectCELL* a_cell, const RE::ObjectRefHandle& a_handle);
+	void UpdateParentCell(RE::TESObjectREFR* a_ref, const RE::TESObjectCELL* a_oldCell, const RE::TESObjectCELL* a_newCell);
 
 	template <class F>
 	void ForAllLights(F&& func)
@@ -166,6 +166,5 @@ private:
 	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameExplosionLights;
 
 	LightsToUpdate            lightsToBeUpdated;
-	std::atomic<std::int64_t> lastReconcile{ 0 };
 	std::optional<bool>       lastCellWasInterior;
 };

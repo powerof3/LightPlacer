@@ -369,14 +369,14 @@ LightData::MARKER_CREATE_PARAMS LightData::GetDebugMarkerParams() const
 {
 	if (GetCastsShadows()) {
 		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kHemiShadow)) {
-			return { "marker_halfomni.nif", "marker_halfomni:0", 0.25f, RE::NiPoint3(0, -1.5708f, 0) };
+			return { .modelName = "marker_halfomni.nif", .scale = 0.25f, .rotation = RE::NiPoint3(0, -1.5708f, 0) };
 		}
 		if (light->data.flags.any(RE::TES_LIGHT_FLAGS::kSpotShadow)) {
-			return { "marker_spotlight.nif", "marker_spotlight:0", 1.0f, RE::NiPoint3(-RE::NI_PI, 0, -RE::NI_PI) };
+			return { .modelName = "marker_spotlight.nif", .scale = 1.0f, .rotation = RE::NiPoint3(-RE::NI_PI, 0, -RE::NI_PI) };
 		}
-		return { "marker_lightshadow.nif", "marker_lightshadow:0", 0.25f, RE::NiPoint3() };
+		return { .modelName = "marker_lightshadow.nif", .scale = 0.25f, .rotation = RE::NiPoint3() };
 	}
-	return { "marker_light.nif", "marker_light:0", 0.25f, RE::NiPoint3() };
+	return { .modelName = "marker_light.nif", .scale = 0.25f, .rotation = RE::NiPoint3() };
 }
 
 void LIGH::LightDefinition::ReadConditions()
