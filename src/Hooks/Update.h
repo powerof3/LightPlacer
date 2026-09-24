@@ -29,14 +29,14 @@ namespace Hooks::Update
 	namespace TESObjectREFR
 	{
 		// interior/exterior cell transitions
-		
+
 		template <class T>
 		struct SetParentCell
 		{
 			static void thunk(T* a_this, RE::TESObjectCELL* a_cell)
 			{
 				auto oldCell = a_this->GetParentCell();
-				
+
 				func(a_this, a_cell);
 
 				LightManager::GetSingleton()->UpdateParentCell(a_this, oldCell, a_this->GetParentCell());

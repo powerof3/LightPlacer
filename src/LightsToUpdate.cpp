@@ -13,7 +13,7 @@ void LightsToUpdate::Add(RE::RefHandle a_handle, RE::FormID a_cellFormID, bool a
 		},
 		[&](auto& entry) {
 			auto& queued = entry.second;
-			queued.canBeMoved |= a_canBeMoved; 
+			queued.canBeMoved |= a_canBeMoved;
 			if (queued.cellFormID == a_cellFormID && (queued.update || !a_update) && (queued.updateEmittance || !a_updateEmittance)) {
 				return;
 			}
@@ -28,7 +28,7 @@ void LightsToUpdate::Add(RE::RefHandle a_handle, RE::FormID a_cellFormID, bool a
 bool LightsToUpdate::Move(RE::RefHandle a_handle, RE::FormID a_cellFormID)
 {
 	bool movable = false;
-	
+
 	refs.visit(a_handle, [&](auto& entry) {
 		auto& queued = entry.second;
 		if (!queued.canBeMoved) {

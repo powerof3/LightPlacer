@@ -165,6 +165,6 @@ private:
 	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameHazardLights;
 	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameExplosionLights;
 
-	LightsToUpdate            lightsToBeUpdated;
-	std::optional<bool>       lastCellWasInterior;
+	LightsToUpdate      lightsToBeUpdated;
+	std::optional<bool> lastCellWasInterior;
 };
