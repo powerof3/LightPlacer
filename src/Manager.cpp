@@ -157,8 +157,8 @@ void LightManager::UpdateReferenceEffectLights(RE::ReferenceEffect* a_effect)
 
 		constexpr auto MAX_WAIT_TIME = 3.0f;
 		const float    dimFactor = !singleSequence && a_effect->finished ?
-			                           std::clamp((a_effect->lifetime + MAX_WAIT_TIME - a_effect->age) / MAX_WAIT_TIME, 0.0f, 1.0f) :
-			                           std::numeric_limits<float>::max();
+		                               std::clamp((a_effect->lifetime + MAX_WAIT_TIME - a_effect->age) / MAX_WAIT_TIME, 0.0f, 1.0f) :
+		                               std::numeric_limits<float>::max();
 
 		PlacedLights::UpdateParams params;
 		params.ref = ref.get();
@@ -182,8 +182,8 @@ void LightManager::UpdateHazardLights(RE::Hazard* a_hazard)
 
 		constexpr auto MAX_WAIT_TIME = 3.0f;
 		const float    dimFactor = a_hazard->flags.any(RE::Hazard::Flags::kShuttingDown) ?
-			                           (a_hazard->lifetime + MAX_WAIT_TIME - a_hazard->age) / MAX_WAIT_TIME :
-			                           std::numeric_limits<float>::max();
+		                               (a_hazard->lifetime + MAX_WAIT_TIME - a_hazard->age) / MAX_WAIT_TIME :
+		                               std::numeric_limits<float>::max();
 		params.dimFactor = dimFactor;
 
 		map.second.UpdateLightsAndRef(params);
@@ -514,30 +514,30 @@ void LightManager::ProcessConfigs()
 
 		for (auto& multiData : config) {
 			std::visit(overload{
-					[&](Config::MultiModelSet& models) {
-						PostProcess(models.lights, sharedPath);
-						if (models.lights.empty()) {
-							return;
-						};
-						const auto shared = make_shared_lights(models.lights);
-						for (auto& str : models.models) {
-							gameModels[str].append_range(shared);
-						}
-					},
-					[&](Config::MultiFormIDSet& formIDs) {
-						PostProcess(formIDs.lights, sharedPath);
-						if (formIDs.lights.empty()) {
-							return;
-						};
-						const auto shared = make_shared_lights(formIDs.lights);
-						for (auto& rawID : formIDs.formIDs) {
-							if (auto formID = RE::GetFormID(rawID); formID != 0) {
-								gameFormIDs[formID].append_range(shared);
-							}
-						}
-					},
-					[&](const Config::MultiAddonSet&) {
-					} },
+						   [&](Config::MultiModelSet& models) {
+							   PostProcess(models.lights, sharedPath);
+							   if (models.lights.empty()) {
+								   return;
+							   };
+							   const auto shared = make_shared_lights(models.lights);
+							   for (auto& str : models.models) {
+								   gameModels[str].append_range(shared);
+							   }
+						   },
+						   [&](Config::MultiFormIDSet& formIDs) {
+							   PostProcess(formIDs.lights, sharedPath);
+							   if (formIDs.lights.empty()) {
+								   return;
+							   };
+							   const auto shared = make_shared_lights(formIDs.lights);
+							   for (auto& rawID : formIDs.formIDs) {
+								   if (auto formID = RE::GetFormID(rawID); formID != 0) {
+									   gameFormIDs[formID].append_range(shared);
+								   }
+							   }
+						   },
+						   [&](const Config::MultiAddonSet&) {
+						   } },
 				multiData);
 		}
 	}
@@ -580,16 +580,16 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_fo
 void LightManager::CollectValidLights(const SourceAttachData& a_srcData, const Config::LightEntryPtr& a_lightEntry, std::vector<Config::PointPlacementPtr>& a_collectedPoints, std::vector<Config::NodePlacementPtr>& a_collectedNodes)
 {
 	std::visit(overload{
-			[&](const Config::PointEntry& pointEntry) {
-				if (!pointEntry.filter.IsInvalid(a_srcData)) {
-					a_collectedPoints.emplace_back(a_lightEntry, &pointEntry.data);
-				}
-			},
-			[&](const Config::NodeEntry& nodeEntry) {
-				if (!nodeEntry.filter.IsInvalid(a_srcData)) {
-					a_collectedNodes.emplace_back(a_lightEntry, &nodeEntry.data);
-				}
-			} },
+				   [&](const Config::PointEntry& pointEntry) {
+					   if (!pointEntry.filter.IsInvalid(a_srcData)) {
+						   a_collectedPoints.emplace_back(a_lightEntry, &pointEntry.data);
+					   }
+				   },
+				   [&](const Config::NodeEntry& nodeEntry) {
+					   if (!nodeEntry.filter.IsInvalid(a_srcData)) {
+						   a_collectedNodes.emplace_back(a_lightEntry, &nodeEntry.data);
+					   }
+				   } },
 		*a_lightEntry);
 }
 
@@ -682,36 +682,36 @@ void LightManager::AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const
 
 	switch (a_srcData.type) {
 	case SOURCE_TYPE::kRef:
-	{
-		if (ref->Is(RE::FormType::PlacedHazard)) {
-			EmplaceLightImpl(gameHazardLights, handle, a_lightDef, lightInstance, ref);
-		} else if (ref->AsExplosion()) {
-			EmplaceLightImpl(gameExplosionLights, handle, a_lightDef, lightInstance, ref);
-		} else {
-			EmplaceLightImpl(gameRefLights, handle, a_lightDef, lightInstance, ref);
-			lightsToBeUpdated.Add(handle, cellFormID, a_lightDef->RequireUpdates(), a_lightDef->GetEmittanceForm(ref));
+		{
+			if (ref->Is(RE::FormType::PlacedHazard)) {
+				EmplaceLightImpl(gameHazardLights, handle, a_lightDef, lightInstance, ref);
+			} else if (ref->AsExplosion()) {
+				EmplaceLightImpl(gameExplosionLights, handle, a_lightDef, lightInstance, ref);
+			} else {
+				EmplaceLightImpl(gameRefLights, handle, a_lightDef, lightInstance, ref);
+				lightsToBeUpdated.Add(handle, cellFormID, a_lightDef->RequireUpdates(), a_lightDef->GetEmittanceForm(ref));
+			}
 		}
-	}
-	break;
+		break;
 	case SOURCE_TYPE::kActorWorn:
-	{
-		auto updateFunc = [&](auto& map) {
-			EmplaceLightImpl(map.second, a_srcData.nodeName, a_lightDef, lightInstance, ref);
-		};
+		{
+			auto updateFunc = [&](auto& map) {
+				EmplaceLightImpl(map.second, a_srcData.nodeName, a_lightDef, lightInstance, ref);
+			};
 
-		gameActorWornLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
-		lightsToBeUpdated.Add(handle, cellFormID, a_lightDef->RequireUpdates(), false);
-	}
-	break;
+			gameActorWornLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
+			lightsToBeUpdated.Add(handle, cellFormID, a_lightDef->RequireUpdates(), false);
+		}
+		break;
 	case SOURCE_TYPE::kActorMagic:
-	{
-		auto updateFunc = [&](auto& map) {
-			EmplaceLightImpl(map.second, a_srcData.miscID, a_lightDef, lightInstance, ref);
-		};
+		{
+			auto updateFunc = [&](auto& map) {
+				EmplaceLightImpl(map.second, a_srcData.miscID, a_lightDef, lightInstance, ref);
+			};
 
-		gameActorMagicLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
-	}
-	break;
+			gameActorMagicLights.try_emplace_and_visit(handle, updateFunc, updateFunc);
+		}
+		break;
 	case SOURCE_TYPE::kReferenceEffect:
 		EmplaceLightImpl(gameReferenceEffectLights, a_srcData.miscID, a_lightDef, lightInstance, ref);
 		break;

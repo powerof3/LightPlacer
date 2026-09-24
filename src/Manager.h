@@ -140,7 +140,7 @@ private:
 	void ProcessCollectedLights(const SourceAttachData& a_srcData, const std::vector<Config::PointPlacementPtr>& a_collectedPoints, const std::vector<Config::NodePlacementPtr>& a_collectedNodes);
 
 	void AttachLight(const LIGH::LightDefinitionPtr& a_lightDef, const SourceAttachData& a_srcData, RE::NiNode* a_node, const std::string& path, std::uint32_t a_index = 0, bool a_switchNodeCulled = false);
-	
+
 	RE::BSEventNotifyControl ProcessEvent(const RE::BGSActorCellEvent* a_event, RE::BSTEventSource<RE::BGSActorCellEvent>*) override;
 	RE::BSEventNotifyControl ProcessEvent(const RE::TESWaitStopEvent* a_event, RE::BSTEventSource<RE::TESWaitStopEvent>*) override;
 
@@ -165,7 +165,7 @@ private:
 	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameHazardLights;
 	ConcurrentMap<RE::RefHandle, PlacedLights>                               gameExplosionLights;
 
-	LightsToUpdate      lightsToBeUpdated;
+	LightsToUpdate            lightsToBeUpdated;
 	std::atomic<std::int64_t> lastReconcile{ 0 };
-	std::optional<bool> lastCellWasInterior;
+	std::optional<bool>       lastCellWasInterior;
 };

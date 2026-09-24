@@ -99,8 +99,8 @@ float LightData::GetScaledFade(float a_scale) const
 float LightData::GetScaledValue(float a_value, float a_scale) const
 {
 	return flags.any(LIGHT_FLAGS::IgnoreScale) ?
-		       a_value :
-		       a_value * a_scale;
+	           a_value :
+	           a_value * a_scale;
 }
 
 float LightData::GetFOV() const
