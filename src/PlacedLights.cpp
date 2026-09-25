@@ -392,7 +392,7 @@ float PlacedLights::GetDimFactor(bool a_finished, float a_age, float a_lifetime)
 	constexpr auto MAX_WAIT_TIME = 3.0f;
 
 	if (!a_finished) {
-		finishedLifetime = -1.0f; 
+		finishedLifetime = -1.0f;
 		return 1.0f;
 	}
 	if (finishedLifetime < 0.0f) {
