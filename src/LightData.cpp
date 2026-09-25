@@ -62,7 +62,7 @@ void LightInstance::HideDebugMarker() const
 
 bool LightData::GetCastsShadows() const
 {
-	return flags.any(LIGHT_FLAGS::Shadow) /*|| light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow)*/;
+	return flags.any(LIGHT_FLAGS::Shadow) || light->data.flags.any(RE::TES_LIGHT_FLAGS::kOmniShadow, RE::TES_LIGHT_FLAGS::kHemiShadow, RE::TES_LIGHT_FLAGS::kSpotShadow);
 }
 
 RE::NiColor LightData::GetDiffuse() const
@@ -300,7 +300,7 @@ RE::NiAVObject* LightData::AttachDebugMarker(RE::NiNode* a_node, std::string_vie
 	return nullptr;
 };
 
-LIGHT_CULL_FLAGS LightData::GetCulledFlag(RE::NiPointLight* a_light)
+LIGHT_CULL_FLAGS LightData::GetCulledFlag(const RE::NiPointLight* a_light)
 {
 	return static_cast<LIGHT_CULL_FLAGS>(std::bit_cast<uint32_t>(a_light->ambient.red) >> 24);
 }
@@ -332,7 +332,7 @@ void LightData::CullLight(RE::NiPointLight* a_light, RE::NiAVObject* a_debugMark
 	}
 }
 
-const char* LightData::GetCulledStatus(RE::NiPointLight* a_light)
+const char* LightData::GetCulledStatus(const RE::NiPointLight* a_light)
 {
 	static constexpr std::array<const char*, 8> HIDDEN_STATUS{
 		"hidden",
@@ -505,7 +505,7 @@ RE::NiNode* LIGH::LightDefinition::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVO
 			return a_root;
 		};
 
-		auto attachNode = geometry ? getGeometryAttachNode(geometry) : a_obj->AsNode();
+		const auto attachNode = geometry ? getGeometryAttachNode(geometry) : a_obj->AsNode();
 		if (geometry) {
 			newNode->local.translate = attachNode == a_root ? geometry->modelBound.center : geometry->local.translate;
 		}

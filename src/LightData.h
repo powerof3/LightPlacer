@@ -108,9 +108,9 @@ struct LightData
 
 	LightInstance GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, std::string_view a_lightName, float a_scale) const;  // [bsLight, niLight, debugMarker]
 
-	static LIGHT_CULL_FLAGS GetCulledFlag(RE::NiPointLight* a_light);
+	static LIGHT_CULL_FLAGS GetCulledFlag(const RE::NiPointLight* a_light);
 	static void             CullLight(RE::NiPointLight* a_light, RE::NiAVObject* a_debugMarker, bool a_hide, LIGHT_CULL_FLAGS a_flags);
-	static const char*      GetCulledStatus(RE::NiPointLight* a_light);
+	static const char*      GetCulledStatus(const RE::NiPointLight* a_light);
 
 	// members
 	RE::TESObjectLIGH*                        light{ nullptr };
