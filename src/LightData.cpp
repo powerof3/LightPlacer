@@ -220,9 +220,9 @@ LightInstance LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, 
 	if (!a_node) {
 		return { bsLight, niLight, debugMarker };
 	}
-	
+
 	const bool loadDebugMarkers = Settings::GetSingleton()->LoadDebugMarkers();
-	
+
 	std::string debugMarkerName;
 	if (loadDebugMarkers) {
 		debugMarkerName = GetDebugMarkerName(a_lightName);
