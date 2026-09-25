@@ -3,12 +3,23 @@
 class LightsToUpdate
 {
 public:
-	static RE::FormID GetCellID(const RE::TESObjectCELL* a_cell) { return a_cell ? a_cell->GetFormID() : 0; }
+	enum class MoveResult
+	{
+		kNotFound,
+		kNotMovable,
+		kMovable
+	};
 
-	void Add(RE::RefHandle a_handle, RE::FormID a_cellFormID, bool a_update, bool a_updateEmittance, bool a_canBeMoved);
-	bool Move(RE::RefHandle a_handle, RE::FormID a_cellFormID);
-	void Remove(RE::RefHandle a_handle);
-	void Remove(RE::RefHandle a_handle, RE::FormID a_cellFormID);
+	static RE::FormID
+		GetCellID(const RE::TESObjectCELL* a_cell)
+	{
+		return a_cell ? a_cell->GetFormID() : 0;
+	}
+
+	void       Add(RE::RefHandle a_handle, RE::FormID a_cellFormID, bool a_update, bool a_updateEmittance, bool a_canBeMoved);
+	MoveResult Move(RE::RefHandle a_handle, RE::FormID a_cellFormID);
+	void       Remove(RE::RefHandle a_handle);
+	void       Remove(RE::RefHandle a_handle, RE::FormID a_cellFormID);
 
 	std::vector<RE::RefHandle> GetRefs(RE::FormID a_cellFormID) const;
 	std::vector<RE::RefHandle> GetEmittanceRefs(RE::FormID a_cellFormID) const;

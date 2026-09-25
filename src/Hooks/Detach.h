@@ -57,8 +57,31 @@ namespace Hooks::Detach
 		};
 	}
 
-	void Install_GetLightData();
-	void Install_BGSAttachTechniques__DetachItem();
+	namespace TESObjectREFR
+	{
+		template <class T>
+		struct Release3DRelatedData
+		{
+			static void thunk(T* a_this)
+			{
+				if constexpr (std::is_same_v<T, RE::Hazard>) {
+					LightManager::GetSingleton()->DetachHazardLights(a_this);
+				} else {
+					LightManager::GetSingleton()->DetachExplosionLights(a_this);
+				}
+
+				func(a_this);
+			}
+			static inline REL::Relocation<decltype(thunk)> func;
+			static constexpr std::size_t                   idx{ 0x6B };
+
+			static void Install()
+			{
+				stl::write_vfunc<T, Release3DRelatedData>();
+				REX::INFO("Hooked {}::Release3DRelatedData"sv, typeid(T).name());
+			}
+		};
+	}
 
 	void Install();
 }

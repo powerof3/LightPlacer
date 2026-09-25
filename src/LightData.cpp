@@ -220,15 +220,22 @@ LightInstance LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, 
 	if (!a_node) {
 		return { bsLight, niLight, debugMarker };
 	}
-
-	const auto debugMarkerName = GetDebugMarkerName(a_lightName);
+	
+	const bool loadDebugMarkers = Settings::GetSingleton()->LoadDebugMarkers();
+	
+	std::string debugMarkerName;
+	if (loadDebugMarkers) {
+		debugMarkerName = GetDebugMarkerName(a_lightName);
+	}
 
 	niLight = netimmerse_cast<RE::NiPointLight*>(RE::GetChildByName(a_node, a_lightName));
 	if (!niLight) {
 		niLight = RE::NiPointLight::Create();
 		niLight->name = a_lightName;
 		RE::AttachNode(a_node, niLight);
-		debugMarker = AttachDebugMarker(a_node, debugMarkerName);
+		if (loadDebugMarkers) {
+			debugMarker = AttachDebugMarker(a_node, debugMarkerName);
+		}
 	}
 
 	if (niLight) {
@@ -252,7 +259,7 @@ LightInstance LightData::GenLight(RE::TESObjectREFR* a_ref, RE::NiNode* a_node, 
 			bsLight = shadowSceneNode->AddLight(niLight, GetParams(a_ref));
 		}
 
-		if (!debugMarker) {
+		if (loadDebugMarkers && !debugMarker) {
 			debugMarker = RE::GetObjectByName(a_node, debugMarkerName);
 		}
 

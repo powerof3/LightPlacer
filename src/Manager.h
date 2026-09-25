@@ -133,6 +133,19 @@ public:
 	}
 
 private:
+	template <class F>
+	void ForEachValidQueuedRef(const std::vector<RE::RefHandle>& a_handles, RE::FormID a_cellFormID, F&& a_func)
+	{
+		for (const auto handle : a_handles) {
+			RE::TESObjectREFRPtr ref;
+			if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
+				lightsToBeUpdated.Remove(handle, a_cellFormID);
+				continue;
+			}
+			a_func(handle, ref.get());
+		}
+	}
+
 	void ProcessConfigs();
 
 	void AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_formID = 0);

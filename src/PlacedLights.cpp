@@ -46,25 +46,11 @@ void PlacedLight::NodeVisHelper::Reset()
 PlacedLight::PlacedLight(const LIGH::LightDefinitionPtr& a_lightDef, const LightInstance& a_lightInstance, const RE::TESObjectREFRPtr& a_ref) :
 	definition(a_lightDef),
 	instance(a_lightInstance),
-	emittanceForm(GetEmittanceForm(a_lightDef, a_ref))
+	emittanceForm(a_lightDef->GetEmittanceForm(a_ref))
 {
 	if (a_lightDef->HasControllers()) {
 		lightControllers = std::make_unique<LightControllers>(*a_lightDef);
 	}
-}
-
-RE::TESForm* PlacedLight::GetEmittanceForm(const LIGH::LightDefinitionPtr& a_lightDef, const RE::TESObjectREFRPtr& a_ref)
-{
-	if (a_lightDef->data.emittanceForm) {
-		return a_lightDef->data.emittanceForm;
-	}
-
-	if (a_lightDef->data.flags.none(LIGHT_FLAGS::NoExternalEmittance)) {
-		auto xData = a_ref->extraList.GetByType<RE::ExtraEmittanceSource>();
-		return xData ? xData->source : nullptr;
-	}
-
-	return nullptr;
 }
 
 void PlacedLight::ReattachLight(RE::TESObjectREFR* a_ref)
@@ -235,7 +221,7 @@ void PlacedLight::UpdateVanillaFlickering(float a_delta, float a_scale) const
 			return;
 		}
 
-		auto constAttenuation = std::fmod(niLight->constAttenuation + (RE::BSTimer::GetSingleton()->delta * tesLight->data.flickerPeriodRecip), RE::NI_TWO_PI);
+		auto constAttenuation = std::fmod(niLight->constAttenuation + (a_delta * tesLight->data.flickerPeriodRecip), RE::NI_TWO_PI);
 		niLight->constAttenuation = constAttenuation;
 
 		auto constAttenCosine = RE::NiCosQ(constAttenuation);

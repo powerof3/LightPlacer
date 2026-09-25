@@ -25,16 +25,17 @@ void LightsToUpdate::Add(RE::RefHandle a_handle, RE::FormID a_cellFormID, bool a
 		});
 }
 
-bool LightsToUpdate::Move(RE::RefHandle a_handle, RE::FormID a_cellFormID)
+LightsToUpdate::MoveResult LightsToUpdate::Move(RE::RefHandle a_handle, RE::FormID a_cellFormID)
 {
-	bool movable = false;
+	MoveResult result = MoveResult::kNotFound;
 
 	refs.visit(a_handle, [&](auto& entry) {
 		auto& queued = entry.second;
 		if (!queued.canBeMoved) {
+			result = MoveResult::kNotMovable;
 			return;
 		}
-		movable = true;
+		result = MoveResult::kMovable;
 		if (queued.cellFormID == a_cellFormID) {
 			return;
 		}
@@ -43,7 +44,7 @@ bool LightsToUpdate::Move(RE::RefHandle a_handle, RE::FormID a_cellFormID)
 		InsertIntoCell(a_handle, queued);
 	});
 
-	return movable;
+	return result;
 }
 
 void LightsToUpdate::Remove(RE::RefHandle a_handle)

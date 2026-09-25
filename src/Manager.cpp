@@ -163,7 +163,7 @@ void LightManager::UpdateHazardLights(RE::Hazard* a_hazard)
 
 	gameHazardLights.visit(handle, [&](auto& map) {
 		auto& placedLights = map.second;
-		
+
 		PlacedLights::UpdateParams params;
 		params.ref = a_hazard;
 		params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
@@ -409,17 +409,8 @@ void LightManager::DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 
 void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 {
-	const auto                                                  cellFormID = a_cell->GetFormID();
-	std::vector<std::pair<RE::RefHandle, RE::TESObjectREFRPtr>> refrsToUpdate;
-
-	for (const auto handle : lightsToBeUpdated.GetRefs(cellFormID)) {
-		RE::TESObjectREFRPtr ref;
-		if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
-			lightsToBeUpdated.Remove(handle, cellFormID);
-			continue;
-		}
-		refrsToUpdate.emplace_back(handle, std::move(ref));
-	}
+	const auto cellFormID = a_cell->GetFormID();
+	const auto refrsToUpdate = lightsToBeUpdated.GetRefs(cellFormID);
 
 	if (refrsToUpdate.empty()) {
 		return;
@@ -429,40 +420,30 @@ void LightManager::UpdateLights(const RE::TESObjectCELL* a_cell)
 	params.pcPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 	params.delta = RE::BSTimer::GetSingleton()->delta;
 
-	for (const auto& [handle, ref] : refrsToUpdate) {
-		if (!ref) {
-			continue;
-		}
-
-		params.ref = ref.get();
-
-		ForEachLightMutable(ref.get(), handle, [&](const auto& a_nodeName, auto& placedLight) {
+	ForEachValidQueuedRef(refrsToUpdate, cellFormID, [&](const auto& handle, const auto& ref) {
+		params.ref = ref;
+		ForEachLightMutable(ref, handle, [&](const auto& a_nodeName, auto& placedLight) {
 			params.nodeName = a_nodeName;
 			placedLight.UpdateLightsAndRef(params);
 			return true;
 		});
-	}
+	});
 }
 
 void LightManager::UpdateEmittance(RE::TESObjectCELL* a_cell)
 {
-	const auto                 cellFormID = a_cell->GetFormID();
-	std::vector<RE::RefHandle> handlesToUpdate;
+	const auto cellFormID = a_cell->GetFormID();
+	const auto handlesToUpdate = lightsToBeUpdated.GetEmittanceRefs(cellFormID);
 
-	for (const auto handle : lightsToBeUpdated.GetEmittanceRefs(cellFormID)) {
-		RE::TESObjectREFRPtr ref;
-		if (!RE::LookupReferenceByHandle(handle, ref) || !ref) {
-			lightsToBeUpdated.Remove(handle, cellFormID);
-			continue;
-		}
-		handlesToUpdate.push_back(handle);
+	if (handlesToUpdate.empty()) {
+		return;
 	}
 
-	for (const auto& handle : handlesToUpdate) {
+	ForEachValidQueuedRef(handlesToUpdate, cellFormID, [&](const auto& handle, const auto&) {
 		gameRefLights.cvisit(handle, [&](const auto& entry) {
 			entry.second.UpdateEmittance(a_cell);
 		});
-	}
+	});
 }
 
 void LightManager::UpdateParentCell(RE::TESObjectREFR* a_ref, const RE::TESObjectCELL* a_oldCell, const RE::TESObjectCELL* a_newCell)
@@ -477,7 +458,7 @@ void LightManager::UpdateParentCell(RE::TESObjectREFR* a_ref, const RE::TESObjec
 
 	const auto handle = a_ref->CreateRefHandle().native_handle();
 
-	if (!lightsToBeUpdated.Move(handle, LightsToUpdate::GetCellID(a_newCell))) {
+	if (lightsToBeUpdated.Move(handle, LightsToUpdate::GetCellID(a_newCell)) == LightsToUpdate::MoveResult::kNotMovable) {
 		lightsToBeUpdated.Remove(handle, LightsToUpdate::GetCellID(a_oldCell));
 	}
 }
@@ -545,7 +526,7 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_fo
 	std::vector<Config::NodePlacementPtr>  collectedNodes;
 
 	if (!a_srcData.modelPath.empty()) {
-		if (auto it = gameModels.find(a_srcData.modelPath); it != gameModels.end()) {
+		if (const auto it = gameModels.find(a_srcData.modelPath); it != gameModels.end()) {
 			if (srcAttachData.Initialize(a_srcData)) {
 				for (const auto& entry : it->second) {
 					CollectValidLights(srcAttachData, entry, collectedPoints, collectedNodes);
@@ -555,7 +536,7 @@ void LightManager::AttachLightsImpl(const SourceData& a_srcData, RE::FormID a_fo
 	}
 
 	if (a_formID != 0) {
-		if (auto it = gameFormIDs.find(a_formID); it != gameFormIDs.end()) {
+		if (const auto it = gameFormIDs.find(a_formID); it != gameFormIDs.end()) {
 			if (srcAttachData.Initialize(a_srcData)) {
 				for (const auto& entry : it->second) {
 					CollectValidLights(srcAttachData, entry, collectedPoints, collectedNodes);
@@ -716,7 +697,7 @@ RE::BSEventNotifyControl LightManager::ProcessEvent(const RE::BGSActorCellEvent*
 		return RE::BSEventNotifyControl::kContinue;
 	}
 
-	auto cell = RE::TESForm::LookupByID<RE::TESObjectCELL>(a_event->cellID);
+	const auto cell = RE::TESForm::LookupByID<RE::TESObjectCELL>(a_event->cellID);
 	if (!cell) {
 		return RE::BSEventNotifyControl::kContinue;
 	}

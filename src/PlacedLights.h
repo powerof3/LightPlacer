@@ -47,7 +47,6 @@ struct PlacedLight
 
 	const LightData&                       GetData() const { return definition->data; }
 	const RE::NiPointer<RE::NiPointLight>& GetLight() const { return instance.GetLight(); }
-	static RE::TESForm*                    GetEmittanceForm(const LIGH::LightDefinitionPtr& a_lightDef, const RE::TESObjectREFRPtr& a_ref);
 	float                                  GetScalingFactor(float a_scale) const { return GetData().flags.any(LIGHT_FLAGS::IgnoreScale) ? 1.0f : a_scale; }
 
 	void ReattachLight(RE::TESObjectREFR* a_ref);
