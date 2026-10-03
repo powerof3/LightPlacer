@@ -21,7 +21,23 @@ void LightInstance::DimLight(const float a_dimmer) const
 void LightInstance::ReattachLight() const
 {
 	if (bsLight) {
-		RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0]->AddLight(bsLight.get());
+		const auto shadowSceneNode = RE::BSShaderManager::State::GetSingleton().shadowSceneNode[0];
+
+		// queued removals are processed after queued additions
+		bool pendingRemoval = false;
+		{
+			RE::BSSpinLockGuard locker(shadowSceneNode->lightQueueLock);
+			for (auto& light : shadowSceneNode->lightQueueRemove) {
+				if (light == bsLight) {
+					light.reset();
+					pendingRemoval = true;
+				}
+			}
+		}
+
+		if (!pendingRemoval) {
+			shadowSceneNode->AddLight(bsLight.get());
+		}
 	}
 
 	if (Settings::GetSingleton()->CanShowDebugMarkers()) {
