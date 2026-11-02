@@ -364,6 +364,17 @@ void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 	AttachLightsImpl(srcData, art->GetFormID());
 }
 
+void LightManager::ReattachCastingLights(const RE::ActorHandle& a_handle) const
+{
+	auto handle = a_handle.native_handle();
+
+	gameActorMagicLights.cvisit(handle, [&](auto& map) {
+		map.second.cvisit_all([&](auto& srcMap) {
+			srcMap.second.ReattachLights();
+		});
+	});
+}
+
 void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta)
 {
 	if (a_actorMagicCaster->flags.none(RE::ActorMagicCaster::Flags::kCastingArtAttached)) {

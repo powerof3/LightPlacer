@@ -36,6 +36,7 @@ public:
 	void DetachReferenceEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData);
 
 	void AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
+	void ReattachCastingLights(const RE::ActorHandle& a_handle) const;
 	void UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster, float a_delta);
 	void DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
 

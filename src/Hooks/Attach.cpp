@@ -67,7 +67,9 @@ namespace Hooks::Attach
 	{
 		static void thunk(RE::Actor* a_this, RE::ShadowSceneNode& a_shadowSceneNode)
 		{
-			LightManager::GetSingleton()->ReattachWornLights(a_this->CreateRefHandle());
+			const auto handle = a_this->CreateRefHandle();
+			LightManager::GetSingleton()->ReattachWornLights(handle);
+			LightManager::GetSingleton()->ReattachCastingLights(handle);
 
 			func(a_this, a_shadowSceneNode);
 		}
