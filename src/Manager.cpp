@@ -324,11 +324,18 @@ void LightManager::AddReferenceEffectLights(RE::ReferenceEffect* a_effect, RE::F
 	AttachLightsImpl(srcData, a_effectFormID);
 }
 
-void LightManager::ReattachReferenceEffectLights(RE::ReferenceEffect* a_effect) const
+void LightManager::ReattachReferenceEffectLights(RE::ReferenceEffect* a_effect)
 {
-	gameReferenceEffectLights.cvisit(a_effect->effectID, [&](auto& map) {
+	const auto found = gameReferenceEffectLights.cvisit(a_effect->effectID, [&](auto& map) {
 		map.second.ReattachLights();
 	});
+
+	// weapon enchantments init before the weapon is attached, so add their lights once they resume on the drawn weapon
+	if (found == 0 && skyrim_cast<RE::WeaponEnchantmentController*>(a_effect->controller)) {
+		if (const auto shaderEffect = a_effect->As<RE::ShaderReferenceEffect>(); shaderEffect && shaderEffect->effectData) {
+			AddReferenceEffectLights(a_effect, shaderEffect->effectData->GetFormID());
+		}
+	}
 }
 
 void LightManager::DetachReferenceEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData)

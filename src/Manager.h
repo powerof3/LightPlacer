@@ -32,7 +32,7 @@ public:
 	void DetachWornLights(const RE::ActorHandle& a_handle, RE::NiAVObject* a_root);
 
 	void AddReferenceEffectLights(RE::ReferenceEffect* a_effect, RE::FormID a_effectFormID);
-	void ReattachReferenceEffectLights(RE::ReferenceEffect* a_effect) const;
+	void ReattachReferenceEffectLights(RE::ReferenceEffect* a_effect);
 	void DetachReferenceEffectLights(RE::ReferenceEffect* a_effect, bool a_clearData);
 
 	void AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster);
