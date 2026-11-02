@@ -18,7 +18,11 @@
 #include <boost/unordered/unordered_flat_set.hpp>
 #include <frozen/bits/elsa_std.h>
 #include <frozen/unordered_map.h>
-#include <glaze/glaze.hpp>
+
+#ifndef __INTELLISENSE__
+#	include <glaze/glaze.hpp>
+#endif
+
 #include <spdlog/sinks/basic_file_sink.h>
 #include <xbyak/xbyak.h>
 
