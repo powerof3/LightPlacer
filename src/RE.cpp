@@ -4,6 +4,17 @@
 
 namespace RE
 {
+	namespace
+	{
+		// a light plugin's records only use the low 12 bits of their id, a full plugin's the low 24
+		FormID LookupLocalFormID(FormID a_rawFormID, std::string_view a_modName)
+		{
+			const auto dataHandler = TESDataHandler::GetSingleton();
+			const auto file = dataHandler->LookupModByName(a_modName);
+			return dataHandler->LookupFormID(a_rawFormID & (file && file->IsLight() ? 0xFFF : 0xFFFFFF), a_modName);
+		}
+	}
+
 	FormID GetFormID(const std::string& a_str)
 	{
 		if (const auto splitID = REX::STR::SPLIT(a_str, "~"); splitID.size() == 2) {
@@ -11,9 +22,9 @@ namespace RE
 			const auto& modName = splitID[1];
 			if (g_mergeMapperInterface) {
 				const auto [mergedModName, mergedFormID] = g_mergeMapperInterface->GetNewFormID(modName.c_str(), formID);
-				return TESDataHandler::GetSingleton()->LookupFormID(mergedFormID, mergedModName);
+				return LookupLocalFormID(mergedFormID, mergedModName);
 			}
-			return TESDataHandler::GetSingleton()->LookupFormID(formID, modName);
+			return LookupLocalFormID(formID, modName);
 		}
 		if (REX::STR::IS_ONLY_HEX(a_str, true)) {
 			return REX::STR::TO_NUM<FormID>(a_str, true);
