@@ -204,16 +204,17 @@
                 "SyncAddonNodes",
                 "IgnoreScale",
                 "RandomAnimStart",
-                "NoExternalEmittance"
+                "NoExternalEmittance",
+                "CenterOnBounds"
               ]
             },
             {
-              "pattern": "^PortalStrict|Shadow|Simple|InverseSquare|UpdateOnWaiting|UpdateOnCellTransition|SyncAddonNodes|IgnoreScale|RandomAnimStart|NoExternalEmittance"
+              "pattern": "^PortalStrict|Shadow|Simple|InverseSquare|UpdateOnWaiting|UpdateOnCellTransition|SyncAddonNodes|IgnoreScale|RandomAnimStart|NoExternalEmittance|CenterOnBounds"
             }
           ],
           "type": "string",
           "minLength": 1,
-          "description": "Set of flags used to mark lights for rendering purposes. Can be multiple separated with \"|\" Flags should be written exactly as shown. \n- PortalStrict\n- Shadow\n- Simple\n- InverseSquare\n- UpdateOnWaiting\n- UpdateOnCellTransition\n- NeedsUpdate\n- SyncAddonNodes\n- IgnoreScale\n- RandomAnimStart\n- NoExternalEmittance"
+          "description": "Set of flags used to mark lights for rendering purposes. Can be multiple separated with \"|\" Flags should be written exactly as shown. \n- PortalStrict\n- Shadow\n- Simple\n- InverseSquare\n- UpdateOnWaiting\n- UpdateOnCellTransition\n- NeedsUpdate\n- SyncAddonNodes\n- IgnoreScale\n- RandomAnimStart\n- NoExternalEmittance\n- CenterOnBounds (points and offset are measured from the center of the model's bounds instead of its origin; nodes use the center of that node's bounds)"
         },
         "colorController": {
           "type": "object",
