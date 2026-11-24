@@ -20,6 +20,7 @@ enum class LIGHT_FLAGS
 	Linear = (1 << 11),
 
 	// LP flags
+	CenterOnBounds = (1 << 17),
 	UpdateOnWaiting = (1 << 18),
 	UpdateOnCellTransition = (1 << 19),
 	NeedsUpdate = UpdateOnWaiting | UpdateOnCellTransition,
@@ -163,6 +164,8 @@ namespace LIGH
 		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, const std::string& a_nodeName, const std::string& path, std::uint32_t a_index) const;
 		RE::NiNode* GetOrCreateNode(RE::NiNode* a_root, RE::NiAVObject* a_obj, const std::string& path, std::uint32_t a_index) const;
 
+		static RE::NiPoint3 GetBoundCenter(RE::NiAVObject* a_obj, const RE::NiAVObject* a_space);
+
 		std::string GetLightName(const SourceAttachData& a_srcData, const std::string& path, std::uint32_t a_index) const;
 
 		RE::TESForm* GetEmittanceForm(const RE::TESObjectREFRPtr& a_ref) const;
@@ -225,6 +228,9 @@ struct glz::meta<LIGH::LightDefinition>
 					break;
 				case "NoExternalEmittance"_h:
 					s.data.flags.set(LIGHT_FLAGS::NoExternalEmittance);
+					break;
+				case "CenterOnBounds"_h:
+					s.data.flags.set(LIGHT_FLAGS::CenterOnBounds);
 					break;
 				default:
 					break;

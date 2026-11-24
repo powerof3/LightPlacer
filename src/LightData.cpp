@@ -433,7 +433,7 @@ bool LIGH::LightDefinition::PostProcess()
 
 bool LIGH::LightDefinition::IsStaticLight() const
 {
-	return data.offset == RE::NiPoint3::Zero() && data.rotation == RE::NiPoint3::Zero() && !positionController && !rotationController;
+	return data.offset == RE::NiPoint3::Zero() && data.rotation == RE::NiPoint3::Zero() && !positionController && !rotationController && data.flags.none(LIGHT_FLAGS::CenterOnBounds);
 }
 
 bool LIGH::LightDefinition::HasControllers() const
@@ -460,6 +460,9 @@ RE::NiNode* LIGH::LightDefinition::GetOrCreateNode(RE::NiNode* a_root, const RE:
 			if (node = RE::NiNode::Create(1); node) {
 				node->name = name;
 				node->local.translate = a_point + data.offset;
+				if (data.flags.any(LIGHT_FLAGS::CenterOnBounds)) {
+					node->local.translate += GetBoundCenter(a_root, a_root);
+				}
 				if (data.rotation != RE::NiPoint3::Zero()) {
 					node->local.rotate = RE::ToMatrix(data.rotation);
 				}
@@ -497,7 +500,7 @@ RE::NiNode* LIGH::LightDefinition::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVO
 
 	auto geometry = a_obj->AsGeometry();
 	if (geometry && geometry->parent && !geometry->parent->AsFadeNode()) {  // not top level BSFadeNode
-		if (geometry->local == RE::NiTransform{} && data.offset == RE::NiPoint3{}) {
+		if (geometry->local == RE::NiTransform{} && data.offset == RE::NiPoint3{} && data.flags.none(LIGHT_FLAGS::CenterOnBounds)) {
 			return geometry->parent;
 		}
 	}
@@ -522,7 +525,9 @@ RE::NiNode* LIGH::LightDefinition::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVO
 		};
 
 		const auto attachNode = geometry ? getGeometryAttachNode(geometry) : a_obj->AsNode();
-		if (geometry) {
+		if (data.flags.any(LIGHT_FLAGS::CenterOnBounds)) {
+			newNode->local.translate = GetBoundCenter(a_obj, attachNode);
+		} else if (geometry) {
 			newNode->local.translate = attachNode == a_root ? geometry->modelBound.center : geometry->local.translate;
 		}
 		newNode->local.translate += data.offset;
@@ -534,6 +539,43 @@ RE::NiNode* LIGH::LightDefinition::GetOrCreateNode(RE::NiNode* a_root, RE::NiAVO
 	}
 
 	return newNode;
+}
+
+RE::NiPoint3 LIGH::LightDefinition::GetBoundCenter(RE::NiAVObject* a_obj, const RE::NiAVObject* a_space)
+{
+	// model bounds carried through local transforms are valid on attach, world bounds only after the next update
+	RE::NiPoint3 minBound = RE::POINT_MAX;
+	RE::NiPoint3 maxBound = -RE::POINT_MAX;
+
+	RE::BSVisit::TraverseScenegraphGeometries(a_obj, [&](RE::BSGeometry* a_geometry) {
+		// particle bounds follow what was emitted, not the model
+		if (!a_geometry->AsTriShape() || a_geometry->type.get() == RE::BSGeometry::Type::kParticleShaderDynamicTriShape || RE::IsUnderInactiveSwitchNode(a_geometry, a_obj)) {
+			return RE::BSVisit::BSVisitControl::kContinue;
+		}
+
+		auto center = a_geometry->modelBound.center;
+		auto radius = a_geometry->modelBound.radius;
+		for (const RE::NiAVObject* obj = a_geometry; obj && obj != a_obj; obj = obj->parent) {
+			if (obj->GetAppCulled() || std::string_view(obj->name.c_str()).starts_with(LightData::LP_DEBUG)) {
+				return RE::BSVisit::BSVisitControl::kContinue;
+			}
+			center = obj->local * center;
+			radius *= obj->local.scale;
+		}
+
+		for (std::size_t i = 0; i < 3; ++i) {
+			minBound[i] = std::min(minBound[i], center[i] - radius);
+			maxBound[i] = std::max(maxBound[i], center[i] + radius);
+		}
+		return RE::BSVisit::BSVisitControl::kContinue;
+	});
+
+	auto center = minBound.x <= maxBound.x ? (minBound + maxBound) * 0.5f : RE::NiPoint3::Zero();
+	for (const RE::NiAVObject* obj = a_obj; obj && obj != a_space; obj = obj->parent) {
+		center = obj->local * center;
+	}
+
+	return center;
 }
 
 std::string LIGH::LightDefinition::GetLightName(const SourceAttachData& a_srcData, const std::string& path, std::uint32_t a_index) const
