@@ -8,7 +8,7 @@ namespace Config
 {
 	struct Filter
 	{
-		void PostProcess();
+		bool PostProcess(std::string_view a_path, std::string_view a_light);
 
 		bool IsInvalid(const SourceAttachData& a_srcData) const;
 		bool IsBlacklisted(const SourceAttachData& a_srcData) const;
