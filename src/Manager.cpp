@@ -198,6 +198,15 @@ void LightManager::DetachLights(RE::TESObjectREFR* a_ref, bool a_clearData)
 			});
 			return a_clearData;
 		});
+		// a body torn down with a spell readied never runs the casting art's own detach
+		if (a_clearData) {
+			gameActorMagicLights.erase_if(handle, [&](auto& map) {
+				map.second.visit_all([&](auto& srcMap) {
+					srcMap.second.RemoveLights(true);
+				});
+				return true;
+			});
+		}
 	} else {
 		gameRefLights.erase_if(handle, [&](auto& map) {
 			map.second.RemoveLights(a_clearData);
@@ -351,7 +360,20 @@ void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 	const auto& root = RE::GetCastingArtNode(a_actorMagicCaster);
 	const auto  ref = a_actorMagicCaster->GetCasterAsActor();
 	const auto  art = RE::GetCastingArt(a_actorMagicCaster);
-	if (!root || !ref || !art) {
+	if (!ref) {
+		return;
+	}
+
+	// a hand holds one casting art at a time, so lights left from a previous art are removed before attaching
+	const auto castingSrc = std::to_underlying(a_actorMagicCaster->castingSource);
+	gameActorMagicLights.visit(ref->CreateRefHandle().native_handle(), [&](auto& map) {
+		map.second.erase_if(castingSrc, [&](auto& srcMap) {
+			srcMap.second.RemoveLights(true);
+			return true;
+		});
+	});
+
+	if (!root || !art) {
 		return;
 	}
 
@@ -359,7 +381,7 @@ void LightManager::AddCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 	if (!srcData.IsValid()) {
 		return;
 	}
-	srcData.miscID = std::to_underlying(a_actorMagicCaster->castingSource);
+	srcData.miscID = castingSrc;
 
 	AttachLightsImpl(srcData, art->GetFormID());
 }
@@ -408,9 +430,9 @@ void LightManager::UpdateCastingLights(RE::ActorMagicCaster* a_actorMagicCaster,
 
 void LightManager::DetachCastingLights(RE::ActorMagicCaster* a_actorMagicCaster)
 {
-	const auto& root = RE::GetCastingArtNode(a_actorMagicCaster);
-	const auto  ref = a_actorMagicCaster->GetCasterAsActor();
-	if (!root || !ref) {
+	// the casting art may already be gone when it is detached, and the lights are keyed by actor and hand alone
+	const auto ref = a_actorMagicCaster->GetCasterAsActor();
+	if (!ref) {
 		return;
 	}
 
