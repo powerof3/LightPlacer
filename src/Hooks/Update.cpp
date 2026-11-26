@@ -130,7 +130,12 @@ namespace Hooks::Update
 				if (const auto node = a_this->children[i].get()) {
 					const bool hide = static_cast<std::int32_t>(i) != switch_idx;
 					RE::BSVisit::TraverseScenegraphLights(node, [hide](RE::NiPointLight* a_light) {
-						LightData::CullLight(a_light, nullptr, hide, LIGHT_CULL_FLAGS::Game);
+						// only our lights keep cull flags in ambient.red; another light's ambient is its real color, so it is only hidden
+						if (std::string_view(a_light->name.c_str()).starts_with(LightData::LP_LIGHT)) {
+							LightData::CullLight(a_light, nullptr, hide, LIGHT_CULL_FLAGS::Game);
+						} else {
+							a_light->SetAppCulled(hide);
+						}
 						return RE::BSVisit::BSVisitControl::kContinue;
 					});
 				}

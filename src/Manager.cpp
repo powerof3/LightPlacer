@@ -634,6 +634,18 @@ void LightManager::ProcessCollectedLights(const SourceAttachData& a_srcAttachDat
 		}
 	}
 
+	// a harvestable plant's switch picks its picked / unpicked look; only there does a point light follow the switch
+	const bool followSwitch = [&] {
+		const auto base = a_srcAttachData.type == SOURCE_TYPE::kRef && a_srcAttachData.ref ? a_srcAttachData.ref->GetBaseObject() : nullptr;
+		if (const auto flora = base ? base->As<RE::TESFlora>() : nullptr) {
+			return flora->produceItem != nullptr;
+		}
+		if (const auto tree = base ? base->As<RE::TESObjectTREE>() : nullptr) {
+			return tree->produceItem != nullptr;
+		}
+		return false;
+	}();
+
 	auto processLightGroup = [&](auto& groups) {
 		for (const auto& group : groups) {
 			const auto& [entries, lightDef, path] = *group;
@@ -642,8 +654,8 @@ void LightManager::ProcessCollectedLights(const SourceAttachData& a_srcAttachDat
 
 			if constexpr (std::is_same_v<std::decay_t<decltype(groups)>, std::vector<Config::PointPlacementPtr>>) {
 				for (const auto& [i, point] : std::views::enumerate(entries)) {
-					if (auto node = lightDef.GetOrCreateNode(a_srcAttachData.attachNode, point, *path, LP_INDEX)) {
-						AttachLight(lightDefPtr, a_srcAttachData, node, *path, LP_INDEX, false);
+					if (auto node = lightDef.GetOrCreateNode(a_srcAttachData.attachNode, point, *path, LP_INDEX, followSwitch)) {
+						AttachLight(lightDefPtr, a_srcAttachData, node, *path, LP_INDEX, RE::IsUnderInactiveSwitchNode(node, a_srcAttachData.attachNode));
 					}
 					++LP_INDEX;
 				}
