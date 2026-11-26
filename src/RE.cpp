@@ -1,7 +1,5 @@
 #include "RE.h"
 
-#include "ClibUtil/editorID.hpp"
-
 namespace RE
 {
 	FormID GetFormID(const std::string& a_str)
@@ -99,7 +97,7 @@ namespace RE
 			if (actor->Is3rdPersonVisible()) {
 				return a_actorMagicCaster->castingArtData.attachedArt.get();  // GetMagicNode doesn't properly detach on first attach
 			} else if (auto node = a_actorMagicCaster->GetMagicNode()) {
-				if (auto castingNode = RE::GetObjectByName(actor->Get3D(false), node->name)) {
+				if (auto castingNode = GetObjectByName(actor->Get3D(false), node->name)) {
 					return castingNode->AsNode();
 				}
 			}
@@ -107,7 +105,7 @@ namespace RE
 		return a_actorMagicCaster->GetMagicNode();
 	}
 
-	NiAVObject* GetObjectByName(RE::NiAVObject* a_root, std::string_view a_name)
+	NiAVObject* GetObjectByName(NiAVObject* a_root, std::string_view a_name)
 	{
 		if (!a_root) {
 			return nullptr;
@@ -115,12 +113,12 @@ namespace RE
 
 		NiAVObject* object = nullptr;
 
-		RE::BSVisit::TraverseScenegraphObjects(a_root, [a_name, &object](RE::NiAVObject* a_object) -> RE::BSVisit::BSVisitControl {
+		BSVisit::TraverseScenegraphObjects(a_root, [a_name, &object](NiAVObject* a_object) -> BSVisit::BSVisitControl {
 			if (a_object->name == a_name) {
 				object = a_object;
-				return RE::BSVisit::BSVisitControl::kStop;
+				return BSVisit::BSVisitControl::kStop;
 			}
-			return RE::BSVisit::BSVisitControl::kContinue;
+			return BSVisit::BSVisitControl::kContinue;
 		});
 
 		return object;
@@ -130,6 +128,30 @@ namespace RE
 	{
 		auto file = a_ref->GetDescriptionOwnerFile();
 		return file && (strcmp(file->fileName, "DynDOLOD.esm") == 0 || strcmp(file->fileName, "DynDOLOD.esp") == 0);
+	}
+
+	std::pair<NiNode*, NiTransform> GetPointAttachNode(NiNode* a_root)
+	{
+		NiSwitchNode* switchNode = nullptr;
+		BSVisit::TraverseScenegraphObjects(a_root, [&](NiAVObject* a_obj) {
+			switchNode = a_obj->AsSwitchNode();
+			return switchNode ? BSVisit::BSVisitControl::kStop : BSVisit::BSVisitControl::kContinue;
+		});
+
+		auto child = switchNode && !switchNode->children.empty() && switchNode->children[0] ? switchNode->children[0]->AsNode() : nullptr;
+		if (!child) {
+			return { a_root, NiTransform() };
+		}
+
+		NiTransform rootFromChild{};
+		for (const NiAVObject* obj = child; obj && obj != a_root; obj = obj->parent) {
+			rootFromChild = obj->local * rootFromChild;
+		}
+
+		if (!std::isfinite(rootFromChild.scale) || rootFromChild.scale <= 0.0f) {
+			return { a_root, NiTransform() };
+		}
+		return { child, rootFromChild.Invert() };
 	}
 
 	bool IsUnderInactiveSwitchNode(NiAVObject* a_obj, const NiAVObject* a_attachNode)
@@ -1194,129 +1216,129 @@ namespace RE
 		return NiCosQImpl((512.0f / NI_TWO_PI) * a_radians);
 	}
 
-	RE::OBJECT_TYPE StringToObjectType(std::string_view a_str)
+	OBJECT_TYPE StringToObjectType(std::string_view a_str)
 	{
-		static constexpr frozen::unordered_map<std::string_view, RE::OBJECT_TYPE, 103> objectTypeNames = {
-			{ "Activator", RE::OBJECT_TYPE::kActivator },
-			{ "Armor", RE::OBJECT_TYPE::kArmor },
-			{ "Book", RE::OBJECT_TYPE::kBook },
-			{ "Container", RE::OBJECT_TYPE::kContainer },
-			{ "Door", RE::OBJECT_TYPE::kDoor },
-			{ "Ingredient", RE::OBJECT_TYPE::kIngredient },
-			{ "Light", RE::OBJECT_TYPE::kLight },
-			{ "MiscItem", RE::OBJECT_TYPE::kMiscItem },
-			{ "Static", RE::OBJECT_TYPE::kStatic },
-			{ "Grass", RE::OBJECT_TYPE::kGrass },
-			{ "Tree", RE::OBJECT_TYPE::kTree },
-			{ "Weapon", RE::OBJECT_TYPE::kWeapon },
-			{ "Actor", RE::OBJECT_TYPE::kActor },
-			{ "LeveledCharacter", RE::OBJECT_TYPE::kLeveledCharacter },
-			{ "Spell", RE::OBJECT_TYPE::kSpell },
-			{ "Enchantment", RE::OBJECT_TYPE::kEnchantment },
-			{ "Potion", RE::OBJECT_TYPE::kPotion },
-			{ "LeveledItem", RE::OBJECT_TYPE::kLeveledItem },
-			{ "Key", RE::OBJECT_TYPE::kKey },
-			{ "Ammo", RE::OBJECT_TYPE::kAmmo },
-			{ "Flora", RE::OBJECT_TYPE::kFlora },
-			{ "Furniture", RE::OBJECT_TYPE::kFurniture },
-			{ "Sound Marker", RE::OBJECT_TYPE::kSoundMarker },
-			{ "LandTexture", RE::OBJECT_TYPE::kLandTexture },
-			{ "CombatStyle", RE::OBJECT_TYPE::kCombatStyle },
-			{ "LoadScreen", RE::OBJECT_TYPE::kLoadScreen },
-			{ "LeveledSpell", RE::OBJECT_TYPE::kLeveledSpell },
-			{ "AnimObject", RE::OBJECT_TYPE::kAnimObject },
-			{ "WaterType", RE::OBJECT_TYPE::kWaterType },
-			{ "IdleMarker", RE::OBJECT_TYPE::kIdleMarker },
-			{ "EffectShader", RE::OBJECT_TYPE::kEffectShader },
-			{ "Projectile", RE::OBJECT_TYPE::kProjectile },
-			{ "TalkingActivator", RE::OBJECT_TYPE::kTalkingActivator },
-			{ "Explosion", RE::OBJECT_TYPE::kExplosion },
-			{ "TextureSet", RE::OBJECT_TYPE::kTextureSet },
-			{ "Debris", RE::OBJECT_TYPE::kDebris },
-			{ "MenuIcon", RE::OBJECT_TYPE::kMenuIcon },
-			{ "FormList", RE::OBJECT_TYPE::kFormList },
-			{ "Perk", RE::OBJECT_TYPE::kPerk },
-			{ "BodyPartData", RE::OBJECT_TYPE::kBodyPartData },
-			{ "AddOnNode", RE::OBJECT_TYPE::kAddOnNode },
-			{ "MovableStatic", RE::OBJECT_TYPE::kMovableStatic },
-			{ "CameraShot", RE::OBJECT_TYPE::kCameraShot },
-			{ "ImpactData", RE::OBJECT_TYPE::kImpactData },
-			{ "ImpactDataSet", RE::OBJECT_TYPE::kImpactDataSet },
-			{ "Quest", RE::OBJECT_TYPE::kQuest },
-			{ "Package", RE::OBJECT_TYPE::kPackage },
-			{ "VoiceType", RE::OBJECT_TYPE::kVoiceType },
-			{ "Class", RE::OBJECT_TYPE::kClass },
-			{ "Race", RE::OBJECT_TYPE::kRace },
-			{ "Eyes", RE::OBJECT_TYPE::kEyes },
-			{ "HeadPart", RE::OBJECT_TYPE::kHeadPart },
-			{ "Faction", RE::OBJECT_TYPE::kFaction },
-			{ "Note", RE::OBJECT_TYPE::kNote },
-			{ "Weather", RE::OBJECT_TYPE::kWeather },
-			{ "Climate", RE::OBJECT_TYPE::kClimate },
-			{ "ArmorAddon", RE::OBJECT_TYPE::kArmorAddon },
-			{ "Global", RE::OBJECT_TYPE::kGlobal },
-			{ "Imagespace", RE::OBJECT_TYPE::kImagespace },
-			{ "Imagespace Modifier", RE::OBJECT_TYPE::kImagespaceModifier },
-			{ "Encounter Zone", RE::OBJECT_TYPE::kEncounterZone },
-			{ "Message", RE::OBJECT_TYPE::kMessage },
-			{ "Constructible Object", RE::OBJECT_TYPE::kConstructibleObject },
-			{ "Acoustic Space", RE::OBJECT_TYPE::kAcousticSpace },
-			{ "Ragdoll", RE::OBJECT_TYPE::kRagdoll },
-			{ "Script", RE::OBJECT_TYPE::kScript },
-			{ "Magic Effect", RE::OBJECT_TYPE::kMagicEffect },
-			{ "Music Type", RE::OBJECT_TYPE::kMusicType },
-			{ "Static Collection", RE::OBJECT_TYPE::kStaticCollection },
-			{ "Keyword", RE::OBJECT_TYPE::kKeyword },
-			{ "Location", RE::OBJECT_TYPE::kLocation },
-			{ "Location Ref Type", RE::OBJECT_TYPE::kLocationRefType },
-			{ "Footstep", RE::OBJECT_TYPE::kFootstep },
-			{ "Footstep Set", RE::OBJECT_TYPE::kFootstepSet },
-			{ "Material Type", RE::OBJECT_TYPE::kMaterialType },
-			{ "Actor Action", RE::OBJECT_TYPE::kActorAction },
-			{ "Music Track", RE::OBJECT_TYPE::kMusicTrack },
-			{ "Word of Power", RE::OBJECT_TYPE::kWordofPower },
-			{ "Shout", RE::OBJECT_TYPE::kShout },
-			{ "Relationship", RE::OBJECT_TYPE::kRelationship },
-			{ "Equip Slot", RE::OBJECT_TYPE::kEquipSlot },
-			{ "Association Type", RE::OBJECT_TYPE::kAssociationType },
-			{ "Outfit", RE::OBJECT_TYPE::kOutfit },
-			{ "Art Object", RE::OBJECT_TYPE::kArtObject },
-			{ "Material Object", RE::OBJECT_TYPE::kMaterialObject },
-			{ "Lighting Template", RE::OBJECT_TYPE::kLightingTemplate },
-			{ "Shader Particle Geometry", RE::OBJECT_TYPE::kShaderParticleGeometry },
-			{ "Visual Effect", RE::OBJECT_TYPE::kVisualEffect },
-			{ "Apparatus", RE::OBJECT_TYPE::kApparatus },
-			{ "Movement Type", RE::OBJECT_TYPE::kMovementType },
-			{ "Hazard", RE::OBJECT_TYPE::kHazard },
-			{ "SM Event Node", RE::OBJECT_TYPE::kSMEventNode },
-			{ "Sound Descriptor", RE::OBJECT_TYPE::kSoundDescriptor },
-			{ "Dual Cast Data", RE::OBJECT_TYPE::kDualCastData },
-			{ "Sound Category", RE::OBJECT_TYPE::kSoundCategory },
-			{ "Soul Gem", RE::OBJECT_TYPE::kSoulGem },
-			{ "Sound Output Model", RE::OBJECT_TYPE::kSoundOutputModel },
-			{ "Collision Layer", RE::OBJECT_TYPE::kCollisionLayer },
-			{ "Scroll", RE::OBJECT_TYPE::kScroll },
-			{ "ColorForm", RE::OBJECT_TYPE::kColorForm },
-			{ "Reverb Parameters", RE::OBJECT_TYPE::kReverbParameters },
-			{ "LensFlare", RE::OBJECT_TYPE::kLensFlare },
-			{ "VolumetricLighting", RE::OBJECT_TYPE::kVolumetricLighting },
+		static constexpr frozen::unordered_map<std::string_view, OBJECT_TYPE, 103> objectTypeNames = {
+			{ "Activator", OBJECT_TYPE::kActivator },
+			{ "Armor", OBJECT_TYPE::kArmor },
+			{ "Book", OBJECT_TYPE::kBook },
+			{ "Container", OBJECT_TYPE::kContainer },
+			{ "Door", OBJECT_TYPE::kDoor },
+			{ "Ingredient", OBJECT_TYPE::kIngredient },
+			{ "Light", OBJECT_TYPE::kLight },
+			{ "MiscItem", OBJECT_TYPE::kMiscItem },
+			{ "Static", OBJECT_TYPE::kStatic },
+			{ "Grass", OBJECT_TYPE::kGrass },
+			{ "Tree", OBJECT_TYPE::kTree },
+			{ "Weapon", OBJECT_TYPE::kWeapon },
+			{ "Actor", OBJECT_TYPE::kActor },
+			{ "LeveledCharacter", OBJECT_TYPE::kLeveledCharacter },
+			{ "Spell", OBJECT_TYPE::kSpell },
+			{ "Enchantment", OBJECT_TYPE::kEnchantment },
+			{ "Potion", OBJECT_TYPE::kPotion },
+			{ "LeveledItem", OBJECT_TYPE::kLeveledItem },
+			{ "Key", OBJECT_TYPE::kKey },
+			{ "Ammo", OBJECT_TYPE::kAmmo },
+			{ "Flora", OBJECT_TYPE::kFlora },
+			{ "Furniture", OBJECT_TYPE::kFurniture },
+			{ "Sound Marker", OBJECT_TYPE::kSoundMarker },
+			{ "LandTexture", OBJECT_TYPE::kLandTexture },
+			{ "CombatStyle", OBJECT_TYPE::kCombatStyle },
+			{ "LoadScreen", OBJECT_TYPE::kLoadScreen },
+			{ "LeveledSpell", OBJECT_TYPE::kLeveledSpell },
+			{ "AnimObject", OBJECT_TYPE::kAnimObject },
+			{ "WaterType", OBJECT_TYPE::kWaterType },
+			{ "IdleMarker", OBJECT_TYPE::kIdleMarker },
+			{ "EffectShader", OBJECT_TYPE::kEffectShader },
+			{ "Projectile", OBJECT_TYPE::kProjectile },
+			{ "TalkingActivator", OBJECT_TYPE::kTalkingActivator },
+			{ "Explosion", OBJECT_TYPE::kExplosion },
+			{ "TextureSet", OBJECT_TYPE::kTextureSet },
+			{ "Debris", OBJECT_TYPE::kDebris },
+			{ "MenuIcon", OBJECT_TYPE::kMenuIcon },
+			{ "FormList", OBJECT_TYPE::kFormList },
+			{ "Perk", OBJECT_TYPE::kPerk },
+			{ "BodyPartData", OBJECT_TYPE::kBodyPartData },
+			{ "AddOnNode", OBJECT_TYPE::kAddOnNode },
+			{ "MovableStatic", OBJECT_TYPE::kMovableStatic },
+			{ "CameraShot", OBJECT_TYPE::kCameraShot },
+			{ "ImpactData", OBJECT_TYPE::kImpactData },
+			{ "ImpactDataSet", OBJECT_TYPE::kImpactDataSet },
+			{ "Quest", OBJECT_TYPE::kQuest },
+			{ "Package", OBJECT_TYPE::kPackage },
+			{ "VoiceType", OBJECT_TYPE::kVoiceType },
+			{ "Class", OBJECT_TYPE::kClass },
+			{ "Race", OBJECT_TYPE::kRace },
+			{ "Eyes", OBJECT_TYPE::kEyes },
+			{ "HeadPart", OBJECT_TYPE::kHeadPart },
+			{ "Faction", OBJECT_TYPE::kFaction },
+			{ "Note", OBJECT_TYPE::kNote },
+			{ "Weather", OBJECT_TYPE::kWeather },
+			{ "Climate", OBJECT_TYPE::kClimate },
+			{ "ArmorAddon", OBJECT_TYPE::kArmorAddon },
+			{ "Global", OBJECT_TYPE::kGlobal },
+			{ "Imagespace", OBJECT_TYPE::kImagespace },
+			{ "Imagespace Modifier", OBJECT_TYPE::kImagespaceModifier },
+			{ "Encounter Zone", OBJECT_TYPE::kEncounterZone },
+			{ "Message", OBJECT_TYPE::kMessage },
+			{ "Constructible Object", OBJECT_TYPE::kConstructibleObject },
+			{ "Acoustic Space", OBJECT_TYPE::kAcousticSpace },
+			{ "Ragdoll", OBJECT_TYPE::kRagdoll },
+			{ "Script", OBJECT_TYPE::kScript },
+			{ "Magic Effect", OBJECT_TYPE::kMagicEffect },
+			{ "Music Type", OBJECT_TYPE::kMusicType },
+			{ "Static Collection", OBJECT_TYPE::kStaticCollection },
+			{ "Keyword", OBJECT_TYPE::kKeyword },
+			{ "Location", OBJECT_TYPE::kLocation },
+			{ "Location Ref Type", OBJECT_TYPE::kLocationRefType },
+			{ "Footstep", OBJECT_TYPE::kFootstep },
+			{ "Footstep Set", OBJECT_TYPE::kFootstepSet },
+			{ "Material Type", OBJECT_TYPE::kMaterialType },
+			{ "Actor Action", OBJECT_TYPE::kActorAction },
+			{ "Music Track", OBJECT_TYPE::kMusicTrack },
+			{ "Word of Power", OBJECT_TYPE::kWordofPower },
+			{ "Shout", OBJECT_TYPE::kShout },
+			{ "Relationship", OBJECT_TYPE::kRelationship },
+			{ "Equip Slot", OBJECT_TYPE::kEquipSlot },
+			{ "Association Type", OBJECT_TYPE::kAssociationType },
+			{ "Outfit", OBJECT_TYPE::kOutfit },
+			{ "Art Object", OBJECT_TYPE::kArtObject },
+			{ "Material Object", OBJECT_TYPE::kMaterialObject },
+			{ "Lighting Template", OBJECT_TYPE::kLightingTemplate },
+			{ "Shader Particle Geometry", OBJECT_TYPE::kShaderParticleGeometry },
+			{ "Visual Effect", OBJECT_TYPE::kVisualEffect },
+			{ "Apparatus", OBJECT_TYPE::kApparatus },
+			{ "Movement Type", OBJECT_TYPE::kMovementType },
+			{ "Hazard", OBJECT_TYPE::kHazard },
+			{ "SM Event Node", OBJECT_TYPE::kSMEventNode },
+			{ "Sound Descriptor", OBJECT_TYPE::kSoundDescriptor },
+			{ "Dual Cast Data", OBJECT_TYPE::kDualCastData },
+			{ "Sound Category", OBJECT_TYPE::kSoundCategory },
+			{ "Soul Gem", OBJECT_TYPE::kSoulGem },
+			{ "Sound Output Model", OBJECT_TYPE::kSoundOutputModel },
+			{ "Collision Layer", OBJECT_TYPE::kCollisionLayer },
+			{ "Scroll", OBJECT_TYPE::kScroll },
+			{ "ColorForm", OBJECT_TYPE::kColorForm },
+			{ "Reverb Parameters", OBJECT_TYPE::kReverbParameters },
+			{ "LensFlare", OBJECT_TYPE::kLensFlare },
+			{ "VolumetricLighting", OBJECT_TYPE::kVolumetricLighting },
 		};
 
 		if (const auto it = objectTypeNames.find(a_str); it != objectTypeNames.end()) {
 			return it->second;
 		}
 
-		if (const auto formType = RE::StringToFormType(a_str); formType != RE::FormType::None) {
-			return RE::FormTypeToObjectType(formType);
+		if (const auto formType = StringToFormType(a_str); formType != FormType::None) {
+			return FormTypeToObjectType(formType);
 		}
 
-		return RE::OBJECT_TYPE::kInvalid;
+		return OBJECT_TYPE::kInvalid;
 	}
 
 	NiMatrix3 ToMatrix(const NiPoint3& a_point)
 	{
 		NiMatrix3 input;
-		input.SetEulerAnglesXYZ(RE::deg_to_rad(a_point.x), RE::deg_to_rad(a_point.y), RE::deg_to_rad(a_point.z));
+		input.SetEulerAnglesXYZ(deg_to_rad(a_point.x), deg_to_rad(a_point.y), deg_to_rad(a_point.z));
 		return input;
 	}
 
@@ -1334,7 +1356,7 @@ namespace RE
 		func(a_light, a_ptLight, a_ref, a_wantDimmer);
 	}
 
-	void UpdateRegionEmittance(RE::NiColor& a_color, RE::TESRegion* a_region)
+	void UpdateRegionEmittance(NiColor& a_color, TESRegion* a_region)
 	{
 		using namespace literals;
 
@@ -1365,12 +1387,12 @@ namespace RE
 	void WrapRotation(NiPoint3& a_rotation)
 	{
 		constexpr auto wrap_angle = [](float& angle) {
-			angle = RE::deg_to_rad(angle);
-			while (angle > RE::NI_TWO_PI) {
-				angle -= RE::NI_TWO_PI;
+			angle = deg_to_rad(angle);
+			while (angle > NI_TWO_PI) {
+				angle -= NI_TWO_PI;
 			}
 			while (angle < 0) {
-				angle += RE::NI_TWO_PI;
+				angle += NI_TWO_PI;
 			}
 		};
 

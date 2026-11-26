@@ -446,36 +446,10 @@ bool LIGH::LightDefinition::RequireUpdates() const
 	return data.conditions || HasControllers() || !data.light->GetNoFlicker();
 }
 
-namespace
-{
-	// A point light on a model with a switch node hangs under the switch's first child, so the switch culls it with that child's
-	// geometry; the returned transform carries a root-space placement into that child's space.
-	std::pair<RE::NiNode*, RE::NiTransform> GetPointAttachNode(RE::NiNode* a_root)
-	{
-		RE::NiSwitchNode* switchNode = nullptr;
-		RE::BSVisit::TraverseScenegraphObjects(a_root, [&](RE::NiAVObject* a_obj) {
-			switchNode = a_obj->AsSwitchNode();
-			return switchNode ? RE::BSVisit::BSVisitControl::kStop : RE::BSVisit::BSVisitControl::kContinue;
-		});
-		auto* child = switchNode && !switchNode->children.empty() && switchNode->children[0] ? switchNode->children[0]->AsNode() : nullptr;
-		if (!child) {
-			return { a_root, RE::NiTransform() };
-		}
-		RE::NiTransform rootFromChild;
-		for (const RE::NiAVObject* obj = child; obj && obj != a_root; obj = obj->parent) {
-			rootFromChild = obj->local * rootFromChild;
-		}
-		if (!std::isfinite(rootFromChild.scale) || rootFromChild.scale <= 0.0f) {
-			return { a_root, RE::NiTransform() };
-		}
-		return { child, rootFromChild.Invert() };
-	}
-}
-
 RE::NiNode* LIGH::LightDefinition::GetOrCreateNode(RE::NiNode* a_root, const RE::NiPoint3& a_point, const std::string& path, std::uint32_t a_index, bool a_followSwitch) const
 {
 	if (a_root) {
-		const auto [parent, toParent] = a_followSwitch ? GetPointAttachNode(a_root) : std::pair{ a_root, RE::NiTransform() };
+		const auto [parent, toParent] = a_followSwitch ? RE::GetPointAttachNode(a_root) : std::pair{ a_root, RE::NiTransform() };
 		if (parent == a_root && a_point == RE::NiPoint3::Zero() && IsStaticLight()) {
 			return a_root;
 		}

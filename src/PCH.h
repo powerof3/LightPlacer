@@ -26,6 +26,8 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <xbyak/xbyak.h>
 
+#include "ClibUtil/editorID.hpp"
+
 #undef ERROR
 
 namespace dist = clib_util::distribution;

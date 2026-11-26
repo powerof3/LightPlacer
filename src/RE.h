@@ -88,23 +88,24 @@ namespace RE
 		return formID != 0 ? TESForm::LookupByID<T>(formID) : nullptr;
 	}
 
-	NiAVObject*     GetChildByName(NiNode* a_parent, std::string_view a_name);
-	NiAVObject*     GetReferenceAttachRoot(ReferenceEffect* a_referenceEffect);
-	TESBoundObject* GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
-	BGSArtObject*   GetCastingArt(const MagicItem* a_magicItem);
-	BGSArtObject*   GetCastingArt(const ActorMagicCaster* a_actorMagicCaster);
-	NiNode*         GetCastingArtNode(ActorMagicCaster* a_actorMagicCaster);
-	NiAVObject*     GetObjectByName(RE::NiAVObject* a_root, std::string_view a_name);
-	bool            IsDynDOLODForm(const TESObjectREFR* a_ref);
-	bool            IsUnderInactiveSwitchNode(NiAVObject* a_obj, const NiAVObject* a_attachNode);
-	float           NiSinQImpl(float a_value);
-	float           NiCosQImpl(float a_value);
-	float           NiSinQ(float a_radians);
-	float           NiCosQ(float a_radians);
-	RE::OBJECT_TYPE StringToObjectType(std::string_view a_str);
-	NiMatrix3       ToMatrix(const NiPoint3& a_point);
-	bool            ToggleMasterParticleAddonNodes(const NiNode* a_node, bool a_enable);
-	void            UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer);
-	void            UpdateRegionEmittance(RE::NiColor& a_color, RE::TESRegion* a_region);
-	void            WrapRotation(NiPoint3& a_rotation);
+	NiAVObject*                             GetChildByName(NiNode* a_parent, std::string_view a_name);
+	NiAVObject*                             GetReferenceAttachRoot(ReferenceEffect* a_referenceEffect);
+	TESBoundObject*                         GetReferenceEffectBase(const TESObjectREFRPtr& a_ref, const ReferenceEffect* a_referenceEffect);
+	BGSArtObject*                           GetCastingArt(const MagicItem* a_magicItem);
+	BGSArtObject*                           GetCastingArt(const ActorMagicCaster* a_actorMagicCaster);
+	NiNode*                                 GetCastingArtNode(ActorMagicCaster* a_actorMagicCaster);
+	NiAVObject*                             GetObjectByName(NiAVObject* a_root, std::string_view a_name);
+	bool                                    IsDynDOLODForm(const TESObjectREFR* a_ref);
+	std::pair<NiNode*, NiTransform> GetPointAttachNode(NiNode* a_root);
+	bool                                    IsUnderInactiveSwitchNode(NiAVObject* a_obj, const NiAVObject* a_attachNode);
+	float                                   NiSinQImpl(float a_value);
+	float                                   NiCosQImpl(float a_value);
+	float                                   NiSinQ(float a_radians);
+	float                                   NiCosQ(float a_radians);
+	OBJECT_TYPE                         StringToObjectType(std::string_view a_str);
+	NiMatrix3                               ToMatrix(const NiPoint3& a_point);
+	bool                                    ToggleMasterParticleAddonNodes(const NiNode* a_node, bool a_enable);
+	void                                    UpdateLight(TESObjectLIGH* a_light, const NiPointer<NiPointLight>& a_ptLight, TESObjectREFR* a_ref, float a_wantDimmer);
+	void                                    UpdateRegionEmittance(NiColor& a_color, TESRegion* a_region);
+	void                                    WrapRotation(NiPoint3& a_rotation);
 }
