@@ -1,7 +1,7 @@
 #include "ConfigData.h"
 #include "SourceData.h"
 
-void Config::Filter::PostProcess()
+bool Config::Filter::PostProcess(std::string_view a_path, std::string_view a_light)
 {
 	constexpr auto post_process = [](StringSet& a_stringSet, FlatSet<RE::FormID>& a_FormIDSet) {
 		for (auto& str : a_stringSet) {
@@ -13,7 +13,16 @@ void Config::Filter::PostProcess()
 	};
 
 	post_process(blackList, blackListForms);
+
+	if (whiteList.empty()) {
+		return true;
+	}
 	post_process(whiteList, whiteListForms);
+	if (whiteListForms.empty()) {
+		REX::INFO("\t{} ({}): whiteList matched no loaded form, entry dropped", a_path, a_light);
+		return false;
+	}
+	return true;
 }
 
 bool Config::Filter::IsInvalid(const SourceAttachData& a_srcData) const
@@ -59,14 +68,14 @@ void Config::PostProcess(LightEntries& a_lightEntries, const std::shared_ptr<con
 					   [&](Config::PointEntry& pointEntry) {
 						   failedPostProcess = !pointEntry.get().PostProcess();
 						   if (!failedPostProcess) {
-							   pointEntry.filter.PostProcess();
+							   failedPostProcess = !pointEntry.filter.PostProcess(*a_path, pointEntry.get().lightEDID);
 							   pointEntry.data.path = a_path;
 						   }
 					   },
 					   [&](Config::NodeEntry& nodeEntry) {
 						   failedPostProcess = !nodeEntry.get().PostProcess();
 						   if (!failedPostProcess) {
-							   nodeEntry.filter.PostProcess();
+							   failedPostProcess = !nodeEntry.filter.PostProcess(*a_path, nodeEntry.get().lightEDID);
 							   nodeEntry.data.path = a_path;
 						   }
 					   } },
@@ -80,7 +89,7 @@ void Config::PostProcess(Config::AddonEntries& a_addonLights)
 	std::erase_if(a_addonLights, [&](auto& filterData) {
 		bool failedPostProcess = !filterData.data.PostProcess();
 		if (!failedPostProcess) {
-			filterData.filter.PostProcess();
+			failedPostProcess = !filterData.filter.PostProcess("addon entry", filterData.data.lightEDID);
 		}
 		return failedPostProcess;
 	});
